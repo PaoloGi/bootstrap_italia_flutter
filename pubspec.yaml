@@ -1,0 +1,60 @@
+name: bootstrap_italia
+description: Bootstrap Italia design system for Flutter — PA-compliant UI components for Italian government apps.
+version: 0.1.0
+homepage: https://github.com/nicoursi/bootstrap-italia-flutter
+repository: https://github.com/nicoursi/bootstrap-italia-flutter
+issue_tracker: https://github.com/nicoursi/bootstrap-italia-flutter/issues
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+  flutter: ">=3.22.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  bootstrap_italia_icons: ^0.0.3
+  bootstrap_icons: ^1.11.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  fonts:
+    - family: TitilliumWeb
+      fonts:
+        - asset: fonts/TitilliumWeb-Light.ttf
+          weight: 300
+        - asset: fonts/TitilliumWeb-Regular.ttf
+          weight: 400
+        - asset: fonts/TitilliumWeb-SemiBold.ttf
+          weight: 600
+        - asset: fonts/TitilliumWeb-Bold.ttf
+          weight: 700
+        - asset: fonts/TitilliumWeb-LightItalic.ttf
+          weight: 300
+          style: italic
+        - asset: fonts/TitilliumWeb-Italic.ttf
+          weight: 400
+          style: italic
+        - asset: fonts/TitilliumWeb-SemiBoldItalic.ttf
+          weight: 600
+          style: italic
+        - asset: fonts/TitilliumWeb-BoldItalic.ttf
+          weight: 700
+          style: italic
+    - family: Lora
+      fonts:
+        - asset: fonts/Lora-Regular.ttf
+          weight: 400
+        - asset: fonts/Lora-Italic.ttf
+          weight: 400
+          style: italic
+    - family: RobotoMono
+      fonts:
+        - asset: fonts/RobotoMono-Regular.ttf
+          weight: 400
+        - asset: fonts/RobotoMono-Italic.ttf
+          weight: 400
+          style: italic

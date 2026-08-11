@@ -1,4 +1,6 @@
-import 'package:bootstrap_italia/bootstrap_italia.dart';
+import 'package:bootstrap_italia_icons/bootstrap_italia_icons.dart';
+import 'package:bootstrap_italia_flutter/bootstrap_italia_flutter.dart';
+import 'package:bootstrap_italia_flutter/src/components/spinner/progress_spinner.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -60,11 +62,17 @@ void main() {
 
       await tester.tap(find.text('Loading'));
       expect(pressed, isFalse);
-      // Should show a CircularProgressIndicator
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      // The loading affordance is Bootstrap Italia's own painted spinner, not
+      // Material's CircularProgressIndicator (doc/adr/0001).
+      expect(find.byType(ItProgressSpinner), findsOneWidget);
     });
 
-    testWidgets('outline variant renders OutlinedButton', (tester) async {
+    testWidgets('outline variant draws a ring and no fill', (tester) async {
+      // Asserts the rendered result, not the widget type: ItButton no longer
+      // wraps a Material OutlinedButton (see doc/adr/0001). The outline ring is
+      // a foregroundDecoration because `.btn-outline-*` uses an INSET box-shadow
+      // that consumes no layout space — a laid-out border would make an outline
+      // button larger than the solid button it has to match.
       await tester.pumpWidget(_wrap(
         ItButton(
           outline: true,
@@ -73,7 +81,22 @@ void main() {
         ),
       ));
 
-      expect(find.byType(OutlinedButton), findsOneWidget);
+      final container = tester.widget<Container>(
+        find
+            .descendant(
+              of: find.byType(ItButton),
+              matching: find.byType(Container),
+            )
+            .first,
+      );
+      final ring = container.foregroundDecoration! as BoxDecoration;
+      expect(ring.border, isNotNull, reason: 'outline must paint a ring');
+      expect((ring.border! as Border).top.width, 2);
+      expect(
+        (container.decoration! as BoxDecoration).color?.a,
+        0,
+        reason: 'outline buttons have no fill until hovered',
+      );
     });
 
     testWidgets('block variant takes full width', (tester) async {
@@ -160,7 +183,7 @@ void main() {
   group('ItAlert', () {
     testWidgets('renders content', (tester) async {
       await tester.pumpWidget(_wrap(
-        const ItAlert(child: Text('Alert message')),
+        const ItAlert(body: Text('Alert message')),
       ));
 
       expect(find.text('Alert message'), findsOneWidget);
@@ -170,7 +193,7 @@ void main() {
       await tester.pumpWidget(_wrap(
         const ItAlert(
           title: 'Attenzione',
-          child: Text('Details'),
+          body: Text('Details'),
         ),
       ));
 
@@ -182,7 +205,7 @@ void main() {
       await tester.pumpWidget(_wrap(
         const ItAlert(
           icon: Icons.info,
-          child: Text('Info'),
+          body: Text('Info'),
         ),
       ));
 
@@ -195,13 +218,13 @@ void main() {
         ItAlert(
           dismissible: true,
           onDismissed: () => dismissed = true,
-          child: const Text('Dismiss me'),
+          body: const Text('Dismiss me'),
         ),
       ));
 
       expect(find.text('Dismiss me'), findsOneWidget);
 
-      await tester.tap(find.byIcon(Icons.close));
+      await tester.tap(find.byIcon(BootstrapItaliaIcons.it_close));
       await tester.pumpAndSettle();
 
       expect(dismissed, isTrue);
@@ -209,16 +232,48 @@ void main() {
   });
 
   group('ItSpinner', () {
-    testWidgets('renders CircularProgressIndicator', (tester) async {
+    testWidgets('paints the .progress-spinner figure', (tester) async {
       await tester.pumpWidget(_wrap(const ItSpinner()));
 
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      final spinner =
+          tester.widget<ItProgressSpinner>(find.byType(ItProgressSpinner));
+      expect(spinner.doubleRing, isFalse);
+      // `.progress-spinner { width: 48px; height: 48px }` is the default size.
+      expect(spinner.diameter, 48);
+      // `border: 4px solid hsl(210,3%,85%)` — the track is always painted,
+      // which is what distinguishes the CSS figure from Material's trackless
+      // indeterminate arc.
+      expect(spinner.trackColor, kItSpinnerTrackColor);
     });
 
-    testWidgets('active variant shows two indicators', (tester) async {
-      await tester.pumpWidget(_wrap(const ItSpinner(active: true)));
+    testWidgets('spins by default — a static loading indicator is not one',
+        (tester) async {
+      await tester.pumpWidget(_wrap(const ItSpinner()));
+      final s =
+          tester.widget<ItProgressSpinner>(find.byType(ItProgressSpinner));
+      expect(s.animating, isTrue);
+      expect(s.doubleRing, isFalse,
+          reason: 'the plain animating spinner is the commonest case and used '
+              'to be unreachable: one flag drove both CSS modifiers');
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
 
-      expect(find.byType(CircularProgressIndicator), findsNWidgets(2));
+    testWidgets('animating and doubleRing are independent', (tester) async {
+      await tester.pumpWidget(_wrap(const ItSpinner(animating: false)));
+      final s =
+          tester.widget<ItProgressSpinner>(find.byType(ItProgressSpinner));
+      expect(s.animating, isFalse);
+      await tester.pumpAndSettle(); // would hang if a resting spinner ticked
+    });
+
+    testWidgets('active variant paints .progress-spinner-double',
+        (tester) async {
+      await tester.pumpWidget(_wrap(const ItSpinner(doubleRing: true)));
+
+      final spinner =
+          tester.widget<ItProgressSpinner>(find.byType(ItProgressSpinner));
+      expect(spinner.doubleRing, isTrue);
     });
 
     testWidgets('has accessibility label', (tester) async {
@@ -238,12 +293,12 @@ void main() {
       ));
 
       final icon = tester.widget<Icon>(find.byType(Icon));
-      expect(icon.size, ItIconSize.md.value);
+      expect(icon.size, ItIconSize.medium.value);
     });
 
     testWidgets('renders with custom size', (tester) async {
       await tester.pumpWidget(_wrap(
-        const ItIcon(Icons.home, size: ItIconSize.xl),
+        const ItIcon(Icons.home, size: ItIconSize.extraLarge),
       ));
 
       final icon = tester.widget<Icon>(find.byType(Icon));
@@ -279,23 +334,23 @@ void main() {
 
     testWidgets('dismissible shows close icon', (tester) async {
       await tester.pumpWidget(_wrap(
-        ItChip(label: 'Remove', dismissible: true, onDismissed: () {}),
+        ItChip(label: 'Remove', dismissible: true, onDismiss: () {}),
       ));
 
-      expect(find.byIcon(Icons.close), findsOneWidget);
+      expect(find.byIcon(BootstrapItaliaIcons.it_close), findsOneWidget);
     });
 
-    testWidgets('calls onDismissed when close tapped', (tester) async {
+    testWidgets('calls onDismiss when close tapped', (tester) async {
       var dismissed = false;
       await tester.pumpWidget(_wrap(
         ItChip(
           label: 'Remove',
           dismissible: true,
-          onDismissed: () => dismissed = true,
+          onDismiss: () => dismissed = true,
         ),
       ));
 
-      await tester.tap(find.byIcon(Icons.close));
+      await tester.tap(find.byIcon(BootstrapItaliaIcons.it_close));
       expect(dismissed, isTrue);
     });
 

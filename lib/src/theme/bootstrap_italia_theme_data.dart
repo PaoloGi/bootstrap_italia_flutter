@@ -24,6 +24,38 @@ class BootstrapItaliaThemeData {
     );
   }
 
+  /// Strips the letter-spacing Material's default typography would otherwise
+  /// contribute.
+  ///
+  /// `ThemeData(textTheme: ...)` MERGES onto Material's defaults rather than
+  /// replacing them, so any field we leave null inherits Material's tracking —
+  /// `bodyMedium` 0.25px, `bodyLarge` 0.5px, `titleMedium` 0.15px. That leaks
+  /// into every `Text` through the ambient `DefaultTextStyle`, widening a
+  /// 39-character line by ~10px. Bootstrap Italia sets letter-spacing only in a
+  /// handful of scoped rules (uppercase labels and similar); body copy is the
+  /// browser default of zero, so we zero it across the board here and let
+  /// individual components opt back in.
+  static TextTheme _withoutLetterSpacing(TextTheme t) {
+    TextStyle? f(TextStyle? s) => s?.copyWith(letterSpacing: 0);
+    return t.copyWith(
+      displayLarge: f(t.displayLarge),
+      displayMedium: f(t.displayMedium),
+      displaySmall: f(t.displaySmall),
+      headlineLarge: f(t.headlineLarge),
+      headlineMedium: f(t.headlineMedium),
+      headlineSmall: f(t.headlineSmall),
+      titleLarge: f(t.titleLarge),
+      titleMedium: f(t.titleMedium),
+      titleSmall: f(t.titleSmall),
+      bodyLarge: f(t.bodyLarge),
+      bodyMedium: f(t.bodyMedium),
+      bodySmall: f(t.bodySmall),
+      labelLarge: f(t.labelLarge),
+      labelMedium: f(t.labelMedium),
+      labelSmall: f(t.labelSmall),
+    );
+  }
+
   /// Converts this theme to a Material [ThemeData] for compatibility.
   ///
   /// This allows Bootstrap Italia components to work alongside Material widgets
@@ -31,7 +63,7 @@ class BootstrapItaliaThemeData {
   ThemeData toThemeData({Brightness brightness = Brightness.light}) {
     const typography = BootstrapItaliaTypography.desktop;
 
-    return ThemeData(
+    final base = ThemeData(
       useMaterial3: true,
       brightness: brightness,
       primaryColor: colors.primary,
@@ -47,6 +79,13 @@ class BootstrapItaliaThemeData {
         onSurface: colors.bodyColor,
       ),
       scaffoldBackgroundColor: colors.bodyBg,
+      // Bootstrap Italia has no ripple: interaction is expressed purely through
+      // colour transitions (`--bs-btn-hover-bg`, `--bs-btn-active-bg`). Material's
+      // default InkSparkle is both wrong for the design system and a liability —
+      // it loads `shaders/ink_sparkle.frag`, which fails outright on engine/
+      // framework artifact mismatches and takes any test that taps a Material
+      // widget down with it.
+      splashFactory: NoSplash.splashFactory,
       fontFamily: BootstrapItaliaFontFamily.sansSerif,
       package: BootstrapItaliaFontFamily.package,
       textTheme: TextTheme(
@@ -81,6 +120,10 @@ class BootstrapItaliaThemeData {
         ),
       ),
     );
+
+    // Applied after construction so it also covers the styles we never set
+    // (labelLarge and friends), which come wholly from Material's defaults.
+    return base.copyWith(textTheme: _withoutLetterSpacing(base.textTheme));
   }
 
   /// Creates a copy of this theme with the given overrides.
@@ -91,6 +134,42 @@ class BootstrapItaliaThemeData {
       colors: colors ?? this.colors,
     );
   }
+}
+
+/// The semantic colour roles a component variant can map onto.
+///
+/// Bootstrap Italia gives several components the same eight-way colour choice
+/// (`.btn-primary`, `.badge-primary`, `.alert-primary`, ...). Each component
+/// declares its own enum, because not all of them offer all eight — an alert
+/// has no `light` or `dark`. This enum is the shared vocabulary those component
+/// enums translate *into*, via the `.variantColor` extensions next to each one.
+///
+/// The translation is deliberately a per-component exhaustive switch rather
+/// than a name lookup: it is what makes an unmapped variant fail to compile.
+enum ItVariantColor {
+  /// `--bs-primary`, hsl(210, 100%, 40%).
+  primary,
+
+  /// `--bs-secondary`, hsl(210, 17%, 44%).
+  secondary,
+
+  /// `--bs-success`, hsl(160, 100%, 25%).
+  success,
+
+  /// `--bs-info`, hsl(210, 17%, 44%).
+  info,
+
+  /// `--bs-warning`, hsl(36, 100%, 30%).
+  warning,
+
+  /// `--bs-danger`, hsl(350, 60%, 50%).
+  danger,
+
+  /// `--bs-light`, hsl(255, 32.2%, 92.6%).
+  light,
+
+  /// `--bs-dark`, hsl(210, 54%, 20%).
+  dark,
 }
 
 /// Color scheme for Bootstrap Italia.
@@ -199,88 +278,46 @@ class BootstrapItaliaColorScheme {
     gray400: BootstrapItaliaColors.gray400,
   );
 
-  /// Returns the color for the given [variant] name.
+  /// Returns the colour for the given semantic [variant].
   ///
-  /// This eliminates the need for switch statements in components.
-  /// Supports: primary, secondary, success, info, warning, danger, light, dark.
-  Color forVariant(String variant) {
+  /// Takes an [ItVariantColor] rather than a string. It previously took
+  /// `variant.name` from four unrelated component enums and fell through to
+  /// `primary` on anything unrecognised, so a typo or a newly-added enum value
+  /// rendered as primary with no error anywhere — the component looked
+  /// deliberately blue. With an enum the switch is exhaustive, so adding a
+  /// variant that has no colour is a compile error at every call site.
+  Color forVariant(ItVariantColor variant) {
     return switch (variant) {
-      'primary' => primary,
-      'secondary' => secondary,
-      'success' => success,
-      'info' => info,
-      'warning' => warning,
-      'danger' => danger,
-      'light' => light,
-      'dark' => dark,
-      _ => primary,
+      ItVariantColor.primary => primary,
+      ItVariantColor.secondary => secondary,
+      ItVariantColor.success => success,
+      ItVariantColor.info => info,
+      ItVariantColor.warning => warning,
+      ItVariantColor.danger => danger,
+      ItVariantColor.light => light,
+      ItVariantColor.dark => dark,
     };
   }
 
-  /// Returns the foreground (text) color to use on top of [variant].
-  Color foregroundForVariant(String variant) {
-    return switch (variant) {
-      'light' => dark,
-      'warning' => white,
-      _ => white,
-    };
-  }
-
-  /// Returns alert-specific colors (background, foreground, border) for
-  /// the given variant.
+  /// Returns the foreground (text) colour to place on top of [variant].
   ///
-  /// Derived from Bootstrap Italia base colors using Bootstrap 5's alert
-  /// formula: bg = tint-color(80%), border = tint-color(60%),
-  /// text = shade-color(40%).
-  ({Color background, Color foreground, Color border}) alertColorsForVariant(
-      String variant) {
+  /// Listed exhaustively rather than defaulting to white, so that a new variant
+  /// has to state its foreground instead of inheriting one that may not meet
+  /// §1.4.3 Contrast (Minimum) against its fill.
+  Color foregroundForVariant(ItVariantColor variant) {
     return switch (variant) {
-      'primary' => (
-          background: const Color(0xFFCCE0F5),
-          foreground: const Color(0xFF003D7A),
-          border: const Color(0xFF99C2EB),
-        ),
-      'secondary' => (
-          background: const Color(0xFFDEE3E7),
-          foreground: const Color(0xFF38434F),
-          border: const Color(0xFFBEC6CE),
-        ),
-      'success' => (
-          background: const Color(0xFFCCE6DD),
-          foreground: const Color(0xFF004D33),
-          border: const Color(0xFF99CCBB),
-        ),
-      'danger' => (
-          background: const Color(0xFFF5D6DC),
-          foreground: const Color(0xFF7A1F2E),
-          border: const Color(0xFFEBADB8),
-        ),
-      'warning' => (
-          background: const Color(0xFFEBDFCC),
-          foreground: const Color(0xFF5C3700),
-          border: const Color(0xFFD6BE99),
-        ),
-      'info' || _ => (
-          background: const Color(0xFFDEE3E7),
-          foreground: const Color(0xFF38434F),
-          border: const Color(0xFFBEC6CE),
-        ),
-    };
-  }
-
-  /// Returns callout-specific colors (accent, background) for the given variant.
-  ///
-  /// Variant mapping follows Bootstrap Italia's _callout.scss:
-  /// success → $success, warning → $warning, danger → $danger,
-  /// important → $success, note → $primary.
-  ({Color accent, Color background}) calloutColorsForVariant(String variant) {
-    return switch (variant) {
-      'success' => (accent: success, background: const Color(0xFFF2F9F6)),
-      'warning' => (accent: warning, background: const Color(0xFFFAF6F2)),
-      'danger' => (accent: danger, background: const Color(0xFFFCF4F6)),
-      'important' => (accent: success, background: const Color(0xFFF2F9F6)),
-      'note' => (accent: primary, background: const Color(0xFFF2F7FC)),
-      _ => (accent: primary, background: const Color(0xFFF2F7FC)),
+      // `.btn-light` is a near-white fill; white on white is unreadable.
+      ItVariantColor.light => dark,
+      ItVariantColor.primary ||
+      ItVariantColor.secondary ||
+      ItVariantColor.success ||
+      ItVariantColor.info ||
+      // hsl(36, 100%, 30%) is dark enough for white (5.07:1), unlike
+      // Bootstrap 5's yellow warning, which is not.
+      ItVariantColor.warning ||
+      ItVariantColor.danger ||
+      ItVariantColor.dark =>
+        white,
     };
   }
 

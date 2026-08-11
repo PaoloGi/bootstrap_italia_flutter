@@ -1,4 +1,4 @@
-import 'package:bootstrap_italia/bootstrap_italia.dart';
+import 'package:bootstrap_italia_flutter/bootstrap_italia_flutter.dart';
 import 'package:flutter/material.dart';
 
 import '../../widgets/component_page.dart';
@@ -18,11 +18,11 @@ class SpinnerPage extends StatelessWidget {
         ),
         ExampleSection(
           title: 'Piccolo',
-          child: const ItSpinner(size: ItSpinnerSize.sm),
+          child: const ItSpinner(size: ItSpinnerSize.small),
         ),
         ExampleSection(
           title: 'Attivo',
-          child: const ItSpinner(active: true),
+          child: const ItSpinner(doubleRing: true),
         ),
         ExampleSection(
           title: 'Colori',

@@ -1,4 +1,5 @@
-import 'package:bootstrap_italia/bootstrap_italia.dart';
+import 'package:bootstrap_italia_icons/bootstrap_italia_icons.dart';
+import 'package:bootstrap_italia_flutter/bootstrap_italia_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -150,7 +151,7 @@ void main() {
         ),
       ));
 
-      expect(find.byIcon(Icons.search), findsOneWidget);
+      expect(find.byType(ItSearchGlyph), findsOneWidget);
     });
 
     testWidgets('calls onSearchTap', (tester) async {
@@ -163,7 +164,7 @@ void main() {
         ),
       ));
 
-      await tester.tap(find.byIcon(Icons.search));
+      await tester.tap(find.byType(ItSearchGlyph));
       expect(tapped, isTrue);
     });
 
@@ -219,7 +220,7 @@ void main() {
         ),
       ));
 
-      expect(find.byIcon(Icons.menu), findsOneWidget);
+      expect(find.byIcon(BootstrapItaliaIcons.it_burger), findsOneWidget);
     });
 
     testWidgets('calls onTap on nav item', (tester) async {
@@ -302,7 +303,7 @@ void main() {
         ),
       ));
 
-      expect(find.text('Sezione 1'), findsOneWidget);
+      expect(find.text('SEZIONE 1'), findsOneWidget);
       expect(find.text('Link A'), findsOneWidget);
       expect(find.text('Link B'), findsOneWidget);
     });
@@ -312,12 +313,12 @@ void main() {
         const ItFooter(
           institutionName: 'Test',
           socialLinks: [
-            ItFooterSocialLink(icon: Icons.facebook, label: 'Facebook'),
+            ItSocialLink(icon: Icons.facebook, label: 'Facebook'),
           ],
         ),
       ));
 
-      expect(find.text('Seguici su'), findsOneWidget);
+      expect(find.text('SEGUICI SU'), findsOneWidget);
       expect(find.byIcon(Icons.facebook), findsOneWidget);
     });
 
@@ -372,9 +373,15 @@ void main() {
         ),
       );
 
-      // FAB exists but with opacity 0
-      final fab = find.byType(FloatingActionButton);
-      expect(fab, findsOneWidget);
+      // The circle exists but is fully transparent.
+      expect(find.byType(ItBackToTopButton), findsOneWidget);
+      final opacity = tester.widget<AnimatedOpacity>(
+        find.ancestor(
+          of: find.byType(ItBackToTopButton),
+          matching: find.byType(AnimatedOpacity),
+        ),
+      );
+      expect(opacity.opacity, 0.0);
     });
 
     testWidgets('appears after scrolling', (tester) async {
@@ -399,8 +406,14 @@ void main() {
       controller.jumpTo(300);
       await tester.pumpAndSettle();
 
-      // The FAB should now be visible
-      expect(find.byType(FloatingActionButton), findsOneWidget);
+      // The circle should now be fully opaque.
+      final opacity = tester.widget<AnimatedOpacity>(
+        find.ancestor(
+          of: find.byType(ItBackToTopButton),
+          matching: find.byType(AnimatedOpacity),
+        ),
+      );
+      expect(opacity.opacity, 1.0);
     });
 
     testWidgets('has accessibility semantics', (tester) async {
@@ -422,8 +435,12 @@ void main() {
         ),
       );
 
-      // The Semantics widget wraps the FAB
-      expect(find.byType(FloatingActionButton), findsOneWidget);
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is Semantics && w.properties.label == 'Torna su',
+        ),
+        findsOneWidget,
+      );
     });
   });
 }

@@ -1,0 +1,96 @@
+{
+  "generated": null,
+  "wcag": "2.2 AA",
+  "keys": {
+    "button_primary": {
+      "flutter": {},
+      "react": {},
+      "notAssessable": {
+        "color-contrast": "Flutter Web paints to a canvas; the semantics tree is a transparent overlay, so axe cannot sample pixels. Audited deterministically instead in test/a11y/contrast_audit_test.dart."
+      },
+      "flutterSemantics": [
+        {
+          "role": "button",
+          "name": "Bottone",
+          "tabindex": "0",
+          "disabled": null,
+          "checked": null
+        }
+      ],
+      "oursOnly": [],
+      "sharedWithUpstream": []
+    },
+    "checkbox_unchecked": {
+      "flutter": {},
+      "react": {},
+      "notAssessable": {
+        "color-contrast": "Flutter Web paints to a canvas; the semantics tree is a transparent overlay, so axe cannot sample pixels. Audited deterministically instead in test/a11y/contrast_audit_test.dart."
+      },
+      "flutterSemantics": [
+        {
+          "role": "button",
+          "name": "Checkbox",
+          "tabindex": null,
+          "disabled": null,
+          "checked": null
+        }
+      ],
+      "oursOnly": [],
+      "sharedWithUpstream": []
+    },
+    "toggle_off": {
+      "flutter": {},
+      "react": {},
+      "notAssessable": {
+        "color-contrast": "Flutter Web paints to a canvas; the semantics tree is a transparent overlay, so axe cannot sample pixels. Audited deterministically instead in test/a11y/contrast_audit_test.dart."
+      },
+      "flutterSemantics": [
+        {
+          "role": "button",
+          "name": "Toggle",
+          "tabindex": null,
+          "disabled": null,
+          "checked": null
+        }
+      ],
+      "oursOnly": [],
+      "sharedWithUpstream": []
+    },
+    "input_default": {
+      "flutter": {
+        "label": {
+          "impact": "critical",
+          "help": "Form elements must have labels",
+          "nodes": 1
+        }
+      },
+      "react": {},
+      "notAssessable": {
+        "color-contrast": "Flutter Web paints to a canvas; the semantics tree is a transparent overlay, so axe cannot sample pixels. Audited deterministically instead in test/a11y/contrast_audit_test.dart."
+      },
+      "flutterSemantics": [],
+      "oursOnly": [
+        "label"
+      ],
+      "sharedWithUpstream": []
+    },
+    "accordion_collapsed": {
+      "flutter": {},
+      "react": {},
+      "notAssessable": {
+        "color-contrast": "Flutter Web paints to a canvas; the semantics tree is a transparent overlay, so axe cannot sample pixels. Audited deterministically instead in test/a11y/contrast_audit_test.dart."
+      },
+      "flutterSemantics": [
+        {
+          "role": "button",
+          "name": "Accordion Item #1",
+          "tabindex": "0",
+          "disabled": null,
+          "checked": null
+        }
+      ],
+      "oursOnly": [],
+      "sharedWithUpstream": []
+    }
+  }
+}

@@ -1,21 +1,24 @@
 import 'package:flutter/widgets.dart';
 
 /// Predefined icon sizes for Bootstrap Italia.
+///
+/// Spelled out rather than carrying the `.icon-sm` / `.icon-lg` suffixes. See
+/// [ItButtonSize].
 enum ItIconSize {
-  /// Extra small: 16px.
-  xs(16),
+  /// Extra small: 16px (`.icon-xs`).
+  extraSmall(16),
 
-  /// Small: 24px.
-  sm(24),
+  /// Small: 24px (`.icon-sm`).
+  small(24),
 
-  /// Medium: 32px. Default.
-  md(32),
+  /// Medium: 32px — the base `.icon`. Default.
+  medium(32),
 
-  /// Large: 48px.
-  lg(48),
+  /// Large: 48px (`.icon-lg`).
+  large(48),
 
-  /// Extra large: 64px.
-  xl(64);
+  /// Extra large: 64px (`.icon-xl`).
+  extraLarge(64);
 
   /// The size in logical pixels.
   final double value;
@@ -29,15 +32,15 @@ enum ItIconSize {
 /// Works with both `bootstrap_italia_icons` and `bootstrap_icons` icon data.
 ///
 /// ```dart
-/// ItIcon(BootstrapItaliaIcons.document)
-/// ItIcon(BootstrapIcons.house, size: ItIconSize.lg)
+/// ItIcon(BootstrapItaliaIcons.it_file)
+/// ItIcon(BootstrapIcons.house, size: ItIconSize.large)
 /// ItIcon(Icons.check, color: BootstrapItaliaColors.success)
 /// ```
 class ItIcon extends StatelessWidget {
   /// The icon to display.
   final IconData icon;
 
-  /// The size of the icon. Defaults to [ItIconSize.md] (32px).
+  /// The size of the icon. Defaults to [ItIconSize.medium] (32px).
   final ItIconSize size;
 
   /// Custom size in logical pixels. Overrides [size] if provided.
@@ -53,7 +56,7 @@ class ItIcon extends StatelessWidget {
   const ItIcon(
     this.icon, {
     super.key,
-    this.size = ItIconSize.md,
+    this.size = ItIconSize.medium,
     this.customSize,
     this.color,
     this.semanticLabel,

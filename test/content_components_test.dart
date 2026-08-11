@@ -1,4 +1,5 @@
-import 'package:bootstrap_italia/bootstrap_italia.dart';
+import 'package:bootstrap_italia_icons/bootstrap_italia_icons.dart';
+import 'package:bootstrap_italia_flutter/bootstrap_italia_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -82,9 +83,9 @@ void main() {
       await tester.pumpWidget(_wrap(
         const ItAccordion(
           items: [
-            ItAccordionItem(title: 'Section 1', child: Text('Body 1')),
-            ItAccordionItem(title: 'Section 2', child: Text('Body 2')),
-            ItAccordionItem(title: 'Section 3', child: Text('Body 3')),
+            ItAccordionItem(title: 'Section 1', body: Text('Body 1')),
+            ItAccordionItem(title: 'Section 2', body: Text('Body 2')),
+            ItAccordionItem(title: 'Section 3', body: Text('Body 3')),
           ],
         ),
       ));
@@ -98,7 +99,7 @@ void main() {
       await tester.pumpWidget(_wrap(
         const ItAccordion(
           items: [
-            ItAccordionItem(title: 'Section 1', child: Text('Body 1')),
+            ItAccordionItem(title: 'Section 1', body: Text('Body 1')),
           ],
         ),
       ));
@@ -116,10 +117,10 @@ void main() {
           items: [
             ItAccordionItem(
               title: 'Section 1',
-              child: Text('Body 1'),
+              body: Text('Body 1'),
               initiallyExpanded: true,
             ),
-            ItAccordionItem(title: 'Section 2', child: Text('Body 2')),
+            ItAccordionItem(title: 'Section 2', body: Text('Body 2')),
           ],
         ),
       ));
@@ -141,10 +142,10 @@ void main() {
           items: [
             ItAccordionItem(
               title: 'Section 1',
-              child: Text('Body 1'),
+              body: Text('Body 1'),
               initiallyExpanded: true,
             ),
-            ItAccordionItem(title: 'Section 2', child: Text('Body 2')),
+            ItAccordionItem(title: 'Section 2', body: Text('Body 2')),
           ],
         ),
       ));
@@ -377,6 +378,8 @@ void main() {
       ));
 
       expect(find.byIcon(Icons.folder), findsOneWidget);
+      // Deliberately a Material icon: this asserts the public `trailing`
+      // parameter still accepts any icon set, not just the bundled one.
       expect(find.byIcon(Icons.chevron_right), findsOneWidget);
     });
 
@@ -416,7 +419,7 @@ void main() {
   group('ItCallout', () {
     testWidgets('renders content', (tester) async {
       await tester.pumpWidget(_wrap(
-        const ItCallout(child: Text('Important info')),
+        const ItCallout(body: Text('Important info')),
       ));
 
       expect(find.text('Important info'), findsOneWidget);
@@ -427,18 +430,19 @@ void main() {
         const ItCallout(
           variant: ItCalloutVariant.success,
           title: 'Nota bene',
-          child: Text('Content'),
+          body: Text('Content'),
         ),
       ));
 
-      expect(find.text('Nota bene'), findsOneWidget);
-      expect(find.byIcon(Icons.check_circle_outline), findsOneWidget);
+      // `.callout .callout-title { text-transform: uppercase }`
+      expect(find.text('NOTA BENE'), findsOneWidget);
+      expect(find.byIcon(BootstrapItaliaIcons.it_check_circle), findsOneWidget);
     });
 
     testWidgets('all variants render', (tester) async {
       for (final variant in ItCalloutVariant.values) {
         await tester.pumpWidget(_wrap(
-          ItCallout(variant: variant, child: const Text('V')),
+          ItCallout(variant: variant, body: const Text('V')),
         ));
         expect(find.text('V'), findsOneWidget);
       }
@@ -450,7 +454,7 @@ void main() {
           title: 'Toggle me',
           collapsible: true,
           initiallyExpanded: true,
-          child: Text('Hidden content'),
+          body: Text('Hidden content'),
         ),
       ));
       await tester.pumpAndSettle();
@@ -458,7 +462,7 @@ void main() {
       expect(find.text('Hidden content'), findsOneWidget);
 
       // Tap title to collapse
-      await tester.tap(find.text('Toggle me'));
+      await tester.tap(find.text('TOGGLE ME'));
       await tester.pumpAndSettle();
 
       // Content should be collapsed (size 0)

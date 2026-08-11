@@ -1,3 +1,4 @@
+import 'package:flutter/semantics.dart';
 import 'package:flutter/widgets.dart';
 
 /// A Bootstrap Italia tab view that displays the content for the selected tab.
@@ -50,15 +51,26 @@ class ItTabView extends StatelessWidget {
       'selectedIndex ($selectedIndex) must be within children range (0..${children.length - 1})',
     );
 
+    // §1.3.1 / §4.1.2: the visible pane is the `tabpanel` that the selected
+    // tab controls. Without the role AT reads it as unrelated content and the
+    // tab/panel relationship is lost.
     if (!animated) {
-      return children[selectedIndex];
+      return Semantics(
+        container: true,
+        role: SemanticsRole.tabPanel,
+        child: children[selectedIndex],
+      );
     }
 
-    return AnimatedSwitcher(
-      duration: duration,
-      child: KeyedSubtree(
-        key: ValueKey<int>(selectedIndex),
-        child: children[selectedIndex],
+    return Semantics(
+      container: true,
+      role: SemanticsRole.tabPanel,
+      child: AnimatedSwitcher(
+        duration: duration,
+        child: KeyedSubtree(
+          key: ValueKey<int>(selectedIndex),
+          child: children[selectedIndex],
+        ),
       ),
     );
   }

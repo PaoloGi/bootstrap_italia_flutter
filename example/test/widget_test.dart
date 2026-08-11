@@ -1,30 +1,22 @@
-// This is a basic Flutter widget test.
+// Smoke test for the catalog app.
 //
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
+// This replaces the `flutter create` counter-app template, which referenced a
+// nonexistent `MyApp` and could not compile — 17 analyzer errors that were
+// invisible because the example was never analysed in CI.
+//
+// The value here is integration: it is the only test that boots the whole
+// catalog, so it catches an export missing from `bootstrap_italia.dart` or a
+// breaking constructor change that the package's own unit tests, which import
+// widgets directly, would not notice.
+import 'package:bootstrap_italia_example/app.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:bootstrap_italia_example/main.dart';
-
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('catalog boots and renders its home page', (tester) async {
+    await tester.pumpWidget(const BootstrapItaliaCatalog());
+    await tester.pumpAndSettle();
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    expect(find.text('Bootstrap Italia Flutter'), findsWidgets);
   });
 }

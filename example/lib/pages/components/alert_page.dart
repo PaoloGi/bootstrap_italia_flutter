@@ -1,4 +1,4 @@
-import 'package:bootstrap_italia/bootstrap_italia.dart';
+import 'package:bootstrap_italia_flutter/bootstrap_italia_flutter.dart';
 import 'package:flutter/material.dart';
 
 import '../../widgets/component_page.dart';
@@ -27,7 +27,7 @@ class _AlertPageState extends State<AlertPage> {
                       padding: const EdgeInsets.only(bottom: 16),
                       child: ItAlert(
                         variant: v,
-                        child: Text('Questo è un alert ${v.name}.'),
+                        body: Text('Questo è un alert ${v.name}.'),
                       ),
                     ))
                 .toList(),
@@ -39,7 +39,7 @@ class _AlertPageState extends State<AlertPage> {
             variant: ItAlertVariant.success,
             icon: Icons.check_circle,
             title: 'Operazione completata',
-            child: const Text('Il documento è stato salvato con successo.'),
+            body: const Text('Il documento è stato salvato con successo.'),
           ),
         ),
         ExampleSection(
@@ -51,8 +51,8 @@ class _AlertPageState extends State<AlertPage> {
                   title: 'Attenzione',
                   dismissible: true,
                   onDismissed: () => setState(() => _showDismissible = false),
-                  child: const Text(
-                      'Questo alert può essere chiuso. Premi la X.'),
+                  body:
+                      const Text('Questo alert può essere chiuso. Premi la X.'),
                 )
               : ItButton(
                   variant: ItButtonVariant.secondary,

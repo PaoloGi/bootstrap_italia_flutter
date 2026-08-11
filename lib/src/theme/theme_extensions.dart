@@ -14,9 +14,15 @@ extension BootstrapItaliaContext on BuildContext {
   BootstrapItaliaThemeData get bootstrapItaliaTheme =>
       BootstrapItaliaTheme.of(this);
 
-  /// The color scheme from the nearest Bootstrap Italia theme.
-  BootstrapItaliaColorScheme get itColors =>
-      BootstrapItaliaTheme.of(this).colors;
+  /// The colour scheme from the nearest Bootstrap Italia theme.
+  ///
+  /// Delegates to [resolveColorScheme] rather than reading the theme directly.
+  /// The two used to differ on the case that matters: this getter threw when
+  /// there was no [BootstrapItaliaTheme] ancestor, while the function every
+  /// component actually calls falls back to the standard scheme. So a component
+  /// rendered outside the theme worked, and a consumer's identical-looking call
+  /// crashed. One concept, one behaviour.
+  BootstrapItaliaColorScheme get itColors => resolveColorScheme(this);
 
   /// Responsive typography for the current screen width.
   BootstrapItaliaTypography get itTypography =>

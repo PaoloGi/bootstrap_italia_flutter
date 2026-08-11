@@ -1,0 +1,86 @@
+{
+  "card_simple": {
+    "storyId": "documentazione-componenti-cards--editorial-standard",
+    "width": 1000,
+    "height": 800,
+    "selector": ".row > div:nth-child(3) > article.it-card"
+  },
+  "card_body": {
+    "storyId": "documentazione-componenti-cards--editorial-standard",
+    "width": 1000,
+    "height": 800,
+    "selector": ".row > div:nth-child(3) .it-card-body"
+  },
+  "card_footer_category": {
+    "storyId": "documentazione-componenti-cards--editorial-standard",
+    "width": 1000,
+    "height": 800,
+    "selector": ".row > div:nth-child(1) footer.it-card-related"
+  },
+  "accordion_collapsed": {
+    "storyId": "documentazione-componenti-accordion--accordion",
+    "width": 1000,
+    "height": 400,
+    "selector": ".accordion"
+  },
+  "accordion_groups": {
+    "storyId": "documentazione-componenti-accordion--gruppi-di-elementi-richiudibili",
+    "width": 1000,
+    "height": 400,
+    "selector": ".accordion"
+  },
+  "tab_textual": {
+    "storyId": "documentazione-componenti-tab--testuale",
+    "width": 1000,
+    "height": 300,
+    "selector": "ul.nav-tabs"
+  },
+  "tab_icon_text": {
+    "storyId": "documentazione-componenti-tab--testo-icona",
+    "width": 1000,
+    "height": 300,
+    "selector": "ul.nav-tabs"
+  },
+  "tab_panel": {
+    "storyId": "documentazione-componenti-tab--testuale-pannel",
+    "width": 1000,
+    "height": 400,
+    "selector": "#storybook-root"
+  },
+  "list_active": {
+    "storyId": "documentazione-organizzare-i-contenuti-liste--stato-attivo",
+    "width": 1000,
+    "height": 400,
+    "selector": "ul.link-list"
+  },
+  "list_disabled": {
+    "storyId": "documentazione-organizzare-i-contenuti-liste--stato-disabilitato",
+    "width": 1000,
+    "height": 400,
+    "selector": "ul.link-list"
+  },
+  "list_multiline": {
+    "storyId": "documentazione-organizzare-i-contenuti-liste--esempio-multiline",
+    "width": 1000,
+    "height": 500,
+    "selector": "ul.link-list"
+  },
+  "callout_basic": {
+    "storyId": "documentazione-componenti-callout--esempio-basico",
+    "width": 1000,
+    "height": 400,
+    "selector": ".callout-inner"
+  },
+  "callout_icon": {
+    "storyId": "documentazione-componenti-callout--esempio-con-icona",
+    "width": 1000,
+    "height": 400,
+    "selector": ".callout-inner"
+  },
+  "callout_success": {
+    "storyId": "documentazione-componenti-callout--callout-varianti-colore",
+    "width": 1000,
+    "height": 400,
+    "selector": ".callout-inner"
+  }
+}

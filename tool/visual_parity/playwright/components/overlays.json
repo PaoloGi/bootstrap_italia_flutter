@@ -1,0 +1,80 @@
+{
+  "notification_standard": {
+    "storyId": "documentazione-componenti-notification--notification-with-message-static",
+    "width": 1400,
+    "height": 800,
+    "selector": ".notification:not(.with-icon)"
+  },
+  "notification_success": {
+    "storyId": "documentazione-componenti-notification--notification-with-message-static",
+    "width": 1400,
+    "height": 800,
+    "selector": ".notification.with-icon"
+  },
+  "notification_error": {
+    "storyId": "documentazione-componenti-notification--states",
+    "width": 1400,
+    "height": 800,
+    "selector": ".notification.error"
+  },
+  "notification_info": {
+    "storyId": "documentazione-componenti-notification--states",
+    "width": 1400,
+    "height": 800,
+    "selector": ".notification.info"
+  },
+  "notification_warning": {
+    "storyId": "documentazione-componenti-notification--states",
+    "width": 1400,
+    "height": 800,
+    "selector": ".notification.warning"
+  },
+  "dropdown_menu_headers": {
+    "storyId": "documentazione-componenti-dropdown--menu-headers-e-separatori",
+    "width": 332,
+    "height": 700,
+    "selector": ".dropdown-menu"
+  },
+  "dropdown_menu_icons": {
+    "storyId": "documentazione-componenti-dropdown--menu-icona-a-sinistra",
+    "width": 332,
+    "height": 700,
+    "selector": ".dropdown-menu"
+  },
+  "dropdown_menu_disabled": {
+    "storyId": "documentazione-componenti-dropdown--menu-voci-disabilitate",
+    "width": 332,
+    "height": 700,
+    "selector": ".dropdown-menu"
+  },
+  "dropdown_menu_active": {
+    "storyId": "documentazione-componenti-dropdown--menu-voci-attive",
+    "width": 332,
+    "height": 700,
+    "selector": ".dropdown-menu"
+  },
+  "modal_base": {
+    "storyId": "documentazione-componenti-modale--modale-base",
+    "width": 900,
+    "height": 700,
+    "selector": ".modal-content",
+    "click": true,
+    "note": "modal only renders after clicking the story's trigger button"
+  },
+  "modal_close_button": {
+    "storyId": "documentazione-componenti-modale--modale-base-con-bottone-chiusura",
+    "width": 900,
+    "height": 700,
+    "selector": ".modal-content",
+    "click": true,
+    "note": "modal only renders after clicking the story's trigger button"
+  },
+  "modal_icon": {
+    "storyId": "documentazione-componenti-modale--modale-con-icona",
+    "width": 900,
+    "height": 700,
+    "selector": ".modal-content",
+    "click": true,
+    "note": "modal only renders after clicking the story's trigger button"
+  }
+}

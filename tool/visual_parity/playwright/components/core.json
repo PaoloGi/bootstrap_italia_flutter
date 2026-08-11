@@ -1,0 +1,84 @@
+{
+  "button_primary": {
+    "storyId": "documentazione-componenti-button--esempio-interattivo",
+    "width": 400,
+    "height": 200
+  },
+  "button_primary_outline": {
+    "storyId": "documentazione-componenti-button--esempio-interattivo",
+    "width": 400,
+    "height": 200,
+    "args": {
+      "outline": "true"
+    }
+  },
+  "button_secondary_solid": {
+    "storyId": "documentazione-componenti-button--esempio-interattivo",
+    "width": 400,
+    "height": 200,
+    "args": {
+      "color": "secondary"
+    }
+  },
+  "button_secondary_outline": {
+    "storyId": "documentazione-componenti-button--esempio-interattivo",
+    "width": 400,
+    "height": 200,
+    "args": {
+      "color": "secondary",
+      "outline": "true"
+    }
+  },
+  "badge_primary": {
+    "storyId": "documentazione-componenti-badge--variazioni",
+    "width": 900,
+    "height": 200,
+    "selector": ".badge.bg-primary"
+  },
+  "badge_secondary": {
+    "storyId": "documentazione-componenti-badge--variazioni",
+    "width": 900,
+    "height": 200,
+    "selector": ".badge.bg-secondary"
+  },
+  "badge_success": {
+    "storyId": "documentazione-componenti-badge--variazioni",
+    "width": 900,
+    "height": 200,
+    "selector": ".badge.bg-success"
+  },
+  "badge_danger": {
+    "storyId": "documentazione-componenti-badge--variazioni",
+    "width": 900,
+    "height": 200,
+    "selector": ".badge.bg-danger"
+  },
+  "badge_pill": {
+    "storyId": "documentazione-componenti-badge--esempio-interattivo",
+    "width": 400,
+    "height": 200,
+    "args": {
+      "pill": "true"
+    },
+    "selector": ".badge"
+  },
+  "alert_success": {
+    "storyId": "documentazione-componenti-alert--esempi-interattivi",
+    "width": 900,
+    "height": 500,
+    "selector": ".alert"
+  },
+  "chip_simple": {
+    "storyId": "documentazione-componenti-chips--esempi",
+    "width": 900,
+    "height": 500,
+    "selector": ".chip.chip-simple"
+  },
+  "spinner_default": {
+    "storyId": "documentazione-componenti-spinner--esempio",
+    "width": 400,
+    "height": 220,
+    "selector": ".progress-spinner",
+    "note": "static ring; the active variant animates so it cannot be diffed deterministically"
+  }
+}

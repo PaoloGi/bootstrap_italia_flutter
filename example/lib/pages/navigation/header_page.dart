@@ -1,4 +1,4 @@
-import 'package:bootstrap_italia/bootstrap_italia.dart';
+import 'package:bootstrap_italia_flutter/bootstrap_italia_flutter.dart';
 import 'package:flutter/material.dart';
 
 import '../../widgets/component_page.dart';
@@ -36,8 +36,7 @@ class HeaderPage extends StatelessWidget {
           title: 'Nav Header',
           child: ItNavHeader(
             items: [
-              ItNavItem(
-                  label: 'Amministrazione', active: true, onTap: () {}),
+              ItNavItem(label: 'Amministrazione', active: true, onTap: () {}),
               ItNavItem(label: 'Servizi', onTap: () {}),
               ItNavItem(label: 'Novità', onTap: () {}),
               ItNavItem(label: 'Documenti', onTap: () {}),
@@ -62,8 +61,7 @@ class HeaderPage extends StatelessWidget {
             ),
             navHeader: ItNavHeader(
               items: [
-                ItNavItem(
-                    label: 'Amministrazione', active: true, onTap: () {}),
+                ItNavItem(label: 'Amministrazione', active: true, onTap: () {}),
                 ItNavItem(label: 'Servizi', onTap: () {}),
                 ItNavItem(label: 'Novità', onTap: () {}),
               ],

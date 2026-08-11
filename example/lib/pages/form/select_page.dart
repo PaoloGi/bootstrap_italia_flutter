@@ -1,4 +1,4 @@
-import 'package:bootstrap_italia/bootstrap_italia.dart';
+import 'package:bootstrap_italia_flutter/bootstrap_italia_flutter.dart';
 import 'package:flutter/material.dart';
 
 import '../../widgets/component_page.dart';
@@ -14,6 +14,8 @@ class SelectPage extends StatefulWidget {
 class _SelectPageState extends State<SelectPage> {
   String? _selectedCity;
   String? _searchableCity;
+  String? _helperCity;
+  String? _invalidCity;
   Set<String> _selectedCities = {};
 
   final _cities = const [
@@ -52,14 +54,35 @@ class _SelectPageState extends State<SelectPage> {
         ),
         ExampleSection(
           title: 'Multi selezione',
-          child: ItSelect<String>(
+          child: ItSelect<String>.multiple(
             label: 'Città preferite',
             hint: 'Seleziona una o più città',
             items: _cities,
-            multiple: true,
             values: _selectedCities,
-            onMultiChanged: (values) =>
-                setState(() => _selectedCities = values),
+            onChanged: (values) => setState(() => _selectedCities = values),
+          ),
+        ),
+        ExampleSection(
+          title: 'Con testo di aiuto',
+          child: ItSelect<String>(
+            label: 'Città',
+            hint: 'Seleziona una città',
+            items: _cities,
+            helperText: 'Scegli il comune di residenza',
+            value: _helperCity,
+            onChanged: (value) => setState(() => _helperCity = value),
+          ),
+        ),
+        ExampleSection(
+          title: 'Con errore',
+          child: ItSelect<String>(
+            label: 'Città',
+            hint: 'Seleziona una città',
+            items: _cities,
+            required: true,
+            errorText: 'Questo campo è obbligatorio',
+            value: _invalidCity,
+            onChanged: (value) => setState(() => _invalidCity = value),
           ),
         ),
         ExampleSection(
@@ -68,7 +91,7 @@ class _SelectPageState extends State<SelectPage> {
             label: 'Città',
             hint: 'Non disponibile',
             items: _cities,
-            disabled: true,
+            enabled: false,
           ),
         ),
       ],

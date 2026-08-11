@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:bootstrap_italia/bootstrap_italia.dart';
+import 'package:bootstrap_italia_flutter/bootstrap_italia_flutter.dart';
 
 import '../../widgets/component_page.dart';
 import '../../widgets/example_section.dart';
@@ -30,20 +30,26 @@ class ListPage extends StatelessWidget {
               ItListItem(
                 title: 'Documenti',
                 subtitle: '12 file disponibili',
-                leading: Icon(Icons.folder, color: BootstrapItaliaColors.primary),
-                trailing: Icon(Icons.chevron_right, color: BootstrapItaliaColors.gray500),
+                leading:
+                    Icon(Icons.folder, color: BootstrapItaliaColors.primary),
+                trailing: Icon(Icons.chevron_right,
+                    color: BootstrapItaliaColors.gray500),
               ),
               ItListItem(
                 title: 'Impostazioni',
                 subtitle: 'Gestisci le preferenze',
-                leading: Icon(Icons.settings, color: BootstrapItaliaColors.primary),
-                trailing: Icon(Icons.chevron_right, color: BootstrapItaliaColors.gray500),
+                leading:
+                    Icon(Icons.settings, color: BootstrapItaliaColors.primary),
+                trailing: Icon(Icons.chevron_right,
+                    color: BootstrapItaliaColors.gray500),
               ),
               ItListItem(
                 title: 'Notifiche',
                 subtitle: '3 nuove notifiche',
-                leading: Icon(Icons.notifications, color: BootstrapItaliaColors.primary),
-                trailing: Icon(Icons.chevron_right, color: BootstrapItaliaColors.gray500),
+                leading: Icon(Icons.notifications,
+                    color: BootstrapItaliaColors.primary),
+                trailing: Icon(Icons.chevron_right,
+                    color: BootstrapItaliaColors.gray500),
               ),
             ],
           ),

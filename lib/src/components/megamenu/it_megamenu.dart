@@ -1,133 +1,36 @@
-import 'package:flutter/material.dart';
+// The megamenu component root: the always-visible bar, and the state that
+// decides what it shows.
+//
+// This file holds the parts that cannot be moved apart without inventing an API
+// between them — the open-section index, the Esc binding that closes a panel and
+// restores focus, the breakpoint decision, the desktop toggles that read and
+// write that index, and the route push that hands off to the mobile overlay.
+// The three things it delegates to — the data model, the desktop panel and the
+// mobile overlay — each render from a section and know nothing about which one
+// is open.
+//
+// It also remains the package's entry point for the component: the barrel
+// exports this file and nothing else under `megamenu/`, so the models and
+// [ItMegamenuPanel] are re-exported here to keep the public surface exactly
+// where it has always been.
 
+import 'package:bootstrap_italia_icons/bootstrap_italia_icons.dart';
+import 'package:flutter/semantics.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
+
+import '../../a11y/it_activatable.dart';
+import '../../a11y/it_icon_action.dart';
+import '../../l10n/it_localizations.dart';
 import '../../theme/bootstrap_italia_theme_data.dart';
 import '../../theme/theme_extensions.dart';
-import '../../tokens/breakpoints.dart';
 import '../../tokens/spacing.dart';
-import '../collapse/it_collapse.dart';
+import 'it_megamenu_mobile.dart';
+import 'it_megamenu_models.dart';
+import 'it_megamenu_panel.dart';
 
-// ── Data Models ─────────────────────────────────────────────────
-
-/// A single link within a megamenu column.
-class ItMegamenuLink {
-  /// The link label text.
-  final String label;
-
-  /// Optional leading icon.
-  final IconData? icon;
-
-  /// Called when the link is tapped.
-  final VoidCallback? onTap;
-
-  /// Optional description text shown below the label.
-  final String? description;
-
-  /// Creates a megamenu link.
-  const ItMegamenuLink({
-    required this.label,
-    this.icon,
-    this.onTap,
-    this.description,
-  });
-}
-
-/// A column of links within a megamenu section.
-class ItMegamenuColumn {
-  /// Optional heading displayed above the links.
-  final String? heading;
-
-  /// The links in this column.
-  final List<ItMegamenuLink> links;
-
-  /// Creates a megamenu column.
-  const ItMegamenuColumn({
-    this.heading,
-    required this.links,
-  });
-}
-
-/// A call-to-action link in the megamenu header or footer area.
-class ItMegamenuCta {
-  /// The CTA label text.
-  final String label;
-
-  /// Optional leading icon.
-  final IconData? icon;
-
-  /// Called when the CTA is tapped.
-  final VoidCallback? onTap;
-
-  /// Creates a megamenu CTA.
-  const ItMegamenuCta({
-    required this.label,
-    this.icon,
-    this.onTap,
-  });
-}
-
-/// A top-level section in the megamenu.
-///
-/// Each section appears as a nav item in the bar. When expanded, it shows
-/// its [columns] of links along with optional description, image, and CTAs.
-class ItMegamenuSection {
-  /// The section label shown in the nav bar.
-  final String label;
-
-  /// Optional icon shown beside the label.
-  final IconData? icon;
-
-  /// The link columns displayed when this section is open.
-  final List<ItMegamenuColumn> columns;
-
-  /// Optional description text shown in the left panel (desktop).
-  final String? description;
-
-  /// Optional image widget shown in the left panel (desktop).
-  final Widget? image;
-
-  /// Optional header CTA (e.g. "Esplora la sezione").
-  final ItMegamenuCta? headerCta;
-
-  /// Optional footer CTA (e.g. "Esplora tutti").
-  final ItMegamenuCta? footerCta;
-
-  /// Whether this section is currently active.
-  final bool active;
-
-  /// Creates a megamenu section.
-  const ItMegamenuSection({
-    required this.label,
-    this.icon,
-    required this.columns,
-    this.description,
-    this.image,
-    this.headerCta,
-    this.footerCta,
-    this.active = false,
-  });
-}
-
-// ── Design Tokens ───────────────────────────────────────────────
-// From Bootstrap Italia SCSS: _variables.scss megamenu values.
-
-/// Desktop panel top padding: `$megamenu-padding-top-desktop: $v-gap * 4`.
-const double _panelPaddingTop = 32.0;
-
-/// Desktop column gap: `$megamenu-column-gap: $v-gap * 3`.
-const double _columnGap = 24.0;
-
-/// Heading font size: `$megamenu-heading-text-size: 1.125rem`.
-const double _headingFontSize = 18.0;
-
-/// Heading bottom margin: `$megamenu-heading-bottom-margin: 24px`.
-const double _headingBottomMargin = 24.0;
-
-/// Link vertical padding: `$megamenu-linklist-link-v-padding: 0.5em`.
-const double _linkVerticalPadding = 8.0;
-
-/// Mobile expanded section background:
-/// `$color-background-primary-lighter: hsl(210, 62%, 97%)`.
-const Color _mobileExpandedBg = Color(0xFFF2F7FC);
+export 'it_megamenu_models.dart';
+export 'it_megamenu_panel.dart';
 
 // ── Main Widget ─────────────────────────────────────────────────
 
@@ -201,37 +104,93 @@ class ItMegamenu extends StatefulWidget {
 class _ItMegamenuState extends State<ItMegamenu> {
   int? _openSectionIndex;
 
+  /// Focus nodes for the desktop toggles, so Esc can restore focus to the
+  /// toggle that opened the panel rather than dumping it at the page root.
+  final Map<int, FocusNode> _toggleFocusNodes = <int, FocusNode>{};
+  int _lastOpenedIndex = 0;
+
+  FocusNode _toggleFocusNode(int index) =>
+      _toggleFocusNodes.putIfAbsent(index, FocusNode.new);
+
+  @override
+  void dispose() {
+    for (final node in _toggleFocusNodes.values) {
+      node.dispose();
+    }
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = resolveColorScheme(context);
     final bgColor = widget.backgroundColor ?? colors.primary;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final breakpoint = ItBreakpoint.fromWidth(constraints.maxWidth);
-        final isMobile = breakpoint == ItBreakpoint.xs ||
-            breakpoint == ItBreakpoint.sm ||
-            breakpoint == ItBreakpoint.md;
+    return Builder(
+      builder: (context) {
+        // Viewport-based, via the theme's single breakpoint resolver — NOT the
+        // widget's own constraints. CSS `@media` queries are viewport-based, so
+        // the reference implementation keeps the desktop nav (letting links
+        // wrap) even inside a narrow column. Measured: at a 1280px viewport with
+        // this band constrained to 375px, React stays desktop while a
+        // LayoutBuilder collapsed to the hamburger. Routing every breakpoint
+        // decision through `context` also keeps the package internally
+        // consistent — responsive typography and this band can no longer
+        // disagree about which breakpoint they are in. Use ItResponsiveBuilder
+        // where container-based behaviour is genuinely wanted.
+        final isMobile = !context.isDesktop;
 
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: double.infinity,
-              color: bgColor,
-              padding: const EdgeInsets.symmetric(
-                horizontal: BootstrapItaliaSpacing.space3,
+        // §2.1.2 No Keyboard Trap / §2.1.1 Keyboard: an open megamenu panel
+        // must be dismissible from the keyboard. Esc closes it and returns
+        // focus to the toggle, matching the kit's dropdown behaviour.
+        return CallbackShortcuts(
+          bindings: <ShortcutActivator, VoidCallback>{
+            const SingleActivator(LogicalKeyboardKey.escape): () {
+              if (_openSectionIndex != null) {
+                setState(() => _openSectionIndex = null);
+                _toggleFocusNodes[_lastOpenedIndex]?.requestFocus();
+              }
+            },
+          },
+          child: Semantics(
+            container: true,
+            explicitChildNodes: true,
+            role: SemanticsRole.navigation,
+            // §2.4.3 Focus Order. The panel is a sibling *after* the whole
+            // bar, because that is what stacks it below on screen — but in the
+            // kit the panel is a child of its own `li`, so Tab goes toggle →
+            // that panel's links. Here it went toggle → every remaining toggle
+            // → the panel, which for a menu of six sections means tabbing past
+            // five unrelated controls to reach the thing you just opened.
+            //
+            // Fixed by ordering traversal rather than by moving the widget:
+            // each toggle takes its index, and the open panel takes
+            // `index + 0.5`, which places it immediately after its own toggle
+            // without changing a pixel of the layout.
+            child: FocusTraversalGroup(
+              policy: OrderedTraversalPolicy(),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: double.infinity,
+                    color: bgColor,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: BootstrapItaliaSpacing.space3,
+                    ),
+                    child:
+                        isMobile ? _buildMobileBar(colors) : _buildDesktopBar(),
+                  ),
+                  if (!isMobile && _openSectionIndex != null)
+                    FocusTraversalOrder(
+                      order: NumericFocusOrder(_openSectionIndex! + 0.5),
+                      child: ItMegamenuPanel(
+                        section: widget.sections[_openSectionIndex!],
+                      ),
+                    ),
+                ],
               ),
-              child: isMobile
-                  ? _buildMobileBar(colors)
-                  : _buildDesktopBar(colors),
             ),
-            if (!isMobile && _openSectionIndex != null)
-              _DesktopPanel(
-                section: widget.sections[_openSectionIndex!],
-                onClose: () => setState(() => _openSectionIndex = null),
-              ),
-          ],
+          ),
         );
       },
     );
@@ -239,21 +198,46 @@ class _ItMegamenuState extends State<ItMegamenu> {
 
   // ── Desktop ─────────────────────────────────────────────────
 
-  Widget _buildDesktopBar(BootstrapItaliaColorScheme colors) {
+  @override
+  void didUpdateWidget(ItMegamenu oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // `_openSectionIndex` is an index into `widget.sections`, so a shorter list
+    // leaves it pointing past the end and `sections[_openSectionIndex!]`
+    // throws RangeError on the next build — while a panel is open, i.e. exactly
+    // when a user is interacting with it. Same defect class as ItAccordion's.
+    if (_openSectionIndex != null &&
+        _openSectionIndex! >= widget.sections.length) {
+      _openSectionIndex = null;
+    }
+  }
+
+  Widget _buildDesktopBar() {
     return Row(
       children: List.generate(widget.sections.length, (i) {
         final section = widget.sections[i];
         final isOpen = _openSectionIndex == i;
 
-        return _DesktopNavButton(
-          label: section.label,
-          icon: section.icon,
-          isActive: section.active || isOpen,
-          onTap: () {
-            setState(() {
-              _openSectionIndex = isOpen ? null : i;
-            });
-          },
+        return FocusTraversalOrder(
+          order: NumericFocusOrder(i.toDouble()),
+          child: _DesktopNavButton(
+            label: section.label,
+            icon: section.icon,
+            isActive: section.active || isOpen,
+            isCurrent: section.active,
+            isOpen: isOpen,
+            focusNode: _toggleFocusNode(i),
+            onTap: () {
+              setState(() {
+                _openSectionIndex = isOpen ? null : i;
+                if (!isOpen) _lastOpenedIndex = i;
+              });
+              // Move focus onto the toggle when the panel opens. Besides being
+              // the behaviour a keyboard user expects, it is what puts focus
+              // inside the Esc handler's subtree — otherwise a panel opened by
+              // mouse could not be dismissed from the keyboard at all (§2.1.2).
+              if (!isOpen) _toggleFocusNode(i).requestFocus();
+            },
+          ),
         );
       }),
     );
@@ -262,6 +246,10 @@ class _ItMegamenuState extends State<ItMegamenu> {
   // ── Mobile ──────────────────────────────────────────────────
 
   Widget _buildMobileBar(BootstrapItaliaColorScheme colors) {
+    // `orElse: () => sections.first` throws StateError on an empty list, so an
+    // empty megamenu crashed on mobile while the desktop path rendered nothing
+    // and carried on. Same input, two behaviours, one of them a crash.
+    if (widget.sections.isEmpty) return const SizedBox.shrink();
     final activeSection = widget.sections.firstWhere(
       (s) => s.active,
       orElse: () => widget.sections.first,
@@ -279,10 +267,14 @@ class _ItMegamenuState extends State<ItMegamenu> {
             ),
           ),
         ),
-        IconButton(
+        // `.custom-navbar-toggler { background: none; border: none }` with a
+        // 24px glyph: no fill in any state. The name was previously carried by
+        // the tooltip and is now stated outright (§4.1.2).
+        ItIconAction(
+          icon: BootstrapItaliaIcons.it_burger,
+          color: colors.white,
+          label: ItLocalizations.of(context).openMenu,
           onPressed: () => _openMobileMenu(context),
-          icon: Icon(Icons.menu, color: colors.white),
-          tooltip: 'Apri menu',
         ),
       ],
     );
@@ -293,8 +285,14 @@ class _ItMegamenuState extends State<ItMegamenu> {
       PageRouteBuilder<void>(
         opaque: false,
         barrierDismissible: true,
-        barrierColor: const Color(0xCC000000), // 80% black
-        barrierLabel: 'Chiudi menu',
+        // `.modal-backdrop { --bs-backdrop-bg: hsl(0, 0%, 0%);
+        //   --bs-backdrop-opacity: .8; background-color: var(--bs-backdrop-bg) }`
+        // — the scrim is named as the black token upstream, so retinting
+        // `black` carries through here too.
+        barrierColor: resolveColorScheme(context).black.withValues(alpha: 0.8),
+        // Read from the caller's context: the route does not exist yet, and its
+        // own context would not be under this subtree's `Localizations` anyway.
+        barrierLabel: ItLocalizations.of(context).closeMenu,
         transitionDuration: const Duration(milliseconds: 300),
         reverseTransitionDuration: const Duration(milliseconds: 200),
         transitionsBuilder: (context, animation, _, child) {
@@ -310,7 +308,7 @@ class _ItMegamenuState extends State<ItMegamenu> {
           );
         },
         pageBuilder: (context, _, __) {
-          return _MobileOverlay(
+          return MegamenuMobileOverlay(
             sections: widget.sections,
             allowMultipleOpen: widget.mobileAllowMultipleOpen,
           );
@@ -326,617 +324,76 @@ class _DesktopNavButton extends StatelessWidget {
   final String label;
   final IconData? icon;
   final bool isActive;
+  final bool isCurrent;
+  final bool isOpen;
+  final FocusNode? focusNode;
   final VoidCallback onTap;
 
   const _DesktopNavButton({
     required this.label,
     this.icon,
     required this.isActive,
+    required this.isCurrent,
+    required this.isOpen,
     required this.onTap,
+    this.focusNode,
   });
 
   @override
   Widget build(BuildContext context) {
     final colors = resolveColorScheme(context);
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: isActive
-            ? BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: colors.white, width: 3),
-                ),
-              )
-            : null,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (icon != null) ...[
-              Icon(icon, size: 18, color: colors.white),
-              const SizedBox(width: 6),
-            ],
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 16,
-                color: colors.white,
-                fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
-              ),
-            ),
-            const SizedBox(width: 4),
-            Icon(Icons.expand_more, size: 18, color: colors.white),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ── Desktop Panel ───────────────────────────────────────────────
-
-class _DesktopPanel extends StatelessWidget {
-  final ItMegamenuSection section;
-  final VoidCallback onClose;
-
-  const _DesktopPanel({
-    required this.section,
-    required this.onClose,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = resolveColorScheme(context);
-    final hasLeftPanel =
-        section.description != null || section.image != null;
-
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: colors.white,
-        // $dialog-shadow: 0 2px 10px 0 rgba(0,0,0,0.1)
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x1A000000),
-            blurRadius: 10,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          BootstrapItaliaSpacing.space4,
-          _panelPaddingTop,
-          BootstrapItaliaSpacing.space4,
-          BootstrapItaliaSpacing.space5,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Header CTA
-            if (section.headerCta != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: _columnGap),
-                child: _CtaLink(
-                  cta: section.headerCta!,
-                  color: colors.primary,
-                  isBold: true,
-                ),
-              ),
-
-            // Main content row
-            IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Left panel: description + image
-                  if (hasLeftPanel) ...[
-                    SizedBox(
-                      width: 280,
-                      child: _DescriptionPanel(
-                        description: section.description,
-                        image: section.image,
-                      ),
-                    ),
-                    const SizedBox(width: _columnGap),
-                    VerticalDivider(
-                      width: 1,
-                      thickness: 1,
-                      color: colors.gray200,
-                    ),
-                    const SizedBox(width: _columnGap),
-                  ],
-
-                  // Link columns
-                  Expanded(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        for (int i = 0;
-                            i < section.columns.length;
-                            i++) ...[
-                          if (i > 0) const SizedBox(width: _columnGap),
-                          Expanded(
-                            child: _DesktopColumn(
-                              column: section.columns[i],
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Footer CTA
-            if (section.footerCta != null)
-              Padding(
-                padding: const EdgeInsets.only(top: _columnGap),
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: _CtaLink(
-                    cta: section.footerCta!,
-                    color: colors.primary,
-                    isBold: true,
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ── Desktop Column ──────────────────────────────────────────────
-
-class _DesktopColumn extends StatelessWidget {
-  final ItMegamenuColumn column;
-
-  const _DesktopColumn({required this.column});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = resolveColorScheme(context);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (column.heading != null) ...[
-          Text(
-            column.heading!,
-            style: TextStyle(
-              // $megamenu-heading-text-size: 1.125rem
-              fontSize: _headingFontSize,
-              // $megamenu-heading-font-weight: 600
-              fontWeight: FontWeight.w600,
-              color: colors.bodyColor,
-            ),
-          ),
-          const SizedBox(height: _headingBottomMargin),
-        ],
-        ...column.links.map((link) => _DesktopLinkTile(link: link)),
-      ],
-    );
-  }
-}
-
-// ── Desktop Link Tile ───────────────────────────────────────────
-
-class _DesktopLinkTile extends StatelessWidget {
-  final ItMegamenuLink link;
-
-  const _DesktopLinkTile({required this.link});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = resolveColorScheme(context);
-
-    return InkWell(
-      onTap: link.onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: _linkVerticalPadding),
-        child: Row(
-          children: [
-            Icon(
-              link.icon ?? Icons.arrow_right,
-              size: 16,
-              color: colors.primary,
-            ),
-            const SizedBox(width: BootstrapItaliaSpacing.space2),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    link.label,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: colors.primary,
-                    ),
-                  ),
-                  if (link.description != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 2),
-                      child: Text(
-                        link.description!,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: colors.bodyColor,
-                          height: 1.5,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ── Description Panel ───────────────────────────────────────────
-
-class _DescriptionPanel extends StatelessWidget {
-  final String? description;
-  final Widget? image;
-
-  const _DescriptionPanel({this.description, this.image});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = resolveColorScheme(context);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (image != null) ...[
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: AspectRatio(
-              aspectRatio: 21 / 9,
-              child: image!,
-            ),
-          ),
-          const SizedBox(height: BootstrapItaliaSpacing.space3),
-        ],
-        if (description != null)
-          Text(
-            description!,
-            style: TextStyle(
-              // $megamenu-vertical-description-font-size: 1rem
-              fontSize: 16,
-              color: colors.bodyColor,
-              height: 1.5,
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-// ── CTA Link ────────────────────────────────────────────────────
-
-class _CtaLink extends StatelessWidget {
-  final ItMegamenuCta cta;
-  final Color color;
-  final bool isBold;
-
-  const _CtaLink({
-    required this.cta,
-    required this.color,
-    this.isBold = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: cta.onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (cta.icon != null) ...[
-              Icon(cta.icon, size: 18, color: color),
-              const SizedBox(width: BootstrapItaliaSpacing.space2),
-            ],
-            Text(
-              cta.label,
-              style: TextStyle(
-                fontSize: _headingFontSize,
-                fontWeight: isBold ? FontWeight.w600 : FontWeight.w400,
-                color: color,
-              ),
-            ),
-            const SizedBox(width: BootstrapItaliaSpacing.space1),
-            Icon(Icons.arrow_forward, size: 16, color: color),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ── Mobile Overlay ──────────────────────────────────────────────
-
-class _MobileOverlay extends StatefulWidget {
-  final List<ItMegamenuSection> sections;
-  final bool allowMultipleOpen;
-
-  const _MobileOverlay({
-    required this.sections,
-    required this.allowMultipleOpen,
-  });
-
-  @override
-  State<_MobileOverlay> createState() => _MobileOverlayState();
-}
-
-class _MobileOverlayState extends State<_MobileOverlay> {
-  final Set<int> _expandedIndices = {};
-
-  void _toggle(int index) {
-    setState(() {
-      if (_expandedIndices.contains(index)) {
-        _expandedIndices.remove(index);
-      } else {
-        if (!widget.allowMultipleOpen) {
-          _expandedIndices.clear();
-        }
-        _expandedIndices.add(index);
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = resolveColorScheme(context);
-
+    // §4.1.2 Name, Role, Value: the panel's open/closed state is otherwise
+    // conveyed only by a static chevron glyph. `expanded` is the aria-expanded
+    // equivalent; `selected` carries "this is the current section".
     return Semantics(
-      scopesRoute: true,
-      explicitChildNodes: true,
-      label: 'Menu di navigazione',
-      child: Material(
-        color: colors.white,
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Close button row
-              Align(
-                alignment: Alignment.topRight,
-                child: Padding(
-                  padding: const EdgeInsets.all(BootstrapItaliaSpacing.space2),
-                  child: Semantics(
-                    label: 'Chiudi il menu',
-                    button: true,
-                    child: IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: Icon(Icons.close, color: colors.bodyColor),
-                      tooltip: 'Chiudi il menu',
-                    ),
-                  ),
-                ),
-              ),
-
-              // Scrollable section list
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: List.generate(
-                      widget.sections.length,
-                      (i) => _MobileSectionTile(
-                        section: widget.sections[i],
-                        isExpanded: _expandedIndices.contains(i),
-                        onToggle: () => _toggle(i),
-                        onLinkTap: () => Navigator.pop(context),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Mobile Section Tile ─────────────────────────────────────────
-
-class _MobileSectionTile extends StatelessWidget {
-  final ItMegamenuSection section;
-  final bool isExpanded;
-  final VoidCallback onToggle;
-  final VoidCallback onLinkTap;
-
-  const _MobileSectionTile({
-    required this.section,
-    required this.isExpanded,
-    required this.onToggle,
-    required this.onLinkTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = resolveColorScheme(context);
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Section header
-        InkWell(
-          onTap: onToggle,
+      button: true,
+      expanded: isOpen,
+      selected: isCurrent,
+      label: label,
+      child: ItActivatable(
+        onPressed: onTap,
+        focusNode: focusNode,
+        child: ExcludeSemantics(
           child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(
-              horizontal: BootstrapItaliaSpacing.space4,
-              vertical: BootstrapItaliaSpacing.space3,
-            ),
-            decoration: section.active
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: isActive
                 ? BoxDecoration(
                     border: Border(
-                      left: BorderSide(color: colors.primary, width: 3),
+                      bottom: BorderSide(color: colors.white, width: 3),
                     ),
                   )
                 : null,
             child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                if (section.icon != null) ...[
-                  Icon(section.icon, size: 20, color: colors.bodyColor),
-                  const SizedBox(width: BootstrapItaliaSpacing.space2),
+                if (icon != null) ...[
+                  Icon(icon, size: 18, color: colors.white),
+                  const SizedBox(width: 6),
                 ],
-                Expanded(
-                  child: Text(
-                    section.label,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: section.active
-                          ? FontWeight.w700
-                          : FontWeight.w600,
-                      color: colors.bodyColor,
-                    ),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: colors.white,
+                    fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
                   ),
                 ),
+                const SizedBox(width: 4),
+                // `a.dropdown-toggle[aria-expanded=true] > .icon
+                //   { transform: scaleY(-1) }`. The mobile tile already did
+                // this; the desktop button painted a static glyph, so for a
+                // sighted mouse user the only signal that a section was open
+                // was the panel itself.
                 AnimatedRotation(
-                  turns: isExpanded ? 0.5 : 0,
+                  turns: isOpen ? 0.5 : 0,
                   duration: const Duration(milliseconds: 200),
-                  child: Icon(
-                    Icons.expand_more,
-                    color: colors.bodyColor,
-                  ),
+                  child: Icon(BootstrapItaliaIcons.it_expand,
+                      size: 18, color: colors.white),
                 ),
               ],
             ),
           ),
-        ),
-
-        // Expandable content
-        ItCollapse(
-          isExpanded: isExpanded,
-          child: Container(
-            width: double.infinity,
-            color: _mobileExpandedBg,
-            padding: const EdgeInsets.symmetric(
-              horizontal: BootstrapItaliaSpacing.space4,
-              vertical: BootstrapItaliaSpacing.space3,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header CTA
-                if (section.headerCta != null)
-                  Padding(
-                    padding: const EdgeInsets.only(
-                      bottom: BootstrapItaliaSpacing.space3,
-                    ),
-                    child: _CtaLink(
-                      cta: section.headerCta!,
-                      color: colors.primary,
-                      isBold: true,
-                    ),
-                  ),
-
-                // All columns flattened into a single column
-                for (final column in section.columns) ...[
-                  if (column.heading != null)
-                    Padding(
-                      padding: const EdgeInsets.only(
-                        top: BootstrapItaliaSpacing.space2,
-                        bottom: BootstrapItaliaSpacing.space2,
-                      ),
-                      child: Text(
-                        column.heading!,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: colors.bodyColor,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ),
-                  ...column.links.map(
-                    (link) => _MobileLinkTile(
-                      link: link,
-                      onOverlayClose: onLinkTap,
-                    ),
-                  ),
-                ],
-
-                // Footer CTA
-                if (section.footerCta != null)
-                  Padding(
-                    padding: const EdgeInsets.only(
-                      top: BootstrapItaliaSpacing.space3,
-                    ),
-                    child: _CtaLink(
-                      cta: section.footerCta!,
-                      color: colors.primary,
-                      isBold: true,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-
-        Divider(height: 1, thickness: 1, color: colors.gray200),
-      ],
-    );
-  }
-}
-
-// ── Mobile Link Tile ────────────────────────────────────────────
-
-class _MobileLinkTile extends StatelessWidget {
-  final ItMegamenuLink link;
-  final VoidCallback onOverlayClose;
-
-  const _MobileLinkTile({
-    required this.link,
-    required this.onOverlayClose,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = resolveColorScheme(context);
-
-    return InkWell(
-      onTap: () {
-        link.onTap?.call();
-        onOverlayClose();
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          vertical: _linkVerticalPadding,
-          horizontal: BootstrapItaliaSpacing.space1,
-        ),
-        child: Row(
-          children: [
-            Icon(
-              link.icon ?? Icons.arrow_right,
-              size: 16,
-              color: colors.primary,
-            ),
-            const SizedBox(width: BootstrapItaliaSpacing.space2),
-            Expanded(
-              child: Text(
-                link.label,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: colors.primary,
-                ),
-              ),
-            ),
-          ],
         ),
       ),
     );

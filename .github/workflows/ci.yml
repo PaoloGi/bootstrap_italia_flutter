@@ -1,0 +1,100 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  # Everything here is hermetic: no network, no browser, no local paths.
+  # The visual-parity harness is deliberately NOT run in this job — it depends
+  # on the upstream Storybook being reachable, so a network blip would fail an
+  # unrelated PR. It runs in `parity` below, which is allowed to fail loudly
+  # without gating merges.
+  analyze-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed lib test tool
+
+      - name: Static analysis
+        run: flutter analyze --fatal-infos lib test tool
+
+      - name: Tests (includes the WCAG contrast audit)
+        run: flutter test --reporter expanded
+
+      # The example is a real consumer of the public API and the only thing that
+      # exercises the barrel export end to end. It was previously never checked,
+      # which hid 17 analyzer errors in a leftover `flutter create` template.
+      - name: Example app — analyze and test
+        working-directory: example
+        run: |
+          flutter pub get
+          dart format --output=none --set-exit-if-changed lib test
+          flutter analyze --fatal-infos
+          flutter test
+
+      - name: Package health
+        run: |
+          dart pub global activate pana
+          dart pub global run pana --no-warning --exit-code-threshold 0 .
+
+  # Visual/interaction parity against the upstream design-react-kit Storybook.
+  # Informational: upstream is a live third-party site, so this must never be
+  # the reason a PR cannot merge.
+  parity:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install harness dependencies
+        run: |
+          flutter pub get
+          npm ci --prefix tool/visual_parity/playwright
+          npx --prefix tool/visual_parity/playwright playwright install --with-deps chromium
+          python -m venv tool/visual_parity/.venv
+          tool/visual_parity/.venv/bin/pip install -r tool/visual_parity/requirements.txt
+
+      - name: Guard the metric itself
+        # If the similarity metric stops distinguishing real defects from
+        # engine noise, every parity number below becomes meaningless — so this
+        # runs first and gates the rest.
+        run: tool/visual_parity/.venv/bin/python tool/visual_parity/diff/metric_selftest.py
+
+      - name: Capture Flutter goldens
+        run: flutter test tool/visual_parity/capture
+
+      - name: Capture upstream references
+        run: node tool/visual_parity/playwright/capture.mjs
+
+      - name: Score
+        run: tool/visual_parity/.venv/bin/python tool/visual_parity/diff/report.py --threshold 95
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: parity-diffs
+          path: tool/visual_parity/diffs/

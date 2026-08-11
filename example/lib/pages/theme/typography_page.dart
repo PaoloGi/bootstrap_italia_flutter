@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:bootstrap_italia/bootstrap_italia.dart';
+import 'package:bootstrap_italia_flutter/bootstrap_italia_flutter.dart';
 
 import '../../widgets/component_page.dart';
 import '../../widgets/example_section.dart';
@@ -74,7 +74,8 @@ class _TypographySample extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             'fontSize: ${style.fontSize}, fontWeight: ${style.fontWeight}, height: ${style.height?.toStringAsFixed(2)}',
-            style: const TextStyle(fontSize: 11, color: BootstrapItaliaColors.gray500),
+            style: const TextStyle(
+                fontSize: 11, color: BootstrapItaliaColors.gray500),
           ),
         ],
       ),

@@ -1,4 +1,4 @@
-import 'package:bootstrap_italia/bootstrap_italia.dart';
+import 'package:bootstrap_italia_flutter/bootstrap_italia_flutter.dart';
 import 'package:flutter/material.dart';
 
 import '../../widgets/component_page.dart';
@@ -15,7 +15,10 @@ class _CheckboxPageState extends State<CheckboxPage> {
   bool _singleValue = false;
   Set<String> _groupValues = {};
   Set<String> _inlineValues = {};
-  bool _tristateValue = false;
+  List<bool> _childSelections = [true, false, false];
+
+  bool get _allSelected => _childSelections.every((v) => v);
+  bool get _someSelected => _childSelections.any((v) => v);
 
   @override
   Widget build(BuildContext context) {
@@ -27,8 +30,7 @@ class _CheckboxPageState extends State<CheckboxPage> {
           child: ItCheckbox(
             value: _singleValue,
             label: 'Accetto i termini e le condizioni',
-            onChanged: (value) =>
-                setState(() => _singleValue = value ?? false),
+            onChanged: (value) => setState(() => _singleValue = value),
           ),
         ),
         ExampleSection(
@@ -59,13 +61,17 @@ class _CheckboxPageState extends State<CheckboxPage> {
           ),
         ),
         ExampleSection(
-          title: 'Tristate',
+          title: 'Indeterminate ("seleziona tutto")',
           child: ItCheckbox(
-            value: _tristateValue,
-            tristate: true,
+            value: _allSelected,
+            // Computed from the children, not cycled by tapping — which is what
+            // `input.semi-checked` means in Bootstrap Italia.
+            indeterminate: _someSelected && !_allSelected,
             label: 'Seleziona tutto',
-            onChanged: (value) =>
-                setState(() => _tristateValue = value ?? false),
+            onChanged: (value) => setState(() {
+              _childSelections =
+                  List.filled(_childSelections.length, value);
+            }),
           ),
         ),
       ],

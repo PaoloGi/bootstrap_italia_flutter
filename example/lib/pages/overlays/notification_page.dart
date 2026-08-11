@@ -1,4 +1,4 @@
-import 'package:bootstrap_italia/bootstrap_italia.dart';
+import 'package:bootstrap_italia_flutter/bootstrap_italia_flutter.dart';
 import 'package:flutter/material.dart';
 
 import '../../widgets/component_page.dart';
@@ -41,8 +41,7 @@ class NotificationPage extends StatelessWidget {
                 variant: ItNotificationVariant.danger,
                 label: 'Errore',
                 title: 'Errore',
-                message:
-                    'Si è verificato un errore durante il salvataggio.',
+                message: 'Si è verificato un errore durante il salvataggio.',
                 icon: Icons.error,
               ),
               const SizedBox(height: 8),
@@ -70,7 +69,7 @@ class NotificationPage extends StatelessWidget {
                       context: context,
                       variant: ItNotificationVariant.info,
                       title: position.name,
-                      message: 'Notifica in posizione ${position.name}.',
+                      body: 'Notifica in posizione ${position.name}.',
                       icon: Icons.place,
                       position: position,
                     );
@@ -88,8 +87,7 @@ class NotificationPage extends StatelessWidget {
                 context: context,
                 variant: ItNotificationVariant.warning,
                 title: 'Notifica persistente',
-                message:
-                    'Questa notifica non scompare automaticamente. '
+                body: 'Questa notifica non scompare automaticamente. '
                     'Premi la X per chiuderla.',
                 icon: Icons.push_pin,
                 duration: null,
@@ -116,7 +114,7 @@ class NotificationPage extends StatelessWidget {
           context: context,
           variant: variant,
           title: title,
-          message: message,
+          body: message,
           icon: icon,
         );
       },

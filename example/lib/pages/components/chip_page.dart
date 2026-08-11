@@ -1,4 +1,4 @@
-import 'package:bootstrap_italia/bootstrap_italia.dart';
+import 'package:bootstrap_italia_flutter/bootstrap_italia_flutter.dart';
 import 'package:flutter/material.dart';
 
 import '../../widgets/component_page.dart';
@@ -49,14 +49,12 @@ class _ChipPageState extends State<ChipPage> {
               ? ItChip(
                   label: 'Rimuovimi',
                   dismissible: true,
-                  onDismissed: () =>
-                      setState(() => _showDismissible = false),
+                  onDismiss: () => setState(() => _showDismissible = false),
                 )
               : ItButton(
                   variant: ItButtonVariant.secondary,
-                  size: ItButtonSize.sm,
-                  onPressed: () =>
-                      setState(() => _showDismissible = true),
+                  size: ItButtonSize.small,
+                  onPressed: () => setState(() => _showDismissible = true),
                   child: const Text('Mostra di nuovo'),
                 ),
         ),

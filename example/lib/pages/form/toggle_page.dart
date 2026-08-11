@@ -1,4 +1,4 @@
-import 'package:bootstrap_italia/bootstrap_italia.dart';
+import 'package:bootstrap_italia_flutter/bootstrap_italia_flutter.dart';
 import 'package:flutter/material.dart';
 
 import '../../widgets/component_page.dart';
@@ -43,13 +43,13 @@ class _TogglePageState extends State<TogglePage> {
               ItToggle(
                 value: false,
                 label: 'Disattivato (off)',
-                disabled: true,
+                enabled: false,
               ),
               SizedBox(height: 16),
               ItToggle(
                 value: true,
                 label: 'Disattivato (on)',
-                disabled: true,
+                enabled: false,
               ),
             ],
           ),

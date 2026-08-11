@@ -1,4 +1,5 @@
-import 'package:bootstrap_italia/bootstrap_italia.dart';
+import 'package:bootstrap_italia_flutter/bootstrap_italia_flutter.dart';
+import 'package:bootstrap_italia_icons/bootstrap_italia_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -12,9 +13,9 @@ void main() {
   group('ItModal', () {
     testWidgets('renders title and body', (tester) async {
       await tester.pumpWidget(_wrap(
-        ItModal(
+        const ItModal(
           title: 'Test Title',
-          body: const Text('Body content'),
+          body: Text('Body content'),
         ),
       ));
 
@@ -24,10 +25,10 @@ void main() {
 
     testWidgets('renders icon when provided', (tester) async {
       await tester.pumpWidget(_wrap(
-        ItModal(
+        const ItModal(
           title: 'With Icon',
           icon: Icons.warning,
-          body: const Text('Content'),
+          body: Text('Content'),
         ),
       ));
 
@@ -52,26 +53,26 @@ void main() {
 
     testWidgets('shows close button when dismissible', (tester) async {
       await tester.pumpWidget(_wrap(
-        ItModal(
+        const ItModal(
           title: 'Dismissible',
-          body: const Text('Content'),
+          body: Text('Content'),
           dismissible: true,
         ),
       ));
 
-      expect(find.byIcon(Icons.close), findsOneWidget);
+      expect(find.byIcon(BootstrapItaliaIcons.it_close), findsOneWidget);
     });
 
     testWidgets('hides close button when not dismissible', (tester) async {
       await tester.pumpWidget(_wrap(
-        ItModal(
+        const ItModal(
           title: 'Not Dismissible',
-          body: const Text('Content'),
+          body: Text('Content'),
           dismissible: false,
         ),
       ));
 
-      expect(find.byIcon(Icons.close), findsNothing);
+      expect(find.byIcon(BootstrapItaliaIcons.it_close), findsNothing);
     });
 
     testWidgets('renders without title (body only)', (tester) async {
@@ -141,7 +142,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Closeable'), findsOneWidget);
 
-      await tester.tap(find.byIcon(Icons.close));
+      await tester.tap(find.byIcon(BootstrapItaliaIcons.it_close));
       await tester.pumpAndSettle();
       expect(find.text('Closeable'), findsNothing);
     });
@@ -222,7 +223,20 @@ void main() {
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
 
-      expect(find.byType(Divider), findsOneWidget);
+      // `.link-list-wrapper ul .divider { height: 1px;
+      //   background: hsl(210,4%,78%); margin: 8px 0 }`, painted as a plain box
+      // now that Material's Divider is gone (doc/adr/0001). Decorative, so it
+      // is also kept out of the semantics tree.
+      final rule = find.descendant(
+        of: find.byType(ExcludeSemantics),
+        matching: find.byType(ColoredBox),
+      );
+      expect(rule, findsOneWidget);
+      expect(
+        tester.widget<ColoredBox>(rule).color,
+        const Color(0xFFC5C7C9),
+      );
+      expect(tester.getSize(rule).height, 1);
     });
 
     testWidgets('calls onTap and closes menu', (tester) async {
@@ -310,14 +324,14 @@ void main() {
       await tester.pumpWidget(_wrap(
         const ItNotification(
           title: 'Success',
-          message: 'Operation completed',
+          body: 'Operation completed',
           duration: null,
         ),
       ));
 
       await tester.pumpAndSettle();
 
-      expect(find.text('Success'), findsOneWidget);
+      expect(find.text('SUCCESS'), findsOneWidget);
       expect(find.text('Operation completed'), findsOneWidget);
     });
 
@@ -346,7 +360,7 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.close), findsOneWidget);
+      expect(find.byIcon(BootstrapItaliaIcons.it_close), findsOneWidget);
     });
 
     testWidgets('hides close button when not dismissible', (tester) async {
@@ -360,7 +374,7 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.close), findsNothing);
+      expect(find.byIcon(BootstrapItaliaIcons.it_close), findsNothing);
     });
 
     testWidgets('dismiss calls onDismissed', (tester) async {
@@ -375,7 +389,7 @@ void main() {
       ));
 
       await tester.pumpAndSettle();
-      await tester.tap(find.byIcon(Icons.close));
+      await tester.tap(find.byIcon(BootstrapItaliaIcons.it_close));
       await tester.pumpAndSettle();
 
       expect(dismissed, isTrue);
@@ -407,7 +421,7 @@ void main() {
                   entry = ItNotification.show(
                     context: context,
                     title: 'Overlay Toast',
-                    message: 'Hello!',
+                    body: 'Hello!',
                     duration: null,
                   );
                 },
@@ -421,7 +435,7 @@ void main() {
       await tester.tap(find.text('Show'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Overlay Toast'), findsOneWidget);
+      expect(find.text('OVERLAY TOAST'), findsOneWidget);
       expect(find.text('Hello!'), findsOneWidget);
 
       // Clean up
@@ -451,13 +465,13 @@ void main() {
 
       await tester.tap(find.text('Show'));
       await tester.pumpAndSettle();
-      expect(find.text('Auto Dismiss'), findsOneWidget);
+      expect(find.text('AUTO DISMISS'), findsOneWidget);
 
       // Advance time past the duration
       await tester.pump(const Duration(seconds: 2));
       await tester.pumpAndSettle();
 
-      expect(find.text('Auto Dismiss'), findsNothing);
+      expect(find.text('AUTO DISMISS'), findsNothing);
     });
 
     testWidgets('renders all variant types', (tester) async {
@@ -471,17 +485,17 @@ void main() {
         ));
 
         await tester.pumpAndSettle();
-        expect(find.text(variant.name), findsOneWidget);
+        expect(find.text(variant.name.toUpperCase()), findsOneWidget);
       }
     });
   });
 
   group('ItModalSize', () {
     test('has correct max widths', () {
-      expect(ItModalSize.sm.maxWidth, 300);
-      expect(ItModalSize.md.maxWidth, 500);
-      expect(ItModalSize.lg.maxWidth, 800);
-      expect(ItModalSize.xl.maxWidth, 1140);
+      expect(ItModalSize.small.maxWidth, 300);
+      expect(ItModalSize.medium.maxWidth, 500);
+      expect(ItModalSize.large.maxWidth, 800);
+      expect(ItModalSize.extraLarge.maxWidth, 1140);
     });
   });
 

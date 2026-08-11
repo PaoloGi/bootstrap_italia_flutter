@@ -80,7 +80,9 @@ class _ItCollapseState extends State<ItCollapse>
   Widget build(BuildContext context) {
     return SizeTransition(
       sizeFactor: _animation,
-      axisAlignment: -1,
+      // Reveal downward from the top edge (the replacement for the
+      // deprecated `axisAlignment: -1` on a vertical SizeTransition).
+      alignment: AlignmentDirectional.topStart,
       child: widget.child,
     );
   }

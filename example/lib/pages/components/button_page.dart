@@ -1,4 +1,4 @@
-import 'package:bootstrap_italia/bootstrap_italia.dart';
+import 'package:bootstrap_italia_flutter/bootstrap_italia_flutter.dart';
 import 'package:flutter/material.dart';
 
 import '../../widgets/component_page.dart';
@@ -54,17 +54,17 @@ class ButtonPage extends StatelessWidget {
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               ItButton(
-                size: ItButtonSize.sm,
+                size: ItButtonSize.small,
                 onPressed: () {},
                 child: const Text('Small'),
               ),
               ItButton(
-                size: ItButtonSize.md,
+                size: ItButtonSize.medium,
                 onPressed: () {},
                 child: const Text('Medium'),
               ),
               ItButton(
-                size: ItButtonSize.lg,
+                size: ItButtonSize.large,
                 onPressed: () {},
                 child: const Text('Large'),
               ),

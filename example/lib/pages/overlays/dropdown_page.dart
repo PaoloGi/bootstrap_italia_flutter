@@ -1,4 +1,4 @@
-import 'package:bootstrap_italia/bootstrap_italia.dart';
+import 'package:bootstrap_italia_flutter/bootstrap_italia_flutter.dart';
 import 'package:flutter/material.dart';
 
 import '../../widgets/component_page.dart';
@@ -34,10 +34,8 @@ class DropdownPage extends StatelessWidget {
               child: const Text('Azioni'),
             ),
             items: [
-              ItDropdownItem(
-                  label: 'Modifica', icon: Icons.edit, onTap: () {}),
-              ItDropdownItem(
-                  label: 'Duplica', icon: Icons.copy, onTap: () {}),
+              ItDropdownItem(label: 'Modifica', icon: Icons.edit, onTap: () {}),
+              ItDropdownItem(label: 'Duplica', icon: Icons.copy, onTap: () {}),
               ItDropdownItem(
                   label: 'Scarica', icon: Icons.download, onTap: () {}),
             ],
@@ -55,8 +53,7 @@ class DropdownPage extends StatelessWidget {
               ItDropdownItem(label: 'Modifica', onTap: () {}),
               ItDropdownItem(label: 'Condividi', onTap: () {}),
               const ItDropdownDivider(),
-              ItDropdownItem(
-                  label: 'Elimina', onTap: () {}, danger: true),
+              ItDropdownItem(label: 'Elimina', onTap: () {}, danger: true),
             ],
           ),
         ),

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:bootstrap_italia/bootstrap_italia.dart';
+import 'package:bootstrap_italia_flutter/bootstrap_italia_flutter.dart';
 
 import '../../widgets/component_page.dart';
 import '../../widgets/example_section.dart';
@@ -44,7 +44,7 @@ class CalloutPage extends StatelessWidget {
                 child: ItCallout(
                   variant: variant,
                   title: _variantLabels[variant],
-                  child: Text(_variantDescriptions[variant]!),
+                  body: Text(_variantDescriptions[variant]!),
                 ),
               );
             }).toList(),
@@ -57,7 +57,7 @@ class CalloutPage extends StatelessWidget {
             title: 'Dettagli aggiuntivi',
             collapsible: true,
             initiallyExpanded: false,
-            child: const Text(
+            body: const Text(
               'Questo callout può essere espanso o compresso cliccando '
               'sul titolo. Utile per contenuti opzionali che non devono '
               'occupare spazio in modo permanente.',

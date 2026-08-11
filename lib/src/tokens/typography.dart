@@ -12,7 +12,10 @@ abstract final class BootstrapItaliaFontFamily {
   static const String monospace = 'RobotoMono';
 
   /// Package name for font resolution.
-  static const String package = 'bootstrap_italia';
+  /// Must match `name:` in pubspec.yaml — Flutter resolves a bundled font as
+  /// `packages/<package>/<family>`, so a stale value here does not error, it
+  /// silently falls back to the platform font everywhere.
+  static const String package = 'bootstrap_italia_flutter';
 }
 
 /// Typography system for Bootstrap Italia.

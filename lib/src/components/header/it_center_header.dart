@@ -1,64 +1,73 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 
+import '../../a11y/it_activatable.dart';
+import '../../l10n/it_localizations.dart';
+import '../../theme/bootstrap_italia_theme_data.dart';
 import '../../theme/theme_extensions.dart';
-import '../../tokens/spacing.dart';
+import '../../tokens/typography.dart';
+import '../../utilities/interaction_states.dart';
+import '../social_link/it_social_link.dart';
+import 'header_glyphs.dart';
 
-/// A social link in the center header.
-class ItSocialLink {
-  /// The social platform icon.
-  final IconData icon;
-
-  /// Accessibility label.
-  final String label;
-
-  /// Called when tapped.
-  final VoidCallback? onTap;
-
-  /// Creates a social link.
-  const ItSocialLink({
-    required this.icon,
-    required this.label,
-    this.onTap,
-  });
-}
-
-/// The center section of a Bootstrap Italia header.
+/// The center (branding) band of a Bootstrap Italia header.
 ///
-/// Displays the logo, site title, subtitle, and optionally social links
-/// and a search button.
+/// Displays the logo, site title and tag line on the left, with optional
+/// social links and a search affordance on the right.
 ///
 /// ```dart
 /// ItCenterHeader(
-///   logo: Image.asset('assets/logo.png', height: 48),
-///   title: 'Comune di Roma',
-///   subtitle: 'Segui su',
+///   logo: Icon(BootstrapItaliaIcons.it_code_circle, size: 82),
+///   title: 'Lorem Ipsum Lorem Ipsum',
+///   subtitle: 'Inserire qui la tag line',
 ///   socialLinks: [
-///     ItSocialLink(icon: Icons.facebook, label: 'Facebook'),
+///     ItSocialLink(icon: BootstrapItaliaIcons.it_facebook, label: 'Facebook'),
 ///   ],
 ///   showSearch: true,
 ///   onSearchTap: () {},
 /// )
 /// ```
 class ItCenterHeader extends StatelessWidget {
-  /// The logo widget.
+  /// The logo widget, laid out in an 82x82 box (48x48 when [small]).
   final Widget? logo;
 
   /// The main site title.
   final String title;
 
-  /// Optional subtitle.
+  /// Optional tag line rendered beneath the title.
   final String? subtitle;
 
   /// Social media links.
   final List<ItSocialLink> socialLinks;
 
-  /// Whether to show the search icon.
+  /// Label rendered before the social icons.
+  ///
+  /// Defaults to [ItLocalizations.followUs] — `'Seguici su'` with no delegate
+  /// installed.
+  final String? socialsLabel;
+
+  /// Whether to show the search affordance.
   final bool showSearch;
 
-  /// Called when the search icon is tapped.
+  /// Label rendered before the search button, and the button's own accessible
+  /// name — the two must be the same string, or WCAG 2.5.3 Label in Name fails.
+  ///
+  /// Defaults to [ItLocalizations.search] — `'Cerca'` with no delegate
+  /// installed.
+  final String? searchLabel;
+
+  /// Called when the search button is tapped.
   final VoidCallback? onSearchTap;
 
-  /// Background color. Defaults to white.
+  /// Glyph replacing the built-in Bootstrap Italia `it-search` magnifier.
+  final IconData? searchIcon;
+
+  /// The `.it-small-header` variant: a shorter band with smaller headings.
+  final bool small;
+
+  /// The `.theme-light` variant: white background with blue content.
+  final bool light;
+
+  /// Background color override.
   final Color? backgroundColor;
 
   /// Creates a Bootstrap Italia center header.
@@ -68,89 +77,274 @@ class ItCenterHeader extends StatelessWidget {
     required this.title,
     this.subtitle,
     this.socialLinks = const [],
+    this.socialsLabel,
     this.showSearch = false,
+    this.searchLabel,
     this.onSearchTap,
+    this.searchIcon,
+    this.small = false,
+    this.light = false,
     this.backgroundColor,
   });
+
+  /// `.it-header-center-content-wrapper .it-right-zone .it-socials ul a:hover
+  ///   svg { fill: hsl(0, 0%, 95%) }` — and the same value for
+  /// `.it-search-wrapper a.rounded-icon:hover { background }`.
+  ///
+  /// Stays a literal: `hsl(0, 0%, 95%)` is declared in its own right and
+  /// matches no token in the palette — the nearest, `--bs-gray-100`, is
+  /// `hsl(0, 0%, 96%)`. Routing it through the scheme would retint a near-white
+  /// that Bootstrap Italia does not retint either.
+  static const Color _hoverTintDark = Color(0xFFF2F2F2);
+
+  /// The `.theme-light` counterparts:
+  /// `…a:hover svg { fill: rgb(0, 96.9, 193.8) }` and
+  /// `…a.rounded-icon:hover { background: rgb(0, 96.9, 193.8) }`, rasterised
+  /// as `rgb(0, 97, 194)`.
+  ///
+  /// Those fractional channels are exactly 95% of `--bs-primary`
+  /// (`102 x .95 = 96.9`, `204 x .95 = 193.8`), i.e. Sass emitted a *computed*
+  /// colour rather than a declared one — so it is `shade-color($primary, 5%)`
+  /// and has to follow a retinted primary.
+  static Color _hoverTintLight(BootstrapItaliaColorScheme colors) =>
+      itShade(colors.primary, 0.05);
+
+  /// `.container-xxl` gutter (12px) plus the content wrapper's `18px`.
+  static const double _inset = 30;
+
+  /// `@media (min-width: 992px)` — 120px, or 104px for `.it-small-header`.
+  double get _height => small ? 104 : 120;
+
+  /// `.it-header-center-wrapper { padding-top: 6px }` at `lg` and up.
+  static const double _paddingTop = 6;
+
+  /// `.it-brand-wrapper a .icon { width: 82px; height: 82px }`
+  static const double _logoSize = 82;
+
+  /// `.it-header-center-wrapper { background: #06c }` with
+  /// `….it-right-zone { color: #fff }`, and under `.theme-light`
+  /// `{ background: #fff }` with `….it-right-zone { color: #06c }`.
+  ///
+  /// Both are byte-identical to declared tokens — `#06c` to `--bs-primary`
+  /// (`hsl(210, 100%, 40%)`) and `#fff` to `--bs-white` — and the band is the
+  /// brand accent itself, so this is precisely the role the tokens name.
+  Color _fg(BootstrapItaliaColorScheme colors) =>
+      light ? colors.primary : colors.white;
+
+  Color _bg(BootstrapItaliaColorScheme colors) =>
+      light ? colors.white : colors.primary;
+
+  TextStyle _titleStyle(Color fg) => TextStyle(
+        fontFamily: BootstrapItaliaFontFamily.sansSerif,
+        package: BootstrapItaliaFontFamily.package,
+        // `h2 { font-size: 1.75rem; font-weight: 600; line-height: 1.1 }`
+        // (`1.25rem` under `.it-small-header`)
+        fontSize: small ? 20 : 28,
+        height: 1.1,
+        fontWeight: FontWeight.w600,
+        color: fg,
+        leadingDistribution: TextLeadingDistribution.even,
+      );
+
+  TextStyle _taglineStyle(Color fg) => TextStyle(
+        fontFamily: BootstrapItaliaFontFamily.sansSerif,
+        package: BootstrapItaliaFontFamily.package,
+        // `h3 { font-size: .875rem; font-weight: normal }` (`.75rem` small),
+        // inheriting the base `h3` line-height of 40px.
+        fontSize: small ? 12 : 14,
+        height: small ? 40 / 12 : 40 / 14,
+        fontWeight: FontWeight.w400,
+        color: fg,
+        leadingDistribution: TextLeadingDistribution.even,
+      );
+
+  TextStyle _labelStyle(Color fg) => TextStyle(
+        fontFamily: BootstrapItaliaFontFamily.sansSerif,
+        package: BootstrapItaliaFontFamily.package,
+        // `.it-socials`/`.it-search-wrapper { font-size: .875rem }`
+        fontSize: 14,
+        height: 21 / 14,
+        fontWeight: FontWeight.w400,
+        color: fg,
+        leadingDistribution: TextLeadingDistribution.even,
+      );
 
   @override
   Widget build(BuildContext context) {
     final colors = resolveColorScheme(context);
-
     return Container(
       width: double.infinity,
-      color: backgroundColor ?? colors.white,
-      padding: const EdgeInsets.symmetric(
-        horizontal: BootstrapItaliaSpacing.space3,
-        vertical: BootstrapItaliaSpacing.space3,
+      height: _height,
+      color: backgroundColor ?? _bg(colors),
+      padding: const EdgeInsets.only(top: _paddingTop),
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: _inset),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildBrand(colors),
+              _buildRightZone(context, colors),
+            ],
+          ),
+        ),
       ),
-      child: Row(
-        children: [
-          if (logo != null) ...[
-            logo!,
-            const SizedBox(width: BootstrapItaliaSpacing.space3),
-          ],
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: colors.neutral1,
-                  ),
-                ),
-                if (subtitle != null)
-                  Text(
-                    subtitle!,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: colors.secondary,
-                    ),
-                  ),
-              ],
+    );
+  }
+
+  Widget _buildBrand(BootstrapItaliaColorScheme colors) {
+    final fg = _fg(colors);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        if (logo != null)
+          Padding(
+            // `.icon { margin-right: 16px }`
+            padding: const EdgeInsets.only(right: 16),
+            child: SizedBox(
+              width: _logoSize,
+              height: _logoSize,
+              child: IconTheme.merge(
+                data: IconThemeData(color: fg, size: _logoSize),
+                child: logo!,
+              ),
             ),
           ),
-          if (socialLinks.isNotEmpty)
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: socialLinks.map((social) {
-                return Semantics(
+        Padding(
+          // `.it-brand-text { padding-right: 24px }`
+          padding: const EdgeInsets.only(right: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // §1.3.1: the kit renders the site title as <h2> and the tag
+              // line as <h3>. Exposing the levels gives AT a real outline to
+              // navigate instead of two anonymous runs of text.
+              Semantics(
+                header: true,
+                headingLevel: 2,
+                child: Text(title, style: _titleStyle(fg)),
+              ),
+              if (subtitle != null) ...[
+                // `.it-small-header h3 { margin-top: 4px }`
+                if (small) const SizedBox(height: 4),
+                Semantics(
+                  header: true,
+                  headingLevel: 3,
+                  child: Text(subtitle!, style: _taglineStyle(fg)),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRightZone(
+      BuildContext context, BootstrapItaliaColorScheme colors) {
+    final fg = _fg(colors);
+    final hoverTint = light ? _hoverTintLight(colors) : _hoverTintDark;
+    final l10n = ItLocalizations.of(context);
+    // Resolved once: the visible text and the button's accessible name are the
+    // same string by contract (WCAG 2.5.3 Label in Name), and two separate
+    // lookups is one edit away from them drifting apart.
+    final effectiveSearchLabel = searchLabel ?? l10n.search;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        if (socialLinks.isNotEmpty)
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(socialsLabel ?? l10n.followUs, style: _labelStyle(fg)),
+              // Icon-only navigation: `social.label` is the sole accessible
+              // name (§2.4.4). Hit target is 40x24 including the 16px lead-in,
+              // meeting §2.5.8 without resizing the 24px glyph.
+              for (final social in socialLinks)
+                Semantics(
                   label: social.label,
-                  child: GestureDetector(
-                    onTap: social.onTap,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 6),
-                      child: Icon(
-                        social.icon,
-                        size: 20,
-                        color: colors.primary,
+                  link: true,
+                  child: ItHoverBuilder(
+                    cursor: SystemMouseCursors.click,
+                    builder: (context, hovered) => ItActivatable(
+                      onPressed: social.onTap,
+                      child: ExcludeSemantics(
+                        child: Padding(
+                          // `.it-socials ul .icon { margin-left: 16px }`
+                          padding: const EdgeInsets.only(left: 16),
+                          child: Icon(
+                            social.icon,
+                            size: 24,
+                            color: hovered ? hoverTint : fg,
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                );
-              }).toList(),
-            ),
-          if (showSearch) ...[
-            const SizedBox(width: BootstrapItaliaSpacing.space2),
-            GestureDetector(
-              onTap: onSearchTap,
-              child: Semantics(
-                label: 'Cerca',
-                button: true,
-                child: Icon(
-                  Icons.search,
-                  size: 24,
-                  color: colors.primary,
                 ),
-              ),
+            ],
+          ),
+        if (showSearch)
+          Padding(
+            // `.it-search-wrapper { margin-left: 80px }`
+            padding: const EdgeInsets.only(left: 80),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // The adjacent text repeats the button's own name, so hide it
+                // from AT to avoid announcing "Cerca Cerca" (§4.1.2).
+                ExcludeSemantics(
+                    child: Text(effectiveSearchLabel, style: _labelStyle(fg))),
+                Semantics(
+                  label: effectiveSearchLabel,
+                  button: true,
+                  child: ItHoverBuilder(
+                    cursor: SystemMouseCursors.click,
+                    builder: (context, hovered) => ItActivatable(
+                      onPressed: onSearchTap,
+                      borderRadius: BorderRadius.circular(24),
+                      child: ExcludeSemantics(
+                        child: Container(
+                          // `a.rounded-icon { width: 48px; height: 48px;
+                          //   border-radius: 24px; background: #fff;
+                          //   margin-left: 16px }`
+                          margin: const EdgeInsets.only(left: 16),
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            // `.it-search-wrapper a.rounded-icon:hover
+                            //   { background: hsl(0,0%,95%) }` — a *specific*
+                            // near-white, not a translucent white overlay.
+                            color: hovered ? hoverTint : _fg(colors),
+                            shape: BoxShape.circle,
+                          ),
+                          alignment: Alignment.center,
+                          // The circle and the glyph swap roles between themes:
+                          // `a.rounded-icon { background: #fff }` with a `#06c`
+                          // glyph by default, and `.theme-light …a
+                          // { background: #06c }` with `svg { fill: #fff }`.
+                          child: searchIcon != null
+                              ? Icon(
+                                  searchIcon,
+                                  size: 24,
+                                  color: _bg(colors),
+                                )
+                              : ItSearchGlyph(color: _bg(colors)),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ],
-      ),
+          ),
+      ],
     );
   }
 }

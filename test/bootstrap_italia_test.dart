@@ -1,4 +1,4 @@
-import 'package:bootstrap_italia/bootstrap_italia.dart';
+import 'package:bootstrap_italia_flutter/bootstrap_italia_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -108,9 +108,10 @@ void main() {
   group('BootstrapItaliaColorScheme', () {
     test('forVariant returns correct colors', () {
       const scheme = BootstrapItaliaColorScheme.standard;
-      expect(scheme.forVariant('primary'), BootstrapItaliaColors.primary);
-      expect(scheme.forVariant('danger'), BootstrapItaliaColors.danger);
-      expect(scheme.forVariant('unknown'), BootstrapItaliaColors.primary);
+      expect(scheme.forVariant(ItVariantColor.primary),
+          BootstrapItaliaColors.primary);
+      expect(scheme.forVariant(ItVariantColor.danger),
+          BootstrapItaliaColors.danger);
     });
   });
 

@@ -1,107 +1,105 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 
+import '../../l10n/it_localizations.dart';
 import '../../theme/theme_extensions.dart';
+import 'progress_spinner.dart';
 
 /// Size variants for [ItSpinner].
+///
+/// Spelled out rather than carrying the CSS suffix; the `size-*` classes stay
+/// in the citations below, where they are evidence. See [ItButtonSize].
 enum ItSpinnerSize {
-  /// Small spinner: 24px.
-  sm(24, 2),
+  /// 32px — `.progress-spinner.size-sm`.
+  small(32),
 
-  /// Medium spinner: 48px. Default.
-  md(48, 3);
+  /// 48px — the base `.progress-spinner`. Default.
+  medium(48),
+
+  /// 64px — `.progress-spinner.size-lg`.
+  large(64),
+
+  /// 80px — `.progress-spinner.size-xl`.
+  extraLarge(80);
 
   /// The diameter in logical pixels.
   final double diameter;
 
   /// The stroke width.
-  final double strokeWidth;
+  ///
+  /// `border: 4px` is declared once on `.progress-spinner` and never overridden
+  /// by a size modifier, so every size shares it — the ring does NOT scale with
+  /// the diameter.
+  double get strokeWidth => 4;
 
-  const ItSpinnerSize(this.diameter, this.strokeWidth);
+  const ItSpinnerSize(this.diameter);
 }
 
-/// A Bootstrap Italia loading spinner.
+/// A Bootstrap Italia loading spinner (`.progress-spinner`).
 ///
-/// Displays a circular progress indicator styled according to Bootstrap Italia.
+/// The figure is painted from the stylesheet by [ItProgressSpinner] rather than
+/// delegating to Material's `CircularProgressIndicator`, which draws a
+/// different shape on a different clock. See doc/adr/0001.
 ///
 /// ```dart
-/// ItSpinner()
-/// ItSpinner(size: ItSpinnerSize.sm)
-/// ItSpinner(active: true, color: Colors.blue)
+/// ItSpinner()                              // spinning, single arc
+/// ItSpinner(size: ItSpinnerSize.small)
+/// ItSpinner(doubleRing: true)              // spinning, two arcs
+/// ItSpinner(animating: false)              // the static track ring only
 /// ```
 class ItSpinner extends StatelessWidget {
   /// The spinner color. Defaults to the theme's primary color.
   final Color? color;
 
-  /// The size variant. Defaults to [ItSpinnerSize.md].
+  /// The size variant. Defaults to [ItSpinnerSize.medium].
   final ItSpinnerSize size;
 
-  /// Whether to show the "active" double-ring variant.
-  /// When true, shows an outer ring alongside the spinning indicator.
-  final bool active;
+  /// Whether the arc turns.
+  ///
+  /// Maps to `.progress-spinner-active`. Defaults to true: a loading indicator
+  /// that does not move is not a loading indicator. Set false for the bare
+  /// `.progress-spinner` track ring.
+  final bool animating;
+
+  /// Whether to paint `.progress-spinner-double` — two oscillating arcs instead
+  /// of one.
+  ///
+  /// Orthogonal to [animating], exactly as the two CSS classes are. A single
+  /// flag used to drive both, which made the plain animating spinner — the most
+  /// common case there is — impossible to express, and made the default render
+  /// a motionless ring.
+  final bool doubleRing;
 
   /// Semantic label for accessibility.
-  final String semanticLabel;
+  ///
+  /// Defaults to [ItLocalizations.loading] — `'Caricamento in corso'` with no
+  /// delegate installed. Pass one to say what is loading; the locale can only
+  /// say *that* something is.
+  final String? semanticLabel;
 
   /// Creates a Bootstrap Italia spinner.
   const ItSpinner({
     super.key,
     this.color,
-    this.size = ItSpinnerSize.md,
-    this.active = false,
-    this.semanticLabel = 'Caricamento in corso',
+    this.size = ItSpinnerSize.medium,
+    this.animating = true,
+    this.doubleRing = false,
+    this.semanticLabel,
   });
 
   @override
   Widget build(BuildContext context) {
     final effectiveColor = color ?? resolveColorScheme(context).primary;
 
-    final spinner = SizedBox(
-      width: size.diameter,
-      height: size.diameter,
-      child: CircularProgressIndicator(
-        strokeWidth: size.strokeWidth,
-        valueColor: AlwaysStoppedAnimation<Color>(effectiveColor),
-      ),
-    );
-
-    if (!active) {
-      return Semantics(
-        label: semanticLabel,
-        child: spinner,
-      );
-    }
-
-    // Active variant: outer ring + inner spinner
+    // The label is the only thing AT has to go on — the spinner is a bare
+    // painted figure with no text — so it is kept exactly as it was.
     return Semantics(
-      label: semanticLabel,
-      child: SizedBox(
-        width: size.diameter,
-        height: size.diameter,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            // Outer static ring
-            SizedBox(
-              width: size.diameter,
-              height: size.diameter,
-              child: CircularProgressIndicator(
-                value: 1,
-                strokeWidth: size.strokeWidth * 0.5,
-                valueColor:
-                    AlwaysStoppedAnimation<Color>(effectiveColor.withAlpha(51)),
-              ),
-            ),
-            // Inner spinning indicator
-            SizedBox(
-              width: size.diameter * 0.7,
-              height: size.diameter * 0.7,
-              child: CircularProgressIndicator(
-                strokeWidth: size.strokeWidth,
-                valueColor: AlwaysStoppedAnimation<Color>(effectiveColor),
-              ),
-            ),
-          ],
-        ),
+      label: semanticLabel ?? ItLocalizations.of(context).loading,
+      child: ItProgressSpinner(
+        diameter: size.diameter,
+        strokeWidth: size.strokeWidth,
+        color: effectiveColor,
+        doubleRing: doubleRing,
+        animating: animating,
       ),
     );
   }

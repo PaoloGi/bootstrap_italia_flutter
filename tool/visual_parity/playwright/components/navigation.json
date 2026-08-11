@@ -1,0 +1,91 @@
+{
+  "nav_backtotop": {
+    "storyId": "documentazione-menu-di-navigazione-backtotop--esempio",
+    "width": 900,
+    "height": 700,
+    "selector": ".back-to-top"
+  },
+  "nav_backtotop_dark": {
+    "storyId": "documentazione-menu-di-navigazione-backtotop--dark",
+    "width": 900,
+    "height": 700,
+    "selector": ".back-to-top"
+  },
+  "nav_backtotop_small": {
+    "storyId": "documentazione-menu-di-navigazione-backtotop--small",
+    "width": 900,
+    "height": 700,
+    "selector": ".back-to-top"
+  },
+  "nav_breadcrumb": {
+    "storyId": "documentazione-menu-di-navigazione-breadcrumbs--esempi",
+    "width": 900,
+    "height": 300,
+    "selector": ".breadcrumb"
+  },
+  "nav_breadcrumb_dark": {
+    "storyId": "documentazione-menu-di-navigazione-breadcrumbs--su-sfondo-scuro",
+    "width": 900,
+    "height": 300,
+    "selector": ".breadcrumb"
+  },
+  "nav_header_slim": {
+    "storyId": "documentazione-menu-di-navigazione-header-slim--slim-header",
+    "width": 1280,
+    "height": 400,
+    "selector": ".it-header-slim-wrapper"
+  },
+  "nav_header_center": {
+    "storyId": "documentazione-menu-di-navigazione-header-center--center-header-basic",
+    "width": 1280,
+    "height": 400,
+    "selector": ".it-header-center-wrapper"
+  },
+  "nav_header_nav": {
+    "storyId": "documentazione-menu-di-navigazione-header-nav--nav-header",
+    "width": 1280,
+    "height": 400,
+    "selector": ".it-header-navbar-wrapper"
+  },
+  "nav_header_complete": {
+    "storyId": "documentazione-menu-di-navigazione-header-complete--complete-header-story",
+    "width": 1280,
+    "height": 600,
+    "selector": ".it-header-wrapper"
+  },
+  "nav_footer_brand": {
+    "storyId": "documentazione-menu-di-navigazione-footer--footer-completo",
+    "width": 1280,
+    "height": 1400,
+    "selector": ".it-footer-main section:nth-of-type(1)"
+  },
+  "nav_footer_links": {
+    "storyId": "documentazione-menu-di-navigazione-footer--footer-completo",
+    "width": 1280,
+    "height": 1400,
+    "selector": ".it-footer-main section:nth-of-type(2)"
+  },
+  "nav_footer_smallprints": {
+    "storyId": "documentazione-menu-di-navigazione-footer--footer-completo",
+    "width": 1280,
+    "height": 1400,
+    "selector": ".it-footer-small-prints"
+  },
+  "nav_megamenu_heading": {
+    "storyId": "documentazione-menu-di-navigazione-megamenu--con-intestazione-e-link-more",
+    "width": 1280,
+    "height": 900,
+    "click": "a.dropdown-toggle",
+    "selector": ".dropdown-menu",
+    "note": "megamenu panel is display:none until its toggle is clicked"
+  },
+  "nav_skiplinks": {
+    "storyId": "documentazione-componenti-skiplinks--esempi-with-nav",
+    "width": 900,
+    "height": 400,
+    "selector": ".skiplinks",
+    "pressKeys": [
+      "Tab"
+    ]
+  }
+}

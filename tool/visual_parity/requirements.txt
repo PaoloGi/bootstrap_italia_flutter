@@ -1,0 +1,5 @@
+# Pinned so a scoring change is always a deliberate, reviewable commit rather
+# than a silent consequence of a transitive upgrade.
+pillow==12.3.0
+numpy==2.5.1
+scikit-image==0.26.0

@@ -1,4 +1,4 @@
-import 'package:bootstrap_italia/bootstrap_italia.dart';
+import 'package:bootstrap_italia_flutter/bootstrap_italia_flutter.dart';
 import 'package:flutter/material.dart';
 
 import '../../widgets/component_page.dart';
@@ -39,7 +39,7 @@ class _InputPageState extends State<InputPage> {
             icon: Icons.edit,
             trailingAction: ItButton(
               variant: ItButtonVariant.primary,
-              size: ItButtonSize.sm,
+              size: ItButtonSize.small,
               onPressed: () {},
               child: const Text('Invio'),
             ),

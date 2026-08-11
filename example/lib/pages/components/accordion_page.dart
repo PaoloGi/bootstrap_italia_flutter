@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:bootstrap_italia/bootstrap_italia.dart';
+import 'package:bootstrap_italia_flutter/bootstrap_italia_flutter.dart';
 
 import '../../widgets/component_page.dart';
 import '../../widgets/example_section.dart';
@@ -23,21 +23,21 @@ class _AccordionPageState extends State<AccordionPage> {
             items: [
               ItAccordionItem(
                 title: 'Sezione 1',
-                child: const Text(
+                body: const Text(
                   'Contenuto della prima sezione. In modalità base, '
                   'solo un pannello alla volta può essere aperto.',
                 ),
               ),
               ItAccordionItem(
                 title: 'Sezione 2',
-                child: const Text(
+                body: const Text(
                   'Contenuto della seconda sezione. '
                   'Aprendo questo pannello, gli altri si chiuderanno automaticamente.',
                 ),
               ),
               ItAccordionItem(
                 title: 'Sezione 3',
-                child: const Text(
+                body: const Text(
                   'Contenuto della terza sezione. '
                   'Ogni pannello può contenere qualsiasi widget.',
                 ),
@@ -53,21 +53,21 @@ class _AccordionPageState extends State<AccordionPage> {
               ItAccordionItem(
                 title: 'Informazioni generali',
                 initiallyExpanded: true,
-                child: const Text(
+                body: const Text(
                   'Con allowMultipleOpen attivo, è possibile tenere aperti '
                   'più pannelli contemporaneamente.',
                 ),
               ),
               ItAccordionItem(
                 title: 'Dettagli aggiuntivi',
-                child: const Text(
+                body: const Text(
                   'Questo pannello può essere aperto insieme agli altri '
                   'senza che si chiudano automaticamente.',
                 ),
               ),
               ItAccordionItem(
                 title: 'Note e riferimenti',
-                child: const Text(
+                body: const Text(
                   'Utile quando l\'utente ha bisogno di consultare '
                   'più sezioni contemporaneamente.',
                 ),

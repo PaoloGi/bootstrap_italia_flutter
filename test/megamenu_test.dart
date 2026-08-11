@@ -1,4 +1,5 @@
-import 'package:bootstrap_italia/bootstrap_italia.dart';
+import 'package:bootstrap_italia_icons/bootstrap_italia_icons.dart';
+import 'package:bootstrap_italia_flutter/bootstrap_italia_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -117,7 +118,7 @@ void main() {
         ItMegamenu(sections: _testSections()),
       ));
 
-      expect(find.byIcon(Icons.expand_more), findsNWidgets(3));
+      expect(find.byIcon(BootstrapItaliaIcons.it_expand), findsNWidgets(3));
     });
 
     testWidgets('tapping section opens panel with links', (tester) async {
@@ -226,7 +227,7 @@ void main() {
         ItMegamenu(sections: _testSections()),
       ));
 
-      expect(find.byIcon(Icons.menu), findsOneWidget);
+      expect(find.byIcon(BootstrapItaliaIcons.it_burger), findsOneWidget);
       // Shows active section label
       expect(find.text('Amministrazione'), findsOneWidget);
     });
@@ -240,7 +241,7 @@ void main() {
         ItMegamenu(sections: _testSections()),
       ));
 
-      await tester.tap(find.byIcon(Icons.menu));
+      await tester.tap(find.byIcon(BootstrapItaliaIcons.it_burger));
       await tester.pumpAndSettle();
 
       // All sections visible in overlay (Amministrazione appears twice:
@@ -249,7 +250,7 @@ void main() {
       expect(find.text('Servizi'), findsOneWidget);
       expect(find.text('Novità'), findsOneWidget);
       // Close button visible
-      expect(find.byIcon(Icons.close), findsOneWidget);
+      expect(find.byIcon(BootstrapItaliaIcons.it_close), findsOneWidget);
     });
 
     testWidgets('close button dismisses overlay', (tester) async {
@@ -261,15 +262,15 @@ void main() {
         ItMegamenu(sections: _testSections()),
       ));
 
-      await tester.tap(find.byIcon(Icons.menu));
+      await tester.tap(find.byIcon(BootstrapItaliaIcons.it_burger));
       await tester.pumpAndSettle();
-      expect(find.byIcon(Icons.close), findsOneWidget);
+      expect(find.byIcon(BootstrapItaliaIcons.it_close), findsOneWidget);
 
-      await tester.tap(find.byIcon(Icons.close));
+      await tester.tap(find.byIcon(BootstrapItaliaIcons.it_close));
       await tester.pumpAndSettle();
 
       // Back to hamburger
-      expect(find.byIcon(Icons.menu), findsOneWidget);
+      expect(find.byIcon(BootstrapItaliaIcons.it_burger), findsOneWidget);
     });
 
     testWidgets('tapping section expands links (accordion)', (tester) async {
@@ -281,7 +282,7 @@ void main() {
         ItMegamenu(sections: _testSections()),
       ));
 
-      await tester.tap(find.byIcon(Icons.menu));
+      await tester.tap(find.byIcon(BootstrapItaliaIcons.it_burger));
       await tester.pumpAndSettle();
 
       // Expand first section (use last match to hit overlay, not nav bar)
@@ -302,7 +303,7 @@ void main() {
         ItMegamenu(sections: _testSections()),
       ));
 
-      await tester.tap(find.byIcon(Icons.menu));
+      await tester.tap(find.byIcon(BootstrapItaliaIcons.it_burger));
       await tester.pumpAndSettle();
 
       // Expand first section
@@ -325,7 +326,7 @@ void main() {
         ItMegamenu(sections: _testSections()),
       ));
 
-      await tester.tap(find.byIcon(Icons.menu));
+      await tester.tap(find.byIcon(BootstrapItaliaIcons.it_burger));
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Amministrazione').last);
@@ -362,7 +363,7 @@ void main() {
         ItMegamenu(sections: sections),
       ));
 
-      await tester.tap(find.byIcon(Icons.menu));
+      await tester.tap(find.byIcon(BootstrapItaliaIcons.it_burger));
       await tester.pumpAndSettle();
 
       // Expand section (use last to hit overlay)
@@ -374,7 +375,7 @@ void main() {
 
       expect(tapped, isTrue);
       // Overlay should be closed
-      expect(find.byIcon(Icons.menu), findsOneWidget);
+      expect(find.byIcon(BootstrapItaliaIcons.it_burger), findsOneWidget);
     });
 
     testWidgets('has accessibility semantics', (tester) async {
@@ -386,7 +387,7 @@ void main() {
         ItMegamenu(sections: _testSections()),
       ));
 
-      await tester.tap(find.byIcon(Icons.menu));
+      await tester.tap(find.byIcon(BootstrapItaliaIcons.it_burger));
       await tester.pumpAndSettle();
 
       // Verify Semantics widget exists
@@ -397,8 +398,8 @@ void main() {
   group('ItMegamenu size variants', () {
     test('ItModalSize values remain correct', () {
       // Quick sanity check that modal sizes still work
-      expect(ItModalSize.sm.maxWidth, 300);
-      expect(ItModalSize.md.maxWidth, 500);
+      expect(ItModalSize.small.maxWidth, 300);
+      expect(ItModalSize.medium.maxWidth, 500);
     });
   });
 }

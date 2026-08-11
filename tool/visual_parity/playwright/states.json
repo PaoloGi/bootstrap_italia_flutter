@@ -1,0 +1,28 @@
+{
+  "button_primary": {
+    "storyId": "documentazione-componenti-button--esempio-interattivo",
+    "selector": ".btn",
+    "states": ["default", "hover", "focus", "active"]
+  },
+  "button_primary_outline": {
+    "storyId": "documentazione-componenti-button--esempio-interattivo",
+    "args": { "outline": "true" },
+    "selector": ".btn",
+    "states": ["default", "hover", "focus"]
+  },
+  "checkbox_unchecked": {
+    "storyId": "documentazione-form-checkbox--esempio-interattivo",
+    "selector": ".form-check",
+    "states": ["default", "focus"]
+  },
+  "toggle_off": {
+    "storyId": "documentazione-form-toggles--esempio-interattivo",
+    "selector": ".toggles",
+    "states": ["default", "focus"]
+  },
+  "input_default": {
+    "storyId": "documentazione-form-input--esempio-interattivo",
+    "selector": ".form-group",
+    "states": ["default", "focus"]
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "button_primary": {
+    "storyId": "documentazione-componenti-button--esempio-interattivo",
+    "width": 800, "height": 400
+  },
+  "checkbox_unchecked": {
+    "storyId": "documentazione-form-checkbox--esempio-interattivo",
+    "width": 800, "height": 400
+  },
+  "toggle_off": {
+    "storyId": "documentazione-form-toggles--esempio-interattivo",
+    "width": 800, "height": 400
+  },
+  "input_default": {
+    "storyId": "documentazione-form-input--esempio-interattivo",
+    "width": 800, "height": 400
+  },
+  "input_invalid": {
+    "storyId": "documentazione-form-validazione--validazione-base",
+    "width": 800, "height": 600
+  },
+  "radio_unchecked": {
+    "storyId": "documentazione-form-radio-button--esempio-interattivo",
+    "width": 800, "height": 400
+  },
+  "select_default": {
+    "storyId": "documentazione-form-select--esempio-interattivo",
+    "width": 800, "height": 400
+  },
+  "autocomplete_default": {
+    "storyId": "documentazione-form-autocomplete--esempio-interattivo",
+    "width": 800, "height": 400
+  },
+  "accordion_collapsed": {
+    "storyId": "documentazione-componenti-accordion--accordion",
+    "width": 900, "height": 500
+  }
+}

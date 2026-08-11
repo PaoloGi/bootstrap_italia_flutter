@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:bootstrap_italia/bootstrap_italia.dart';
+import 'package:bootstrap_italia_flutter/bootstrap_italia_flutter.dart';
 
 import '../../widgets/component_page.dart';
 import '../../widgets/example_section.dart';
@@ -95,9 +95,11 @@ class CardPage extends StatelessWidget {
                 children: [
                   Text(
                     'Ultimo aggiornamento: oggi',
-                    style: TextStyle(fontSize: 12, color: BootstrapItaliaColors.gray600),
+                    style: TextStyle(
+                        fontSize: 12, color: BootstrapItaliaColors.gray600),
                   ),
-                  Icon(Icons.arrow_forward, size: 16, color: BootstrapItaliaColors.primary),
+                  Icon(Icons.arrow_forward,
+                      size: 16, color: BootstrapItaliaColors.primary),
                 ],
               ),
             ),

@@ -1,0 +1,134 @@
+{
+  "input_default": {
+    "storyId": "documentazione-form-input--utilizzo-di-placeholder-e-label",
+    "width": 400,
+    "height": 500,
+    "selector": ".form-group"
+  },
+  "input_states": {
+    "storyId": "documentazione-form-input--utilizzo-di-placeholder-e-label",
+    "width": 400,
+    "height": 500,
+    "selector": "#storybook-root"
+  },
+  "input_disabled": {
+    "storyId": "documentazione-form-input--disabilitato",
+    "width": 400,
+    "height": 200,
+    "selector": ".form-group"
+  },
+  "input_password": {
+    "storyId": "documentazione-form-input--input-password",
+    "width": 400,
+    "height": 260,
+    "selector": ".form-group"
+  },
+  "input_invalid": {
+    "storyId": "documentazione-form-validazione--validazione-base",
+    "width": 400,
+    "height": 600,
+    "selector": ".form-group:nth-child(4)"
+  },
+  "input_filled_valid": {
+    "storyId": "documentazione-form-validazione--validazione-base",
+    "width": 400,
+    "height": 600,
+    "selector": ".form-group:nth-child(3)"
+  },
+  "input_icon": {
+    "storyId": "documentazione-form-input--input-con-icona-o-bottoni",
+    "width": 400,
+    "height": 400,
+    "selector": ".form-group"
+  },
+  "input_button": {
+    "storyId": "documentazione-form-input--input-con-icona-o-bottoni",
+    "width": 400,
+    "height": 400,
+    "selector": ".form-group:nth-child(3)"
+  },
+  "checkbox_unchecked": {
+    "storyId": "documentazione-form-checkbox--checkbox-base",
+    "width": 400,
+    "height": 200,
+    "selector": "label[for=checkbox1]"
+  },
+  "checkbox_checked": {
+    "storyId": "documentazione-form-checkbox--checkbox-inline",
+    "width": 400,
+    "height": 200,
+    "selector": "label[for=inline-checkbox2]"
+  },
+  "checkbox_disabled_unchecked": {
+    "storyId": "documentazione-form-checkbox--checkbox-disabilitato",
+    "width": 400,
+    "height": 200,
+    "selector": "label[for=disabled-checkbox1]"
+  },
+  "checkbox_disabled_checked": {
+    "storyId": "documentazione-form-checkbox--checkbox-disabilitato",
+    "width": 400,
+    "height": 200,
+    "selector": "label[for=disabled-checkbox2]"
+  },
+  "radio_checked": {
+    "storyId": "documentazione-form-radio--radio-base",
+    "width": 400,
+    "height": 200,
+    "selector": "label[for=radio1]"
+  },
+  "radio_unchecked": {
+    "storyId": "documentazione-form-radio--radio-base",
+    "width": 400,
+    "height": 200,
+    "selector": "label[for=radio2]"
+  },
+  "radio_disabled_checked": {
+    "storyId": "documentazione-form-radio--radio-disabilitato",
+    "width": 400,
+    "height": 200,
+    "selector": "label[for=radio5]"
+  },
+  "radio_disabled_unchecked": {
+    "storyId": "documentazione-form-radio--radio-disabilitato",
+    "width": 400,
+    "height": 200,
+    "selector": "label[for=radio6]"
+  },
+  "toggle_off": {
+    "storyId": "documentazione-form-toggles--toggles",
+    "width": 400,
+    "height": 200,
+    "selector": ".toggles label"
+  },
+  "toggle_on": {
+    "storyId": "documentazione-form-toggles--gruppi-di-toggles",
+    "width": 400,
+    "height": 500,
+    "selector": ".toggles label"
+  },
+  "toggle_disabled": {
+    "storyId": "documentazione-form-toggles--toggles-disabilitate",
+    "width": 400,
+    "height": 200,
+    "selector": ".toggles label"
+  },
+  "select_default": {
+    "storyId": "documentazione-form-select--select-classica",
+    "width": 400,
+    "height": 200,
+    "selector": ".select-wrapper"
+  },
+  "select_disabled": {
+    "storyId": "documentazione-form-select--select-disabilitata",
+    "width": 400,
+    "height": 200,
+    "selector": ".select-wrapper"
+  },
+  "autocomplete_default": {
+    "storyId": "documentazione-form-input--input-autocomplete-con-dati-accessibile",
+    "width": 400,
+    "height": 260,
+    "selector": ".form-group"
+  }
+}

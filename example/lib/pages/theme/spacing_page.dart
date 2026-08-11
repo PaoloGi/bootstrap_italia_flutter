@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:bootstrap_italia/bootstrap_italia.dart';
+import 'package:bootstrap_italia_flutter/bootstrap_italia_flutter.dart';
 
 import '../../widgets/component_page.dart';
 import '../../widgets/example_section.dart';
@@ -27,7 +27,8 @@ class SpacingPage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: _spacings.entries.map((entry) {
               return Padding(
-                padding: const EdgeInsets.only(bottom: BootstrapItaliaSpacing.space3),
+                padding: const EdgeInsets.only(
+                    bottom: BootstrapItaliaSpacing.space3),
                 child: Row(
                   children: [
                     SizedBox(

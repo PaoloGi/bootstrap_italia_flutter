@@ -1,11 +1,17 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:bootstrap_italia_icons/bootstrap_italia_icons.dart';
+import 'package:flutter/widgets.dart';
+import 'package:flutter/semantics.dart';
 
-import '../../tokens/borders.dart';
-import '../../tokens/shadows.dart';
-import '../../tokens/spacing.dart';
+import '../../a11y/it_focus_ring.dart';
+import '../../l10n/it_localizations.dart';
+import '../../theme/bootstrap_italia_theme_data.dart';
+import '../../theme/it_default_text_style.dart';
 import '../../theme/theme_extensions.dart';
+import '../../tokens/borders.dart';
+import '../../tokens/spacing.dart';
+import '../../tokens/typography.dart';
 
 /// Color variants for [ItNotification].
 enum ItNotificationVariant {
@@ -15,7 +21,7 @@ enum ItNotificationVariant {
   /// Orange warning notification.
   warning,
 
-  /// Red danger notification.
+  /// Red danger notification (`.notification.error` in Bootstrap Italia).
   danger,
 
   /// Blue info notification.
@@ -45,8 +51,9 @@ enum ItNotificationPosition {
 
 /// A Bootstrap Italia notification (toast) component.
 ///
-/// Displays a transient feedback message with a color-coded left border,
-/// optional icon, title, message, and dismiss button.
+/// Displays a transient feedback message with an uppercase title, an optional
+/// message body, an optional variant icon (which also colours the left accent
+/// border) and a dismiss button.
 ///
 /// Use [ItNotification.show] to display a notification as an overlay:
 ///
@@ -54,25 +61,69 @@ enum ItNotificationPosition {
 /// ItNotification.show(
 ///   context: context,
 ///   variant: ItNotificationVariant.success,
-///   title: 'Salvato',
-///   message: 'Il documento è stato salvato.',
-///   icon: Icons.check_circle,
-///   dismissible: true,
-///   duration: Duration(seconds: 5),
+///   title: 'Titolo notifica',
+///   body: 'Il documento è stato salvato.',
+///   icon: BootstrapItaliaIcons.it_check_circle,
 ///   position: ItNotificationPosition.topRight,
 /// );
 /// ```
 class ItNotification extends StatefulWidget {
+  // ── Bootstrap Italia `.notification` metrics ──────────────────────
+  // Source: bootstrap-italia.min.css
+  //   @media (min-width: 768px) .notification { width: 376px;
+  //     border-radius: 4px; box-shadow: 0 0 1rem rgba(0,0,0,.15) }
+  //   @media (min-width: 576px) .notification { padding: 1.333rem;
+  //     padding-right: 3.556rem }
+
+  /// Default width of the notification card: 376px.
+  static const double defaultWidth = 376;
+
+  /// `$notification-padding: 1.333rem`.
+  static const double _padding = 21.328;
+
+  /// `padding-right: 3.556rem` — reserves room for the close button.
+  static const double _paddingRight = 56.896;
+
+  /// `.notification.with-icon h5/p { margin-left: 1.778rem }`.
+  static const double _iconTextOffset = 28.448;
+
+  /// `.notification.with-icon { border-left: 4px solid <variant> }`.
+  static const double _accentWidth = 4;
+
+  /// `.notification.with-icon h5 .icon { top: -8px; left: -38px }`,
+  /// relative to the title, which itself sits at [_padding] + [_iconTextOffset]
+  /// inside the padding box (i.e. already past the accent border).
+  static const double _iconLeft = _padding + _iconTextOffset - 38;
+  static const double _iconTop = _padding - 8;
+
+  /// `.icon { width: 32px; height: 32px }`.
+  static const double _iconSize = 32;
+
+  /// `.notification.dismissable .notification-close
+  ///    { right: 20px; top: 15px; width: 32px; height: 32px }`.
+  static const double _closeRight = 20;
+  static const double _closeTop = 15;
+  static const double _closeSize = 32;
+
   /// The notification color variant.
   final ItNotificationVariant variant;
 
-  /// Optional title text displayed in bold.
+  /// Optional title text. Rendered uppercase and bold, per
+  /// `.notification h5 { text-transform: uppercase; font-weight: 700 }`.
   final String? title;
 
-  /// Optional message body.
-  final String? message;
+  /// Optional message body, rendered beneath [title].
+  ///
+  /// A `String` rather than a `Widget`, unlike the other `body` slots in this
+  /// package: `.notification p` is a single styled paragraph and the widget
+  /// also folds this text into the WCAG 4.1.3 announcement below, which it
+  /// could not do with arbitrary children.
+  final String? body;
 
   /// Optional leading icon.
+  ///
+  /// When set the notification renders the Bootstrap Italia `with-icon`
+  /// variant: a 32px variant-coloured icon plus a 4px left accent border.
   final IconData? icon;
 
   /// Whether the notification can be dismissed via a close button.
@@ -80,41 +131,74 @@ class ItNotification extends StatefulWidget {
 
   /// Called after the exit animation completes when the notification
   /// is dismissed (either manually or by auto-dismiss timer).
+  ///
+  /// A *notification*, not a request: the widget has already taken itself off
+  /// screen, and this is where [show] removes the spent [OverlayEntry]. Past
+  /// tense marks that throughout this package — compare [ItChip.onDismiss],
+  /// which asks the parent to act because the chip cannot.
   final VoidCallback? onDismissed;
 
   /// Auto-dismiss duration. When non-null the notification dismisses
   /// automatically after this duration. Pass `null` for a persistent
   /// notification.
+  ///
+  /// ## WCAG 2.2.1 Timing Adjustable
+  ///
+  /// A notification that removes itself on a timer imposes a time limit on
+  /// reading it. The widget mitigates this in two ways: the timer is paused
+  /// while the notification is hovered or holds focus, and it is not started
+  /// at all when the platform reports an assistive technology in use
+  /// (`MediaQuery.accessibleNavigationOf`), because a screen-reader user may
+  /// still be working through the announcement when it would have expired.
+  ///
+  /// Those mitigations do **not** make an arbitrary [duration] conformant on
+  /// their own. If the notification carries information that is not available
+  /// anywhere else in the interface, pass `null` and let the user dismiss it —
+  /// that is the only unconditionally conformant configuration.
   final Duration? duration;
+
+  /// Width of the notification card. Defaults to [defaultWidth] (376px).
+  final double width;
 
   /// Creates a Bootstrap Italia notification widget.
   const ItNotification({
     super.key,
     this.variant = ItNotificationVariant.info,
     this.title,
-    this.message,
+    this.body,
     this.icon,
     this.dismissible = true,
     this.onDismissed,
     this.duration,
+    this.width = defaultWidth,
   });
 
   /// Shows a notification as an overlay positioned on screen.
   ///
   /// Returns the [OverlayEntry] so the caller can remove it programmatically.
   ///
-  /// The notification auto-dismisses after [duration] (defaults to 5 seconds).
-  /// Pass `null` for a persistent notification that must be dismissed manually
-  /// or removed via the returned [OverlayEntry].
+  /// Persistent by default: [duration] is `null`, so the notification stays
+  /// until dismissed or until the returned [OverlayEntry] is removed.
+  ///
+  /// **Passing a [duration] transfers a WCAG 2.2.1 (Timing Adjustable)
+  /// obligation to you.** An auto-dismissing notification is a time limit set by
+  /// content, and none of the SC's exceptions (real-time, essential, 20-hour)
+  /// cover a toast. The widget pauses the countdown on hover/focus and disables
+  /// it entirely under `MediaQuery.accessibleNavigationOf`, but neither is
+  /// sufficient in general: pausing on hover assumes the user notices and
+  /// reaches it in time, and the accessible-navigation check only helps users
+  /// who have assistive technology switched on — someone who simply reads
+  /// slowly still loses the message. Use a [duration] only when the same
+  /// information remains available elsewhere in the interface.
   static OverlayEntry show({
     required BuildContext context,
     ItNotificationVariant variant = ItNotificationVariant.info,
     String? title,
-    String? message,
+    String? body,
     IconData? icon,
     bool dismissible = true,
-    Duration? duration = const Duration(seconds: 5),
-    ItNotificationPosition position = ItNotificationPosition.topRight,
+    Duration? duration,
+    ItNotificationPosition position = ItNotificationPosition.bottomRight,
   }) {
     late final OverlayEntry entry;
     final padding = MediaQuery.of(context).padding;
@@ -125,7 +209,7 @@ class ItNotification extends StatefulWidget {
         final child = ItNotification(
           variant: variant,
           title: title,
-          message: message,
+          body: body,
           icon: icon,
           dismissible: dismissible,
           duration: duration,
@@ -188,8 +272,62 @@ class _ItNotificationState extends State<ItNotification>
     ));
     _controller.forward();
 
-    if (widget.duration != null) {
-      _autoDismissTimer = Timer(widget.duration!, _dismiss);
+    // WCAG 4.1.3 Status Messages. `Semantics(liveRegion: true)` alone is not
+    // enough here: the node is created with its text already in place, and a
+    // live region that has never *changed* is routinely not announced — on the
+    // web the aria-live container has to exist before the content lands in it.
+    // An explicit announcement is the only reliable way to get the message
+    // read out, and it does so without moving focus.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final announcement = _announcementText();
+      if (announcement.isEmpty) return;
+      SemanticsService.sendAnnouncement(
+        View.of(context),
+        announcement,
+        Directionality.of(context),
+      );
+      _startAutoDismiss();
+    });
+  }
+
+  /// The text a screen reader should read when the notification appears.
+  String _announcementText() {
+    // The visible title is upper-cased purely presentationally; announce the
+    // authored casing so AT does not spell it out letter by letter.
+    return [widget.title, widget.body]
+        .whereType<String>()
+        .where((s) => s.isNotEmpty)
+        .join('. ');
+  }
+
+  /// Starts (or restarts) the auto-dismiss countdown.
+  ///
+  /// WCAG 2.2.1 Timing Adjustable: no countdown runs while an assistive
+  /// technology is active, because the user may still be working through the
+  /// announcement when it would have expired.
+  void _startAutoDismiss() {
+    _autoDismissTimer?.cancel();
+    final duration = widget.duration;
+    if (duration == null) return;
+    if (!mounted) return;
+    if (MediaQuery.accessibleNavigationOf(context)) return;
+    if (_held) return;
+    _autoDismissTimer = Timer(duration, _dismiss);
+  }
+
+  /// Whether the user is currently hovering or focusing the notification.
+  bool _held = false;
+
+  /// WCAG 2.2.1: pointing at or focusing the notification pauses the
+  /// countdown, so a slow reader is never raced by the timer.
+  void _setHeld(bool value) {
+    if (_held == value) return;
+    _held = value;
+    if (_held) {
+      _autoDismissTimer?.cancel();
+    } else {
+      _startAutoDismiss();
     }
   }
 
@@ -209,84 +347,279 @@ class _ItNotificationState extends State<ItNotification>
     });
   }
 
+  /// The accent colour used for the left border and the icon.
+  ///
+  /// Bootstrap Italia maps these explicitly — note that `info` resolves to the
+  /// primary blue (`#06c`), not to the `$info` gray:
+  ///   `.notification.with-icon.success { border-color: rgb(0,127.5,85) }`
+  ///   `.notification.with-icon.error   { border-color: rgb(204,51,76.5) }`
+  ///   `.notification.with-icon.info    { border-color: #06c }`
+  ///   `.notification.with-icon.warning { border-color: rgb(153,91.8,0) }`
+  Color _accentColor(BootstrapItaliaColorScheme colors) {
+    return switch (widget.variant) {
+      ItNotificationVariant.success => colors.success,
+      ItNotificationVariant.danger => colors.danger,
+      ItNotificationVariant.warning => colors.warning,
+      ItNotificationVariant.info => colors.primary,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = resolveColorScheme(context);
-    final accentColor = colors.forVariant(widget.variant.name);
+    final accentColor = _accentColor(colors);
+    final hasIcon = widget.icon != null;
+    // `.notification.with-icon h5, .notification.with-icon p
+    //    { margin-left: 1.778rem }`
+    final textInset = hasIcon ? ItNotification._iconTextOffset : 0.0;
+
+    final blocks = <Widget>[];
+    if (widget.title != null) {
+      blocks.add(
+        Padding(
+          padding: EdgeInsets.only(left: textInset),
+          child: Text(
+            widget.title!.toUpperCase(),
+            // `text-transform: uppercase` is presentational only — keep the
+            // original casing for assistive technology.
+            semanticsLabel: widget.title,
+            // `.notification h5 { font-size: .875rem; line-height: 1rem;
+            //   font-weight: 700; color: hsl(0,0%,10%); letter-spacing: 0 }`
+            style: TextStyle(
+              fontFamily: BootstrapItaliaFontFamily.sansSerif,
+              package: BootstrapItaliaFontFamily.package,
+              fontSize: 14,
+              height: 16 / 14,
+              leadingDistribution: TextLeadingDistribution.even,
+              // Bootstrap Italia: letter-spacing: normal. Set explicitly so the
+              // ambient Material text theme cannot leak its 0.25px tracking.
+              letterSpacing: 0,
+              fontWeight: FontWeight.w700,
+              // `.notification h5 { color: hsl(0, 0%, 10%) }` = --bs-body-color.
+              color: colors.bodyColor,
+            ),
+          ),
+        ),
+      );
+    }
+    if (widget.body != null) {
+      // `.notification p { margin-top: 1rem; font-size: .875rem;
+      //   line-height: 1.5rem; color: hsl(210,33%,28%) }`
+      // and `.notification p:last-child { margin-bottom: 0 }` — the close
+      // button follows the paragraph, so the bottom margin only collapses on
+      // non-dismissible notifications.
+      if (blocks.isNotEmpty) {
+        blocks.add(const SizedBox(height: BootstrapItaliaSpacing.space3));
+      }
+      blocks.add(
+        Padding(
+          padding: EdgeInsets.only(left: textInset),
+          child: Text(
+            widget.body!,
+            style: const TextStyle(
+              fontFamily: BootstrapItaliaFontFamily.sansSerif,
+              package: BootstrapItaliaFontFamily.package,
+              fontSize: 14,
+              height: 24 / 14,
+              leadingDistribution: TextLeadingDistribution.even,
+              // Bootstrap Italia: letter-spacing: normal. Set explicitly so the
+              // ambient Material text theme cannot leak its 0.25px tracking.
+              letterSpacing: 0,
+              fontWeight: FontWeight.w400,
+              color: Color(0xFF30475F),
+            ),
+          ),
+        ),
+      );
+      if (widget.dismissible) {
+        blocks.add(const SizedBox(height: BootstrapItaliaSpacing.space3));
+      }
+    }
 
     return SlideTransition(
       position: _slideAnimation,
       child: FadeTransition(
         opacity: _fadeAnimation,
-        child: Semantics(
-          liveRegion: true,
-          child: Material(
-            color: Colors.transparent,
-            child: Container(
-              constraints: const BoxConstraints(
-                maxWidth: 400,
-                minWidth: 300,
-              ),
-              padding: const EdgeInsets.all(BootstrapItaliaSpacing.space3),
-              decoration: BoxDecoration(
-                color: colors.white,
-                borderRadius:
-                    BorderRadius.circular(BootstrapItaliaBorders.radiusLg),
-                boxShadow: BootstrapItaliaShadows.lg,
-                border: Border(
-                  left: BorderSide(color: accentColor, width: 4),
+        // WCAG 2.2.1: hovering pauses the auto-dismiss countdown.
+        child: MouseRegion(
+          onEnter: (_) => _setHeld(true),
+          onExit: (_) => _setHeld(false),
+          // WCAG 2.2.1: so does keyboard focus landing anywhere inside.
+          child: Focus(
+            canRequestFocus: false,
+            skipTraversal: true,
+            onFocusChange: _setHeld,
+            // WCAG 4.1.3 Status Messages / 4.1.2 Name, Role, Value.
+            //
+            // The previous `Semantics(liveRegion: true)` used the default
+            // `container: false`, so its annotation coalesced with the close
+            // button's `button: true` and every Text below it. The entire card
+            // collapsed into ONE node exposed as a *button* whose name was
+            // "Titolo Messaggio Chiudi notifica" — a screen-reader user was
+            // offered a button that read out the whole notification.
+            //
+            // `container` forces a node of its own and `explicitChildNodes`
+            // stops the close button from being absorbed into it.
+            child: Semantics(
+              container: true,
+              explicitChildNodes: true,
+              liveRegion: true,
+              label: _announcementText(),
+              // No `Material` above the card: it was transparent, so it painted
+              // nothing, and the card's own decoration below already carries the
+              // fill, radius, shadow and accent edge. The one thing it did
+              // contribute — the ambient text style — is restored explicitly,
+              // because a notification is shown in an OverlayEntry and so has no
+              // other Material above it.
+              child: ItDefaultTextStyle(
+                child: Container(
+                  width: widget.width,
+                  decoration: BoxDecoration(
+                    color: colors.white,
+                    // `border-radius: 4px`
+                    borderRadius:
+                        BorderRadius.circular(BootstrapItaliaBorders.radius),
+                    // `box-shadow: 0 0 1rem rgba(0,0,0,.15)`
+                    boxShadow: const [
+                      BoxShadow(color: Color(0x26000000), blurRadius: 16),
+                    ],
+                    border: hasIcon
+                        ? Border(
+                            left: BorderSide(
+                              color: accentColor,
+                              width: ItNotification._accentWidth,
+                            ),
+                          )
+                        : null,
+                  ),
+                  child: Stack(
+                    children: [
+                      // The card's own node already carries the full text as its
+                      // label, so the individual runs are excluded to stop AT
+                      // reading the notification twice.
+                      ExcludeSemantics(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(
+                            ItNotification._padding,
+                            ItNotification._padding,
+                            ItNotification._paddingRight,
+                            ItNotification._padding,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: blocks,
+                          ),
+                        ),
+                      ),
+                      if (hasIcon)
+                        Positioned(
+                          left: ItNotification._iconLeft,
+                          top: ItNotification._iconTop,
+                          // Decorative: the variant is already conveyed by the
+                          // message text, so the glyph stays out of the AT tree.
+                          child: ExcludeSemantics(
+                            child: Icon(
+                              widget.icon,
+                              color: accentColor,
+                              size: ItNotification._iconSize,
+                            ),
+                          ),
+                        ),
+                      if (widget.dismissible)
+                        Positioned(
+                          right: ItNotification._closeRight,
+                          top: ItNotification._closeTop,
+                          child: _NotificationCloseButton(
+                            onPressed: _dismiss,
+                            color: colors.secondary,
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (widget.icon != null) ...[
-                    Icon(widget.icon, color: accentColor, size: 24),
-                    const SizedBox(width: BootstrapItaliaSpacing.space2),
-                  ],
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (widget.title != null)
-                          Padding(
-                            padding: const EdgeInsets.only(
-                              bottom: BootstrapItaliaSpacing.space1,
-                            ),
-                            child: Text(
-                              widget.title!,
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                color: colors.neutral1,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ),
-                        if (widget.message != null)
-                          Text(
-                            widget.message!,
-                            style: TextStyle(
-                              color: colors.secondary,
-                              fontSize: 14,
-                            ),
-                          ),
-                      ],
-                    ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The `.notification-close` button.
+///
+/// A [GestureDetector] cannot be reached with the keyboard, so before this the
+/// only way to dismiss a persistent notification was a mouse or a touch
+/// screen (WCAG 2.1.1 Keyboard). The painted box is already 32x32 —
+/// `.notification.dismissable .notification-close { width: 32px; height: 32px }`
+/// — which clears the 24x24 minimum of WCAG 2.5.8 Target Size, so only the
+/// keyboard path needed fixing.
+class _NotificationCloseButton extends StatefulWidget {
+  final VoidCallback onPressed;
+  final Color color;
+
+  const _NotificationCloseButton({
+    required this.onPressed,
+    required this.color,
+  });
+
+  @override
+  State<_NotificationCloseButton> createState() =>
+      _NotificationCloseButtonState();
+}
+
+class _NotificationCloseButtonState extends State<_NotificationCloseButton> {
+  bool _focused = false;
+
+  void _setFocused(bool value) {
+    if (_focused != value) setState(() => _focused = value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MergeSemantics(
+      child: Semantics(
+        button: true,
+        enabled: true,
+        label: ItLocalizations.of(context).closeNotification,
+        onTap: widget.onPressed,
+        child: FocusableActionDetector(
+          onShowFocusHighlight: _setFocused,
+          actions: <Type, Action<Intent>>{
+            ActivateIntent: CallbackAction<ActivateIntent>(
+              onInvoke: (_) {
+                widget.onPressed();
+                return null;
+              },
+            ),
+            ButtonActivateIntent: CallbackAction<ButtonActivateIntent>(
+              onInvoke: (_) {
+                widget.onPressed();
+                return null;
+              },
+            ),
+          },
+          // WCAG 2.4.7 Focus Visible — the design system's own indicator,
+          // painted only while the control holds keyboard focus, so the
+          // default rendering is byte-for-byte what it was.
+          child: ItFocusRing(
+            visible: _focused,
+            child: GestureDetector(
+              onTap: widget.onPressed,
+              behavior: HitTestBehavior.opaque,
+              child: SizedBox(
+                width: ItNotification._closeSize,
+                height: ItNotification._closeSize,
+                child: Center(
+                  // The Bootstrap Italia close glyph paints ~12px
+                  // wide inside its 32px `.icon` box.
+                  child: Icon(
+                    BootstrapItaliaIcons.it_close,
+                    color: widget.color,
+                    size: ItNotification._closeSize,
                   ),
-                  if (widget.dismissible) ...[
-                    const SizedBox(width: BootstrapItaliaSpacing.space2),
-                    GestureDetector(
-                      onTap: _dismiss,
-                      child: Icon(
-                        Icons.close,
-                        color: colors.gray400,
-                        size: 20,
-                      ),
-                    ),
-                  ],
-                ],
+                ),
               ),
             ),
           ),

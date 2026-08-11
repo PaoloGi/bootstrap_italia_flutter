@@ -1,4 +1,4 @@
-import 'package:bootstrap_italia/bootstrap_italia.dart';
+import 'package:bootstrap_italia_flutter/bootstrap_italia_flutter.dart';
 import 'package:flutter/material.dart';
 
 import '../../widgets/component_page.dart';
@@ -16,8 +16,7 @@ class FooterPage extends StatelessWidget {
           title: 'Base',
           child: ItFooter(
             institutionName: 'Comune di Roma',
-            description:
-                'Piazza del Campidoglio, 1 - 00186 Roma\nTel. 06 0606',
+            description: 'Piazza del Campidoglio, 1 - 00186 Roma\nTel. 06 0606',
           ),
         ),
         ExampleSection(
@@ -58,11 +57,11 @@ class FooterPage extends StatelessWidget {
             institutionName: 'Comune di Roma',
             description: 'Seguici sui social per restare aggiornato.',
             socialLinks: [
-              ItFooterSocialLink(
+              ItSocialLink(
                   icon: Icons.facebook, label: 'Facebook', onTap: () {}),
-              ItFooterSocialLink(
+              ItSocialLink(
                   icon: Icons.camera_alt, label: 'Instagram', onTap: () {}),
-              ItFooterSocialLink(
+              ItSocialLink(
                   icon: Icons.play_circle, label: 'YouTube', onTap: () {}),
             ],
           ),
@@ -71,13 +70,11 @@ class FooterPage extends StatelessWidget {
           title: 'Con info legali',
           child: ItFooter(
             institutionName: 'Comune di Roma',
-            description:
-                'Piazza del Campidoglio, 1 - 00186 Roma',
+            description: 'Piazza del Campidoglio, 1 - 00186 Roma',
             legalInfo: [
               ItFooterLink(label: 'Privacy policy', onTap: () {}),
               ItFooterLink(label: 'Note legali', onTap: () {}),
-              ItFooterLink(
-                  label: 'Accessibilità', onTap: () {}),
+              ItFooterLink(label: 'Accessibilità', onTap: () {}),
               ItFooterLink(label: 'Cookie policy', onTap: () {}),
             ],
           ),

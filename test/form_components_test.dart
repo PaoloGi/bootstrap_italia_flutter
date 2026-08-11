@@ -1,10 +1,13 @@
-import 'package:bootstrap_italia/bootstrap_italia.dart';
+import 'package:bootstrap_italia_flutter/bootstrap_italia_flutter.dart';
+import 'package:bootstrap_italia_icons/bootstrap_italia_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Widget _wrap(Widget child) {
   return MaterialApp(
-    home: Scaffold(body: SingleChildScrollView(child: Padding(
+    home: Scaffold(
+        body: SingleChildScrollView(
+            child: Padding(
       padding: const EdgeInsets.all(16),
       child: child,
     ))),
@@ -73,15 +76,19 @@ void main() {
         ),
       ));
 
-      // Initially obscured - visibility_off shown
-      expect(find.byIcon(Icons.visibility_off), findsOneWidget);
+      // Initially obscured — the "reveal" eye is shown.
+      expect(
+        find.byIcon(BootstrapItaliaIcons.it_password_visible),
+        findsOneWidget,
+      );
 
-      // Tap to toggle
-      await tester.tap(find.byIcon(Icons.visibility_off));
+      await tester.tap(find.byIcon(BootstrapItaliaIcons.it_password_visible));
       await tester.pump();
 
-      // Now showing - visibility shown
-      expect(find.byIcon(Icons.visibility), findsOneWidget);
+      expect(
+        find.byIcon(BootstrapItaliaIcons.it_password_invisible),
+        findsOneWidget,
+      );
     });
 
     testWidgets('disabled state works', (tester) async {
@@ -101,7 +108,10 @@ void main() {
         ),
       ));
 
-      expect(find.byIcon(Icons.check_circle), findsOneWidget);
+      expect(
+        find.byIcon(BootstrapItaliaIcons.it_check_circle),
+        findsOneWidget,
+      );
     });
   });
 
@@ -148,7 +158,7 @@ void main() {
         ItCheckbox(
           value: false,
           label: 'Disabled',
-          disabled: true,
+          enabled: false,
           onChanged: (v) => result = v,
         ),
       ));
@@ -285,7 +295,7 @@ void main() {
         ItToggle(
           value: false,
           label: 'Disabled',
-          disabled: true,
+          enabled: false,
           onChanged: (v) => result = v,
         ),
       ));
@@ -294,12 +304,18 @@ void main() {
       expect(result, isNull);
     });
 
-    testWidgets('renders Switch widget', (tester) async {
+    testWidgets('renders the .toggles lever at its CSS size', (tester) async {
       await tester.pumpWidget(_wrap(
         const ItToggle(value: true),
       ));
 
-      expect(find.byType(Switch), findsOneWidget);
+      // .toggles label { height: 32px }
+      expect(tester.getSize(find.byType(ItToggle)).height, 32);
+      // .lever:after — the 26px thumb, filled with the primary colour when on.
+      final thumb = tester.widgetList<Container>(find.byType(Container)).last;
+      final decoration = thumb.decoration! as BoxDecoration;
+      expect(decoration.shape, BoxShape.circle);
+      expect(decoration.color, BootstrapItaliaColors.primary);
     });
   });
 
@@ -344,7 +360,7 @@ void main() {
         ),
       ));
 
-      await tester.tap(find.text('Provincia'));
+      await tester.tap(find.byType(ItSelect<String>));
       await tester.pumpAndSettle();
 
       // Overlay should show options
@@ -359,11 +375,11 @@ void main() {
           items: [
             ItSelectItem(value: 'RM', label: 'Roma'),
           ],
-          disabled: true,
+          enabled: false,
         ),
       ));
 
-      await tester.tap(find.text('Disabled'));
+      await tester.tap(find.byType(ItSelect<String>));
       await tester.pumpAndSettle();
 
       // Should only find one 'Roma' instance (none from overlay)
@@ -421,10 +437,16 @@ void main() {
         ),
       ));
 
+      // Bootstrap Italia draws no input box at all: the only border is the
+      // 1px bottom rule the widget paints itself.
       final textField = tester.widget<TextField>(find.byType(TextField));
-      final decoration = textField.decoration!;
-      expect(decoration.enabledBorder, isA<UnderlineInputBorder>());
-      expect(decoration.focusedBorder, isA<UnderlineInputBorder>());
+      expect(textField.decoration!.border, InputBorder.none);
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is ColoredBox && w.color == const Color(0xFF5D7083),
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('disabled state shows gray fill', (tester) async {
@@ -438,16 +460,21 @@ void main() {
       ));
 
       final textField = tester.widget<TextField>(find.byType(TextField));
-      final decoration = textField.decoration!;
-      expect(decoration.filled, isTrue);
       expect(textField.enabled, isFalse);
+      // .form-control:disabled { background-color: hsl(210,3%,85%) }
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is ColoredBox && w.color == const Color(0xFFD8D9DA),
+        ),
+        findsOneWidget,
+      );
     });
 
-    testWidgets('big variant uses larger font', (tester) async {
+    testWidgets('large variant uses larger font', (tester) async {
       await tester.pumpWidget(_wrap(
         ItAutocomplete<String>(
-          label: 'Big',
-          big: true,
+          label: 'Grande',
+          large: true,
           onSearch: (_) async => [],
           displayStringForOption: (s) => s,
         ),

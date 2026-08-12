@@ -265,10 +265,20 @@ void main() {
         (tester) async {
       await tester.pumpWidget(
         _host(
+          // Two tabs with the FIRST selected, hovering the second. This used
+          // `selectedIndex: -1` and a single tab to get an inactive one — but
+          // -1 means no tab is selected, and `inTabOrder` follows the
+          // selection, so the whole tablist dropped out of the tab order and
+          // was unreachable by keyboard (WCAG 2.1.1). ItTabBar now asserts
+          // against it. An inactive tab beside an active one is the real
+          // configuration anyway.
           ItTabBar(
-            selectedIndex: -1,
+            selectedIndex: 0,
             onChanged: (_) {},
-            tabs: const [ItTabItem(label: 'Link')],
+            tabs: const [
+              ItTabItem(label: 'Attivo'),
+              ItTabItem(label: 'Link'),
+            ],
           ),
         ),
       );

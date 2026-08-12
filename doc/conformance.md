@@ -74,6 +74,12 @@ These are open. Each is a real gap, not a formality.
    closest same-set equivalents rather than observed values. `success` and the
    default are verified.
 
+   A protocol for this pass is now in `doc/at-testing-protocol.md`, and
+   `flutter test tool/a11y/preview` generates `doc/at-announcements.md` —
+   what each component gives a screen reader, in tree order and in Tab
+   order. Everything mechanical has been moved into automated tests so the
+   manual pass is spent on the four questions only a person can answer.
+
 ## Known environmental issue
 
 Some widget tests fail locally with:

@@ -51,6 +51,7 @@ class ItFocusRing extends StatefulWidget {
     this.trackDescendants = false,
     required this.child,
     this.radius = 0,
+    this.onDark = false,
   });
 
   /// Whether the indicator is currently painted.
@@ -67,6 +68,11 @@ class ItFocusRing extends StatefulWidget {
 
   /// Corner radius of the control the ring surrounds.
   final double radius;
+
+  /// Whether the control sits on a dark surface, which inverts the two bands.
+  ///
+  /// See [ItFocusRingPainter.onDark].
+  final bool onDark;
 
   /// The control the ring is painted around.
   final Widget child;
@@ -115,8 +121,9 @@ class _ItFocusRingState extends State<ItFocusRing> {
     // that made the ring appear. A painterless [CustomPaint] draws nothing, so
     // this costs no pixels.
     final Widget painter = CustomPaint(
-      foregroundPainter:
-          painted ? ItFocusRingPainter(radius: widget.radius) : null,
+      foregroundPainter: painted
+          ? ItFocusRingPainter(radius: widget.radius, onDark: widget.onDark)
+          : null,
       child: widget.child,
     );
 
@@ -141,7 +148,7 @@ class _ItFocusRingState extends State<ItFocusRing> {
 /// indicator actually being painted, whichever way the ring is driven.
 class ItFocusRingPainter extends CustomPainter {
   /// Creates the painter for a ring of the given geometry.
-  const ItFocusRingPainter({required this.radius});
+  const ItFocusRingPainter({required this.radius, this.onDark = false});
 
   /// Corner radius of the control the ring surrounds.
   final double radius;
@@ -153,6 +160,16 @@ class ItFocusRingPainter extends CustomPainter {
 
   /// `box-shadow: … , 0 0 0 5px #000` — the outer band, 2…5px outside.
   static const double _blackBand = 3;
+
+  /// Whether the control sits on a dark surface.
+  ///
+  /// `.bg-dark .btn:focus:not([data-focus-mouse=true])` and
+  /// `.back-to-top.dark:focus…` declare
+  /// `box-shadow: 0 0 0 2px #000, 0 0 0 5px #fff` — the same two bands in the
+  /// opposite order. It is not decoration: the indicator's own contrast is what
+  /// §2.4.11 Focus Appearance measures, and a white-then-black ring on a dark
+  /// band puts the black outer band against near-black.
+  final bool onDark;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -171,14 +188,19 @@ class ItFocusRingPainter extends CustomPainter {
       );
     }
 
-    // Strokes are centred on the path, so the black ring's centreline sits at
-    // 2 + 3/2 = 3.5px out and the white one's at 2/2 = 1px out. Together they
+    const black = Color(0xFF000000);
+    const white = Color(0xFFFFFFFF);
+    final inner = onDark ? black : white;
+    final outer = onDark ? white : black;
+
+    // Strokes are centred on the path, so the outer ring's centreline sits at
+    // 2 + 3/2 = 3.5px out and the inner one's at 2/2 = 1px out. Together they
     // tile 0…5px exactly as the two box-shadows do.
-    ring(_whiteBand + _blackBand / 2, _blackBand, const Color(0xFF000000));
-    ring(_whiteBand / 2, _whiteBand, const Color(0xFFFFFFFF));
+    ring(_whiteBand + _blackBand / 2, _blackBand, outer);
+    ring(_whiteBand / 2, _whiteBand, inner);
   }
 
   @override
   bool shouldRepaint(ItFocusRingPainter oldDelegate) =>
-      oldDelegate.radius != radius;
+      oldDelegate.radius != radius || oldDelegate.onDark != onDark;
 }

@@ -115,7 +115,8 @@ void main() {
       expect(ItLocalizations.of(ctx).closeModal, 'Chiudi finestra modale');
     });
 
-    testWidgets('a MaterialApp with no delegate resolves to Italian, not '
+    testWidgets(
+        'a MaterialApp with no delegate resolves to Italian, not '
         'English', (tester) async {
       late BuildContext ctx;
       await tester.pumpWidget(MaterialApp(
@@ -203,8 +204,8 @@ void main() {
       // never returns for it.
       await tester.pump(const Duration(milliseconds: 400));
       for (final label in labels) {
-        expect(find.bySemanticsLabel(RegExp(RegExp.escape(label))),
-            findsWidgets,
+        expect(
+            find.bySemanticsLabel(RegExp(RegExp.escape(label))), findsWidgets,
             reason: label);
       }
       handle.dispose();
@@ -230,12 +231,19 @@ void main() {
       );
     });
 
-    testWidgets('ItChip dismiss', (tester) async {
+    testWidgets('ItChip dismiss names the chip it removes', (tester) async {
+      // Not the bare `de.remove`. A filter bar with five chips would otherwise
+      // give five buttons all called "Entfernen", indistinguishable in an
+      // element list. The template also puts the verb where German wants it,
+      // which a concatenation in Dart could not.
       await announces(
         tester,
         ItChip(dismissible: true, onDismiss: () {}, label: 'Etikett'),
-        [de.remove],
+        [de.removeNamed('Etikett')],
       );
+      expect(de.removeNamed('Etikett'), 'Etikett entfernen');
+      expect(ItLocalizations.italian.removeNamed('Etichetta'),
+          'Rimuovi Etichetta');
     });
 
     testWidgets('ItSpinner', (tester) async {
@@ -515,7 +523,8 @@ void main() {
       handle.dispose();
     });
 
-    testWidgets('a resolve hook can restyle one string without restating the '
+    testWidgets(
+        'a resolve hook can restyle one string without restating the '
         'rest', (tester) async {
       late BuildContext ctx;
       await tester.pumpWidget(MaterialApp(
@@ -589,8 +598,8 @@ void main() {
       final end = source.indexOf('\n  );', start);
       final body = source.substring(start, end);
       return {
-        for (final m in RegExp(r"^\s+(\w+): '(.*)',$", multiLine: true)
-            .allMatches(body))
+        for (final m
+            in RegExp(r"^\s+(\w+): '(.*)',$", multiLine: true).allMatches(body))
           m.group(1)!: m.group(2)!,
       };
     }
@@ -660,8 +669,8 @@ void main() {
         {'it', 'de', 'fr'},
       );
       for (final locale in ItLocalizations.supportedLocales) {
-        expect(ItLocalizations.forLocale(locale).localeName,
-            locale.languageCode);
+        expect(
+            ItLocalizations.forLocale(locale).localeName, locale.languageCode);
       }
     });
 

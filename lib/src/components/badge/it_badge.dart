@@ -1,10 +1,12 @@
 import 'package:flutter/widgets.dart';
 
+import '../../a11y/it_activatable.dart';
 import '../../l10n/it_localizations.dart';
 import '../../theme/bootstrap_italia_theme_data.dart';
 import '../../theme/theme_extensions.dart';
 import '../../tokens/borders.dart';
 import '../../tokens/typography.dart';
+import '../../utilities/interaction_states.dart';
 
 /// Color variants for [ItBadge].
 enum ItBadgeVariant {
@@ -69,6 +71,47 @@ class ItBadge extends StatelessWidget {
   /// Whether to use the pill (rounded) shape.
   final bool pill;
 
+  /// Overrides the fill — the `.bg-*` utility rather than a `.badge-*` variant.
+  ///
+  /// «Accessibilità» builds its counter badge as
+  /// `<span class="badge bg-white text-secondary">4</span>`: white on the blue
+  /// button, not one of the semantic fills. `bg-white` is not a value of
+  /// [ItBadgeVariant] and should not become one — it is a background utility
+  /// that happens to be spelled like a variant.
+  final Color? backgroundColor;
+
+  /// Overrides the label colour — the `.text-*` utility.
+  ///
+  /// Note that `.text-secondary` is `hsl(210, 33%, 28%)` (#30475F), which is
+  /// *not* `--bs-secondary` (`hsl(210, 17%, 44%)`). The two utilities disagree
+  /// with the palette they are named after, so pass the colour you want rather
+  /// than assuming the scheme's `secondary`.
+  final Color? foregroundColor;
+
+  /// Called when the badge is activated, making it a link.
+  ///
+  /// «Link» puts the contextual class on an `<a>`: `<a href="#" class="badge
+  /// bg-primary">`. The hover state comes with it —
+  /// `a.badge:hover.bg-primary { background-color: rgb(0, 81.6, 163.2) }`, the
+  /// fill at 80% — and so does the role, which is why this announces as a link
+  /// rather than a button.
+  final VoidCallback? onTap;
+
+  /// Text announced in place of, or in addition to, the badge's own content.
+  ///
+  /// «Accessibilità» is explicit about the problem: *«questi badge possono
+  /// sembrare parole o numeri aggiuntivi casuali alla fine di una frase, un
+  /// collegamento o un pulsante»*. Its remedy is a
+  /// `<span class="visually-hidden">Messaggi non letti</span>` beside the
+  /// number — text for screen readers that does not appear on screen. This is
+  /// that span: pass `'9 messaggi non letti'` and the bare "9" stops being a
+  /// stray digit.
+  ///
+  /// Naming what a badge counts is per-call-site content, not per-locale
+  /// wording, so there is nothing for the localisations to supply — the same
+  /// reasoning as [ItNotificationBadge.semanticLabel].
+  final String? semanticLabel;
+
   /// The badge content.
   final Widget child;
 
@@ -77,24 +120,58 @@ class ItBadge extends StatelessWidget {
     super.key,
     this.variant = ItBadgeVariant.primary,
     this.pill = false,
+    this.backgroundColor,
+    this.foregroundColor,
+    this.onTap,
+    this.semanticLabel,
     required this.child,
   });
 
+  /// `--bs-body-font-size: 1rem`, the size an `em` resolves against when the
+  /// badge sits directly on the page with nothing overriding it.
+  static const double _rootFontSize = 16;
+
   @override
   Widget build(BuildContext context) {
-    final colors = resolveColorScheme(context);
-    final bgColor = colors.forVariant(variant.variantColor);
-    final fgColor = colors.foregroundForVariant(variant.variantColor);
+    return ItHoverBuilder(
+      enabled: onTap != null,
+      cursor: onTap == null ? MouseCursor.defer : SystemMouseCursors.click,
+      builder: _build,
+    );
+  }
 
-    // Bootstrap Italia overrides the Bootstrap base: --bs-badge-font-size is
-    // 0.875em (14px against the 16px body) and --bs-badge-font-weight is 600.
-    // Padding is expressed in em relative to the badge's own font-size:
-    // 0.25em/0.4em, and 0.6em horizontally for the pill variant.
-    const fontSize = 14.0;
-    const paddingY = 0.25 * fontSize;
+  Widget _build(BuildContext context, bool hovered) {
+    final colors = resolveColorScheme(context);
+    var bgColor = backgroundColor ?? colors.forVariant(variant.variantColor);
+    final fgColor =
+        foregroundColor ?? colors.foregroundForVariant(variant.variantColor);
+
+    // `a.badge:hover.bg-primary { background-color: rgb(0, 81.6, 163.2) }`,
+    // `.bg-success { #064 }`, `.bg-secondary { hsl(210, 17%, 35.2%) }` — every
+    // one of the twenty-odd rules is its fill at 80%. Italia compiles the shade
+    // by scaling HSL lightness, which for these colours lands on the same bytes
+    // as the linear RGB mix `itShade` performs (checked on secondary: both give
+    // #4A5A69).
+    if (hovered) bgColor = itShade(bgColor, 0.20);
+
+    // `--bs-badge-font-size: 0.875em` — an **em**, so the badge takes its size
+    // from whatever it is placed in, and «La grandezza di ogni badge si adatta
+    // come dimensione a quella del font dell'elemento in cui è contenuto» is the
+    // first thing the docs say about it. Hardcoding 14 made a badge in an `h1`
+    // the same size as one in a caption, which is the whole point of the em.
+    //
+    // The fallback matters: outside any Material or ItDefaultTextStyle the
+    // ambient style is `DefaultTextStyle.fallback()`, whose `fontSize` is null —
+    // so `?? 16` stands in for the CSS root, not for Flutter's own 14px default.
+    final inherited = DefaultTextStyle.of(context).style.fontSize;
+    final fontSize = 0.875 * (inherited ?? _rootFontSize);
+    // `--bs-badge-padding-y: 0.25em`, `--bs-badge-padding-x: 0.4em`, and
+    // `.rounded-pill { padding-right: 0.6em; padding-left: 0.6em }` — all em
+    // against the badge's own font size, so they scale with it.
+    final paddingY = 0.25 * fontSize;
     final paddingX = (pill ? 0.6 : 0.4) * fontSize;
 
-    return Container(
+    final Widget box = Container(
       padding: EdgeInsets.symmetric(horizontal: paddingX, vertical: paddingY),
       decoration: BoxDecoration(
         color: bgColor,
@@ -107,6 +184,10 @@ class ItBadge extends StatelessWidget {
       child: DefaultTextStyle(
         style: TextStyle(
           fontSize: fontSize,
+          // `--bs-badge-font-weight: 600` (Italia's override of Bootstrap's
+          // 700), and `a.badge:hover { color: #fff }` keeps the label white
+          // through the darker hover fill — which is what `foregroundForVariant`
+          // already returns for every fill except `light`.
           fontWeight: FontWeight.w600,
           color: fgColor,
           // .badge sets line-height: 1. CSS splits the leading evenly above
@@ -118,6 +199,38 @@ class ItBadge extends StatelessWidget {
           package: BootstrapItaliaFontFamily.package,
         ),
         child: child,
+      ),
+    );
+
+    if (onTap == null) {
+      // Plain content. A `semanticLabel` on a non-interactive badge REPLACES
+      // what is read, rather than adding to it: "9" and "9 messaggi non letti"
+      // read one after the other is exactly the stray-number noise the docs are
+      // warning about.
+      if (semanticLabel == null) return box;
+      return Semantics(
+        label: semanticLabel,
+        child: ExcludeSemantics(child: box),
+      );
+    }
+
+    // §4.1.2 / §2.1.1: an `<a class="badge">` is a link, so it needs the role,
+    // a name, and the keyboard. Without ItActivatable it would be a
+    // pointer-only target with no focus indicator.
+    return Semantics(
+      link: true,
+      label: semanticLabel,
+      child: ItActivatable(
+        onPressed: onTap,
+        cursor: MouseCursor.defer,
+        borderRadius: BorderRadius.circular(
+          pill
+              ? BootstrapItaliaBorders.radiusPill
+              : BootstrapItaliaBorders.radius,
+        ),
+        // With an explicit name the content must be excluded or the merge says
+        // it twice; with none, the content IS the name.
+        child: semanticLabel == null ? box : ExcludeSemantics(child: box),
       ),
     );
   }
@@ -152,7 +265,7 @@ class ItNotificationBadge extends StatelessWidget {
   /// `'<count> notifiche'`; pass this to say what is being counted, e.g.
   /// `'3 messaggi non letti'`.
   ///
-  /// The default now follows the locale — see [ItLocalizations]. This parameter
+  /// This parameter
   /// stays because it says something the localisations cannot: *what* the badge
   /// counts. That is per-call-site content, not per-locale wording, and it is
   /// the part that actually satisfies WCAG 4.1.2 here.
@@ -187,9 +300,9 @@ class ItNotificationBadge extends StatelessWidget {
             // next to them are looking at the same badge and reading different
             // numbers, with no way to tell which is authoritative. Naming what
             // is counted was the actual defect here; the cap is not a defect.
-            // The count is pluralised rather than interpolated into one
-            // template: the old `'$count notifiche'` announced "1 notifiche"
-            // for a badge of one, and German and French inflect the noun.
+            // Pluralised rather than interpolated into one template: the
+            // old `'$count notifiche'` announced "1 notifiche" for a badge of
+            // one, and German and French inflect the noun.
             child: Semantics(
               label: semanticLabel ??
                   ItLocalizations.of(context)

@@ -19,9 +19,9 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
+import '../../l10n/it_localizations.dart';
 import '../../a11y/it_activatable.dart';
 import '../../a11y/it_icon_action.dart';
-import '../../l10n/it_localizations.dart';
 import '../../theme/bootstrap_italia_theme_data.dart';
 import '../../theme/theme_extensions.dart';
 import '../../tokens/spacing.dart';
@@ -89,12 +89,47 @@ class ItMegamenu extends StatefulWidget {
   /// Defaults to false (accordion behavior: one section at a time).
   final bool mobileAllowMultipleOpen;
 
+  /// The `.theme-light-desk` pairing: a white bar with a dark panel below it.
+  ///
+  /// Bootstrap Italia's *"completo scuro desktop"*. The class name describes
+  /// the bar, not the menu — `@media (min-width: 992px) {
+  ///   .it-header-navbar-wrapper.theme-light-desk { background: #fff } }` with
+  /// `… li.megamenu > button.nav-link { color: #06c }`, while
+  /// `.theme-light-desk .navbar .dropdown-menu { background: #06c }` turns the
+  /// panel the other way round. Setting both from one flag is what stops the
+  /// two halves from being configured into a combination the kit never has.
+  final bool lightDesk;
+
+  /// The `.theme-dark-mobile` overlay: primary ground, white content, below
+  /// `lg`.
+  ///
+  /// `.it-header-navbar-wrapper.theme-dark-mobile .navbar .navbar-collapsable
+  ///   .menu-wrapper { background: #06c }` with `… li a.nav-link { color: #fff }`,
+  /// `… li > button.nav-link { color: #fff }`, `… svg { fill: #fff }`,
+  /// `… a.nav-link.active { border-left-color: #fff }` and
+  /// `… .close-div .close-menu { color: #fff }`.
+  ///
+  /// The expanded section body keeps its light `hsl(210,62%,97%)` fill in both
+  /// themes — `.it-vertical` has no `.theme-dark-mobile` override — so the
+  /// links inside it stay `#06c` and remain legible.
+  final bool darkMobile;
+
+  /// An accessible name for the navigation landmark this bar publishes.
+  ///
+  /// Null by default — see [ItNavHeader.semanticsLabel], which this mirrors:
+  /// one navigation region on a page needs no name, several do, and Flutter
+  /// asserts when a repeated landmark role has none.
+  final String? semanticsLabel;
+
   /// Creates a Bootstrap Italia megamenu.
   const ItMegamenu({
     super.key,
     required this.sections,
+    this.semanticsLabel,
     this.backgroundColor,
     this.mobileAllowMultipleOpen = false,
+    this.lightDesk = false,
+    this.darkMobile = false,
   });
 
   @override
@@ -123,7 +158,14 @@ class _ItMegamenuState extends State<ItMegamenu> {
   @override
   Widget build(BuildContext context) {
     final colors = resolveColorScheme(context);
-    final bgColor = widget.backgroundColor ?? colors.primary;
+    // The bar is `#06c` with white labels by default; `.theme-light-desk`
+    // inverts it on desktop and `.theme-dark-mobile` leaves it alone on mobile
+    // (that class restyles the panel, which is already this colour here).
+    // Both values are `--bs-primary`/`--bs-white` in the roles those tokens
+    // name, so the pair moves together under a retinted scheme.
+    final bgColor = widget.backgroundColor ??
+        (widget.lightDesk ? colors.white : colors.primary);
+    final barFg = widget.lightDesk ? colors.primary : colors.white;
 
     return Builder(
       builder: (context) {
@@ -155,6 +197,7 @@ class _ItMegamenuState extends State<ItMegamenu> {
             container: true,
             explicitChildNodes: true,
             role: SemanticsRole.navigation,
+            label: widget.semanticsLabel,
             // §2.4.3 Focus Order. The panel is a sibling *after* the whole
             // bar, because that is what stacks it below on screen — but in the
             // kit the panel is a child of its own `li`, so Tab goes toggle →
@@ -177,14 +220,16 @@ class _ItMegamenuState extends State<ItMegamenu> {
                     padding: const EdgeInsets.symmetric(
                       horizontal: BootstrapItaliaSpacing.space3,
                     ),
-                    child:
-                        isMobile ? _buildMobileBar(colors) : _buildDesktopBar(),
+                    child: isMobile
+                        ? _buildMobileBar(colors, barFg)
+                        : _buildDesktopBar(barFg),
                   ),
                   if (!isMobile && _openSectionIndex != null)
                     FocusTraversalOrder(
                       order: NumericFocusOrder(_openSectionIndex! + 0.5),
                       child: ItMegamenuPanel(
                         section: widget.sections[_openSectionIndex!],
+                        dark: widget.lightDesk,
                       ),
                     ),
                 ],
@@ -211,7 +256,7 @@ class _ItMegamenuState extends State<ItMegamenu> {
     }
   }
 
-  Widget _buildDesktopBar() {
+  Widget _buildDesktopBar(Color foreground) {
     return Row(
       children: List.generate(widget.sections.length, (i) {
         final section = widget.sections[i];
@@ -225,6 +270,7 @@ class _ItMegamenuState extends State<ItMegamenu> {
             isActive: section.active || isOpen,
             isCurrent: section.active,
             isOpen: isOpen,
+            foreground: foreground,
             focusNode: _toggleFocusNode(i),
             onTap: () {
               setState(() {
@@ -245,7 +291,7 @@ class _ItMegamenuState extends State<ItMegamenu> {
 
   // ── Mobile ──────────────────────────────────────────────────
 
-  Widget _buildMobileBar(BootstrapItaliaColorScheme colors) {
+  Widget _buildMobileBar(BootstrapItaliaColorScheme colors, Color foreground) {
     // `orElse: () => sections.first` throws StateError on an empty list, so an
     // empty megamenu crashed on mobile while the desktop path rendered nothing
     // and carried on. Same input, two behaviours, one of them a crash.
@@ -263,7 +309,7 @@ class _ItMegamenuState extends State<ItMegamenu> {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: colors.white,
+              color: foreground,
             ),
           ),
         ),
@@ -272,7 +318,7 @@ class _ItMegamenuState extends State<ItMegamenu> {
         // the tooltip and is now stated outright (§4.1.2).
         ItIconAction(
           icon: BootstrapItaliaIcons.it_burger,
-          color: colors.white,
+          color: foreground,
           label: ItLocalizations.of(context).openMenu,
           onPressed: () => _openMobileMenu(context),
         ),
@@ -311,6 +357,7 @@ class _ItMegamenuState extends State<ItMegamenu> {
           return MegamenuMobileOverlay(
             sections: widget.sections,
             allowMultipleOpen: widget.mobileAllowMultipleOpen,
+            dark: widget.darkMobile,
           );
         },
       ),
@@ -326,6 +373,11 @@ class _DesktopNavButton extends StatelessWidget {
   final bool isActive;
   final bool isCurrent;
   final bool isOpen;
+
+  /// The bar's content colour — `#fff` on the primary bar, `#06c` under
+  /// `.theme-light-desk`, where `li.megamenu > button.nav-link { color: #06c }`
+  /// and `… .active { border-bottom-color: #06c }` restate both together.
+  final Color foreground;
   final FocusNode? focusNode;
   final VoidCallback onTap;
 
@@ -335,14 +387,13 @@ class _DesktopNavButton extends StatelessWidget {
     required this.isActive,
     required this.isCurrent,
     required this.isOpen,
+    required this.foreground,
     required this.onTap,
     this.focusNode,
   });
 
   @override
   Widget build(BuildContext context) {
-    final colors = resolveColorScheme(context);
-
     // §4.1.2 Name, Role, Value: the panel's open/closed state is otherwise
     // conveyed only by a static chevron glyph. `expanded` is the aria-expanded
     // equivalent; `selected` carries "this is the current section".
@@ -360,7 +411,7 @@ class _DesktopNavButton extends StatelessWidget {
             decoration: isActive
                 ? BoxDecoration(
                     border: Border(
-                      bottom: BorderSide(color: colors.white, width: 3),
+                      bottom: BorderSide(color: foreground, width: 3),
                     ),
                   )
                 : null,
@@ -368,14 +419,14 @@ class _DesktopNavButton extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (icon != null) ...[
-                  Icon(icon, size: 18, color: colors.white),
+                  Icon(icon, size: 18, color: foreground),
                   const SizedBox(width: 6),
                 ],
                 Text(
                   label,
                   style: TextStyle(
                     fontSize: 16,
-                    color: colors.white,
+                    color: foreground,
                     fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
                   ),
                 ),
@@ -389,7 +440,7 @@ class _DesktopNavButton extends StatelessWidget {
                   turns: isOpen ? 0.5 : 0,
                   duration: const Duration(milliseconds: 200),
                   child: Icon(BootstrapItaliaIcons.it_expand,
-                      size: 18, color: colors.white),
+                      size: 18, color: foreground),
                 ),
               ],
             ),

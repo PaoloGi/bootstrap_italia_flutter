@@ -1,11 +1,10 @@
 import 'package:bootstrap_italia_icons/bootstrap_italia_icons.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter/semantics.dart';
 
+import '../../l10n/it_localizations.dart';
 import '../../a11y/it_activatable.dart';
 import '../../a11y/it_icon_action.dart';
-import '../../l10n/it_localizations.dart';
-import '../../theme/bootstrap_italia_theme_data.dart';
 import '../../theme/theme_extensions.dart';
 import '../../tokens/spacing.dart';
 import '../../tokens/typography.dart';
@@ -87,12 +86,76 @@ class ItNavHeader extends StatefulWidget {
   /// [ItCenterHeader]. Pass 12 for a bar flush with the container gutter.
   final double contentInset;
 
+  /// A second, right-aligned list of navigation items.
+  ///
+  /// `.it-header-navbar-wrapper nav .navbar-collapsable .menu-wrapper
+  ///   .navbar-nav.navbar-secondary { display: flex; justify-content: flex-end }`
+  /// with `… a { font-size: .875rem; line-height: 1.6 }` — the menu wrapper is
+  /// `justify-content: space-between`, so the primary list keeps the left of
+  /// the band and this one takes the right, in smaller type.
+  ///
+  /// On mobile the kit puts both lists in the same panel, so these follow the
+  /// primary items down the menu.
+  final List<ItNavItem> secondaryItems;
+
+  /// The `.theme-light-desk` desktop band: white ground, primary content.
+  ///
+  /// `@media (min-width: 992px) { .it-header-navbar-wrapper.theme-light-desk
+  ///   { background: #fff; box-shadow: 0 20px 30px 5px rgba(0,0,0,.05) } }`
+  /// with `… li a.nav-link { color: #06c }` and
+  /// `… li a.nav-link.active { border-bottom-color: #06c }`.
+  ///
+  /// Affects the desktop layout only; below `lg` the band is governed by
+  /// [darkMobile], exactly as the two independent CSS classes are.
+  final bool lightDesk;
+
+  /// The `.theme-dark-mobile` panel: primary ground, white content, below `lg`.
+  ///
+  /// `.it-header-navbar-wrapper.theme-dark-mobile .navbar .navbar-collapsable
+  ///   .menu-wrapper { background: #06c }` with `… li a.nav-link { color: #fff }`
+  /// and `… a.nav-link.active { border-left-color: #fff }`.
+  ///
+  /// Defaults to **false**, matching the kit: the light panel is
+  /// `.navbar .navbar-collapsable .menu-wrapper { background: #fff }`, and the
+  /// docs say so in as many words — *"su mobile lo stile di default ha un
+  /// background bianco e testi e link di colore primario"*.
+  ///
+  /// This package rendered the dark panel for a long time, which inverted the
+  /// kit's default. `.theme-dark-mobile` is a *modifier* class, so a variant
+  /// you opt into cannot also be the default; ours was simply wrong. Corrected
+  /// rather than preserved because the package has no published users
+  /// (`publish_to: none`) and no parity capture covers the mobile panel — the
+  /// four header captures are all 1280px desktop selectors — so there was
+  /// nothing to weigh against fidelity.
+  final bool darkMobile;
+
+  /// An accessible name for the navigation landmark this band publishes.
+  ///
+  /// Null by default, and that is the right answer for the ordinary case: a
+  /// page with one navigation region does not need it named, and ARIA guidance
+  /// is that a redundant label is a redundant announcement.
+  ///
+  /// It becomes necessary the moment a page carries more than one — a primary
+  /// bar and a footer menu, say, or the several specimens a documentation page
+  /// shows side by side. Repeated landmarks of the same role have to be told
+  /// apart by name, and Flutter asserts on it: *"the navigation landmark role
+  /// should have a unique label as it is used more than once"*.
+  ///
+  /// Caller-supplied content rather than a bundled string, for the same reason
+  /// [ItSocialLink.label] is: only the application knows what distinguishes its
+  /// two menus.
+  final String? semanticsLabel;
+
   /// Creates a Bootstrap Italia navigation header.
   const ItNavHeader({
     super.key,
     required this.items,
+    this.semanticsLabel,
     this.backgroundColor,
     this.contentInset = _defaultInset,
+    this.secondaryItems = const [],
+    this.lightDesk = false,
+    this.darkMobile = false,
   });
 
   @override
@@ -136,7 +199,20 @@ class _ItNavHeaderState extends State<ItNavHeader> {
     // the brand band is the accent role that token exists for, so it is resolved
     // from the scheme. Written literally it would keep an administration's
     // header Blu Italia while the rest of its page retinted around it.
-    final bgColor = widget.backgroundColor ?? colors.primary;
+    //
+    // The two theme classes invert that pairing on their own side of the `lg`
+    // breakpoint: `.theme-light-desk { background: #fff }` with `#06c` links on
+    // desktop, `.theme-dark-mobile { background: #06c }` with `#fff` links on
+    // mobile. `#fff` is `--bs-white`, in the surface/on-primary roles those
+    // tokens name, so both sides of every pair travel with the scheme together —
+    // retinting the fill without the label is how a themed header loses its
+    // contrast.
+    final deskBg = widget.backgroundColor ??
+        (widget.lightDesk ? colors.white : colors.primary);
+    final deskFg = widget.lightDesk ? colors.primary : colors.white;
+    final mobileBg = widget.backgroundColor ??
+        (widget.darkMobile ? colors.primary : colors.white);
+    final mobileFg = widget.darkMobile ? colors.white : colors.primary;
 
     return Builder(
       builder: (context) {
@@ -159,22 +235,80 @@ class _ItNavHeaderState extends State<ItNavHeader> {
           container: true,
           explicitChildNodes: true,
           role: SemanticsRole.navigation,
+          label: widget.semanticsLabel,
           child: isDesktop
-              ? Container(
-                  width: double.infinity,
-                  color: bgColor,
-                  padding:
-                      EdgeInsets.symmetric(horizontal: widget.contentInset),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.max,
-                    children: [
-                      for (final item in widget.items) _NavLink(item: item),
-                    ],
+              ? DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: deskBg,
+                    // `.theme-light-desk { box-shadow: 0 20px 30px 5px
+                    //   rgba(0,0,0,.05) }` — a white band needs an edge against
+                    // the white page beneath it, which the primary band does
+                    // not. A drop shadow is not a palette colour, so the
+                    // `rgba()` stays a literal.
+                    boxShadow: widget.lightDesk
+                        ? const [
+                            BoxShadow(
+                              color: Color(0x0D000000),
+                              blurRadius: 30,
+                              spreadRadius: 5,
+                              offset: Offset(0, 20),
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: Padding(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: widget.contentInset),
+                      // `.menu-wrapper { display: flex;
+                      //   justify-content: space-between }` — the primary list
+                      // takes the left, `.navbar-secondary` the right. With no
+                      // secondary list the Row is exactly what it was.
+                      child: Row(
+                        mainAxisSize: MainAxisSize.max,
+                        children: [
+                          // Natural width, NOT `Flexible`.
+                          //
+                          // `.navbar-nav { display: flex; flex-direction: row }`
+                          // declares no `flex-wrap`, and its items shrink under
+                          // pressure — but CSS shrinks them *proportionally to
+                          // their content*, so a long label keeps more of the
+                          // width than a short one. Flutter's `Flexible` divides
+                          // the space **equally** (`spacePerFlex = max /
+                          // totalFlex`), which handed "Link 2" as much room as
+                          // "Megamenu con Immagine e Descrizione" and wrapped
+                          // the long one onto three lines. That took
+                          // `nav_header_nav` from parity to 67%: the reference
+                          // band is one line, 57px tall, and ours became 113px.
+                          //
+                          // The docs' own six-item example needs ~1620px at
+                          // natural size, so it must still survive a narrower
+                          // container. It scrolls rather than shrinking: at any
+                          // width where the items fit — including the 1248px
+                          // the reference is captured at — this is pixel-for-
+                          // pixel what a plain Row produced, and where they do
+                          // not, a reachable overflow beats a wrapped band that
+                          // matches neither the kit nor the reference.
+                          for (final item in widget.items)
+                            _NavLink(item: item, foreground: deskFg),
+                          if (widget.secondaryItems.isNotEmpty) ...[
+                            const Spacer(),
+                            for (final item in widget.secondaryItems)
+                              _NavLink(
+                                item: item,
+                                foreground: deskFg,
+                                secondary: true,
+                              ),
+                          ],
+                        ],
+                      ),
+                    ),
                   ),
                 )
               : Container(
                   width: double.infinity,
-                  color: bgColor,
+                  color: mobileBg,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -182,9 +316,9 @@ class _ItNavHeaderState extends State<ItNavHeader> {
                         padding: const EdgeInsets.symmetric(
                           horizontal: BootstrapItaliaSpacing.space3,
                         ),
-                        child: _buildMobileBar(colors),
+                        child: _buildMobileBar(mobileFg),
                       ),
-                      if (_mobileMenuOpen) _buildMobileMenu(colors),
+                      if (_mobileMenuOpen) _buildMobileMenu(mobileBg, mobileFg),
                     ],
                   ),
                 ),
@@ -193,7 +327,7 @@ class _ItNavHeaderState extends State<ItNavHeader> {
     );
   }
 
-  Widget _buildMobileBar(BootstrapItaliaColorScheme colors) {
+  Widget _buildMobileBar(Color foreground) {
     final current = widget.items.firstWhere(
       (i) => i.active,
       orElse: () => widget.items.first,
@@ -203,8 +337,7 @@ class _ItNavHeaderState extends State<ItNavHeader> {
         Expanded(
           child: Text(
             current.label,
-            style:
-                _linkStyle(colors.white).copyWith(fontWeight: FontWeight.w600),
+            style: _linkStyle(foreground).copyWith(fontWeight: FontWeight.w600),
           ),
         ),
         // `.custom-navbar-toggler { background: none; border: none;
@@ -216,7 +349,7 @@ class _ItNavHeaderState extends State<ItNavHeader> {
           icon: _mobileMenuOpen
               ? BootstrapItaliaIcons.it_close
               : BootstrapItaliaIcons.it_burger,
-          color: colors.white,
+          color: foreground,
           label: _mobileMenuOpen
               ? ItLocalizations.of(context).closeMenu
               : ItLocalizations.of(context).openMenu,
@@ -226,18 +359,19 @@ class _ItNavHeaderState extends State<ItNavHeader> {
     );
   }
 
-  Widget _buildMobileMenu(BootstrapItaliaColorScheme colors) {
+  Widget _buildMobileMenu(Color background, Color foreground) {
     return Container(
       width: double.infinity,
-      // `.it-header-navbar-wrapper.theme-dark-mobile .navbar .navbar-collapsable
-      //   .menu-wrapper { background: #06c }` — the same `--bs-primary` value the
-      // band above it carries, so it follows the scheme for the same reason.
-      color: colors.primary,
+      // `.navbar .navbar-collapsable .menu-wrapper { background: #fff }`, which
+      // `.theme-dark-mobile` overrides with `{ background: #06c }` — the same
+      // value the band above it carries, so it follows the scheme for the same
+      // reason.
+      color: background,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          for (final item in widget.items)
+          for (final item in [...widget.items, ...widget.secondaryItems])
             Semantics(
               link: true,
               enabled: !item.disabled,
@@ -270,25 +404,25 @@ class _ItNavHeaderState extends State<ItNavHeader> {
                       decoration: item.active
                           ? BoxDecoration(
                               border: Border(
-                                left: BorderSide(color: colors.white, width: 3),
+                                left: BorderSide(color: foreground, width: 3),
                               ),
                             )
                           : null,
                       child: Row(
                         children: [
                           if (item.icon != null) ...[
-                            Icon(item.icon, size: 18, color: colors.white),
+                            Icon(item.icon, size: 18, color: foreground),
                             const SizedBox(
                                 width: BootstrapItaliaSpacing.space2),
                           ],
                           Text(
                             item.label,
                             style: hovered
-                                ? _linkStyle(colors.white).copyWith(
+                                ? _linkStyle(foreground).copyWith(
                                     decoration: TextDecoration.underline,
-                                    decorationColor: colors.white,
+                                    decorationColor: foreground,
                                   )
-                                : _linkStyle(colors.white),
+                                : _linkStyle(foreground),
                           ),
                         ],
                       ),
@@ -306,11 +440,27 @@ class _ItNavHeaderState extends State<ItNavHeader> {
 class _NavLink extends StatelessWidget {
   final ItNavItem item;
 
-  const _NavLink({required this.item});
+  /// The band's content colour — `#fff` on the primary band, `#06c` under
+  /// `.theme-light-desk`. Passed in rather than resolved here, because the
+  /// band above owns the pairing and the two must not be decided separately.
+  final Color foreground;
+
+  /// Whether this link belongs to `.navbar-nav.navbar-secondary`, which is
+  /// `{ font-size: .875rem; line-height: 1.6 }` rather than the primary
+  /// list's 18px/28px.
+  final bool secondary;
+
+  const _NavLink({
+    required this.item,
+    required this.foreground,
+    this.secondary = false,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final colors = resolveColorScheme(context);
+    final style = secondary
+        ? _linkStyle(foreground).copyWith(fontSize: 14, height: 1.6)
+        : _linkStyle(foreground);
 
     // §2.4.4 name + role, §1.3.1 active state (painted only as a 3px white
     // underline) and §2.1.1 keyboard operability via ItActivatable.
@@ -348,7 +498,7 @@ class _NavLink extends StatelessWidget {
                     //   rgba(0,0,0,0) }`, and `a.nav-link.active
                     //   { border-color: #fff }` — the same `--bs-white` the
                     // label carries, so it travels with the scheme too.
-                    color: item.active ? colors.white : Colors.transparent,
+                    color: item.active ? foreground : const Color(0x00000000),
                     width: 3,
                   ),
                 ),
@@ -357,23 +507,29 @@ class _NavLink extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Text(
-                    item.label,
-                    style: hovered
-                        ? _linkStyle(colors.white).copyWith(
-                            decoration: TextDecoration.underline,
-                            decorationColor: colors.white,
-                          )
-                        : _linkStyle(colors.white),
+                  // The label is what gives when the band runs out of room:
+                  // CSS lets the flex item shrink and the text wrap, so the
+                  // label has to be allowed to take less than its natural
+                  // width rather than pushing the row past its bounds.
+                  Flexible(
+                    child: Text(
+                      item.label,
+                      style: hovered
+                          ? style.copyWith(
+                              decoration: TextDecoration.underline,
+                              decorationColor: foreground,
+                            )
+                          : style,
+                    ),
                   ),
                   if (item.showsChevron) ...[
                     // The kit's markup separates label and chevron with a space.
                     const SizedBox(width: 4),
                     // `.navbar .navbar-collapsable .navbar-nav li.nav-item
-                    //   a.nav-link.dropdown-toggle svg { fill: #fff }` — the
-                    // glyph's own default is `#fff` too, stated here so it
-                    // tracks the same `--bs-white` the label does.
-                    ItExpandChevron(color: colors.white),
+                    //   a.nav-link.dropdown-toggle svg { fill: #fff }`, and
+                    // `.theme-light-desk … svg { fill: #06c }` — the glyph
+                    // always matches the label beside it.
+                    ItExpandChevron(color: foreground),
                   ],
                 ],
               ),

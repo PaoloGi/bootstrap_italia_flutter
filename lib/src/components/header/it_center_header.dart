@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 
-import '../../a11y/it_activatable.dart';
 import '../../l10n/it_localizations.dart';
+import '../../a11y/it_activatable.dart';
 import '../../theme/bootstrap_italia_theme_data.dart';
 import '../../theme/theme_extensions.dart';
 import '../../tokens/typography.dart';
@@ -41,7 +41,7 @@ class ItCenterHeader extends StatelessWidget {
 
   /// Label rendered before the social icons.
   ///
-  /// Defaults to [ItLocalizations.followUs] — `'Seguici su'` with no delegate
+  /// Defaults to `'Seguici su'`, with no
   /// installed.
   final String? socialsLabel;
 
@@ -51,7 +51,7 @@ class ItCenterHeader extends StatelessWidget {
   /// Label rendered before the search button, and the button's own accessible
   /// name — the two must be the same string, or WCAG 2.5.3 Label in Name fails.
   ///
-  /// Defaults to [ItLocalizations.search] — `'Cerca'` with no delegate
+  /// Defaults to `'Cerca'`, with no
   /// installed.
   final String? searchLabel;
 
@@ -184,7 +184,14 @@ class ItCenterHeader extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildBrand(colors),
+              // The brand block is the one that gives. `.it-brand-text` is a
+              // flex item with no `flex-shrink: 0`, so a long institution name
+              // shrinks and wraps rather than pushing the search button off the
+              // band — which is what the docs' own
+              // "Nome dell'Istituzione" / three socials / search combination
+              // did here at container width. Loose fit, so a name that fits
+              // is laid out exactly where it was.
+              Flexible(child: _buildBrand(colors)),
               _buildRightZone(context, colors),
             ],
           ),
@@ -212,31 +219,33 @@ class ItCenterHeader extends StatelessWidget {
               ),
             ),
           ),
-        Padding(
-          // `.it-brand-text { padding-right: 24px }`
-          padding: const EdgeInsets.only(right: 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // §1.3.1: the kit renders the site title as <h2> and the tag
-              // line as <h3>. Exposing the levels gives AT a real outline to
-              // navigate instead of two anonymous runs of text.
-              Semantics(
-                header: true,
-                headingLevel: 2,
-                child: Text(title, style: _titleStyle(fg)),
-              ),
-              if (subtitle != null) ...[
-                // `.it-small-header h3 { margin-top: 4px }`
-                if (small) const SizedBox(height: 4),
+        Flexible(
+          child: Padding(
+            // `.it-brand-text { padding-right: 24px }`
+            padding: const EdgeInsets.only(right: 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // §1.3.1: the kit renders the site title as <h2> and the tag
+                // line as <h3>. Exposing the levels gives AT a real outline to
+                // navigate instead of two anonymous runs of text.
                 Semantics(
                   header: true,
-                  headingLevel: 3,
-                  child: Text(subtitle!, style: _taglineStyle(fg)),
+                  headingLevel: 2,
+                  child: Text(title, style: _titleStyle(fg)),
                 ),
+                if (subtitle != null) ...[
+                  // `.it-small-header h3 { margin-top: 4px }`
+                  if (small) const SizedBox(height: 4),
+                  Semantics(
+                    header: true,
+                    headingLevel: 3,
+                    child: Text(subtitle!, style: _taglineStyle(fg)),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ],

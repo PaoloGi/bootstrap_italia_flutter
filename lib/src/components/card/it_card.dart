@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 
 import '../../a11y/it_activatable.dart';
 import '../../theme/theme_extensions.dart';
@@ -102,6 +102,47 @@ class ItCard extends StatelessWidget {
   /// The card title.
   final String? title;
 
+  /// A glyph shown at the **end** of the title row — `.it-card-title-icon`.
+  ///
+  /// ```css
+  /// .it-card .it-card-title.it-card-title-icon {
+  ///   display: flex; flex-direction: row; justify-content: space-between }
+  /// @supports (gap: 0.5rem) {
+  ///   .it-card .it-card-title.it-card-title-icon { gap: 0.5rem } }
+  /// .it-card .it-card-title.it-card-title-icon .it-card-title-icon-wrapper {
+  ///   margin-left: 0.5rem }
+  /// ```
+  ///
+  /// Trailing, not leading — `space-between` pushes it to the far edge, and the
+  /// wrapper's margin is on its *left*. Getting that backwards is easy: every
+  /// other icon slot in this package leads.
+  ///
+  /// «Card per media» and «Card per documenti e allegati» use it to mark what
+  /// the card links to — a video, an audio file, a PDF. Where the glyph carries
+  /// that meaning and the text does not, say it in the text as well: «Accessibilità:
+  /// valore semantico delle icone» is unambiguous that an icon alone does not
+  /// reach a screen reader, and this one is excluded from the semantics tree.
+  final IconData? titleIcon;
+
+  /// The heading level [title] announces as, 1–6.
+  ///
+  /// The docs give this two sections of its own — «Accessibilità titoli» and
+  /// «Gerarchia dei titoli» — because a card's title is a heading in the page
+  /// outline, and which level depends on where the card sits, not on what a card
+  /// is. A grid of cards under an `h2` section heading wants `h3`; the same card
+  /// under an `h3` wants `h4`.
+  ///
+  /// Defaults to 3, matching both the level the kit's own examples use most and
+  /// the `h3` typography this widget already paints (2rem / 2.5rem, weight 700).
+  /// The visual size does NOT follow this parameter — Bootstrap Italia separates
+  /// the two deliberately, which is what its `.h1`…`.h6` classes are for.
+  ///
+  /// Before this existed the title carried no heading role at all: a page of
+  /// cards was a flat run of text to anyone navigating by headings, which is a
+  /// §1.3.1 Info and Relationships failure and one that no automated checker
+  /// reports, because nothing is *wrong* — something is merely absent.
+  final int titleHeadingLevel;
+
   /// Optional subtitle below the title.
   final String? subtitle;
 
@@ -143,6 +184,8 @@ class ItCard extends StatelessWidget {
     this.image,
     this.category,
     this.title,
+    this.titleIcon,
+    this.titleHeadingLevel = 3,
     this.subtitle,
     this.body,
     this.signature,
@@ -153,7 +196,12 @@ class ItCard extends StatelessWidget {
     this.onTap,
     this.padding,
     this.semanticLabel,
-  });
+  }) : assert(
+          titleHeadingLevel >= 1 && titleHeadingLevel <= 6,
+          'ItCard: titleHeadingLevel must be 1–6. HTML has six heading levels '
+          'and Flutter asserts the same range; pick the one that fits the '
+          'page outline where this card is used.',
+        );
 
   bool get _hasFooter => category != null || date != null || footer != null;
 
@@ -175,7 +223,7 @@ class ItCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final card = Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFFFFFFFF),
         border: Border.all(
           color: _CardTokens.borderColor,
           width: BootstrapItaliaBorders.width,
@@ -273,27 +321,61 @@ class ItCard extends StatelessWidget {
             _CardTokens.spacerX,
             0,
           ),
-          child: Text(
-            title!,
-            style: TextStyle(
-              fontFamily: BootstrapItaliaFontFamily.sansSerif,
-              package: BootstrapItaliaFontFamily.package,
-              // The design kit renders the card title as an <h3>:
-              // 2rem / 2.5rem, weight 700 at >= 576px.
-              fontSize: 32,
-              height: 40 / 32,
-              fontWeight: FontWeight.w700,
-              // A tappable card renders its title as a link: `a` inherits
-              // Bootstrap's underlined link styling and the primary link
-              // colour. The non-tappable title is body text, not a link, so it
-              // keeps the literal #30475F and does NOT re-theme.
-              color: onTap != null
-                  ? _CardTokens.linkColor(context)
-                  : _CardTokens.textColor,
-              decoration: onTap != null
-                  ? TextDecoration.underline
-                  : TextDecoration.none,
-              decorationColor: _CardTokens.linkColor(context),
+          // §1.3.1 Info and Relationships: the card title heads the card's
+          // content, so it is a heading — see [titleHeadingLevel].
+          child: Semantics(
+            header: true,
+            headingLevel: titleHeadingLevel,
+            child: Row(
+              // `.it-card-title.it-card-title-icon { display: flex;
+              //   justify-content: space-between }` — the glyph goes to the far
+              // end. With no glyph this is a one-child Row, which lays out
+              // identically to the bare Text it replaced.
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Flexible(
+                  child: Text(
+                    title!,
+                    style: TextStyle(
+                      fontFamily: BootstrapItaliaFontFamily.sansSerif,
+                      package: BootstrapItaliaFontFamily.package,
+                      // The design kit renders the card title as an <h3>:
+                      // 2rem / 2.5rem, weight 700 at >= 576px.
+                      fontSize: 32,
+                      height: 40 / 32,
+                      fontWeight: FontWeight.w700,
+                      // A tappable card renders its title as a link: `a`
+                      // inherits Bootstrap's underlined link styling and the
+                      // primary link colour. The non-tappable title is body
+                      // text, not a link, so it keeps the literal #30475F and
+                      // does NOT re-theme.
+                      color: onTap != null
+                          ? _CardTokens.linkColor(context)
+                          : _CardTokens.textColor,
+                      decoration: onTap != null
+                          ? TextDecoration.underline
+                          : TextDecoration.none,
+                      decorationColor: _CardTokens.linkColor(context),
+                    ),
+                  ),
+                ),
+                if (titleIcon != null) ...[
+                  // `gap: 0.5rem`, plus `.it-card-title-icon-wrapper
+                  // { margin-left: 0.5rem }`.
+                  const SizedBox(width: _CardTokens.spacerY),
+                  ExcludeSemantics(
+                    child: Icon(
+                      titleIcon,
+                      // `.icon.icon-sm { width: 24px; height: 24px }`, the size
+                      // the media and document cards mark their type with.
+                      size: 24,
+                      color: onTap != null
+                          ? _CardTokens.linkColor(context)
+                          : _CardTokens.textColor,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
         ),
@@ -455,17 +537,35 @@ class ItCardFooter extends StatelessWidget {
           // `.it-card footer .it-card-taxonomy { flex-grow: 1 }`
           Expanded(child: category ?? const SizedBox.shrink()),
           if (date != null)
-            Text(
-              date!,
-              // `.it-card-date { color: hsl(210,17%,44%);
-              //   font-size: 0.875rem }`
-              style: const TextStyle(
-                fontFamily: BootstrapItaliaFontFamily.sansSerif,
-                package: BootstrapItaliaFontFamily.package,
-                fontSize: 14,
-                height: 24 / 14,
-                fontWeight: FontWeight.w400,
-                color: _CardTokens.metaColor,
+            // Flexible, because a date is not always short. «Accessibilità date
+            // e orari eventi» asks for them spelled out — "martedì 22 aprile
+            // 2025, ore 10:30", not "22/04" — and a spelled-out date beside a
+            // category overflowed a phone-width card by 140px. The date wraps
+            // now rather than running off the edge.
+            Flexible(
+              // Right-aligned INSIDE its share. `Expanded` and `Flexible` are
+              // both flex children, so Flutter splits the row equally between
+              // them rather than letting the category's `flex-grow: 1` push the
+              // date to the edge as CSS does — which left the date sitting at
+              // the 50% mark and took this capture to 89.5%. Aligning within
+              // the half puts it back on the right edge, because the two halves
+              // tile the full width, while keeping the shrink that stops a
+              // spelled-out date running off a phone-width card.
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: Text(
+                  date!,
+                  // `.it-card-date { color: hsl(210,17%,44%);
+                  //   font-size: 0.875rem }`
+                  style: const TextStyle(
+                    fontFamily: BootstrapItaliaFontFamily.sansSerif,
+                    package: BootstrapItaliaFontFamily.package,
+                    fontSize: 14,
+                    height: 24 / 14,
+                    fontWeight: FontWeight.w400,
+                    color: _CardTokens.metaColor,
+                  ),
+                ),
               ),
             ),
           if (trailing != null) trailing!,
@@ -526,32 +626,43 @@ class ItCardCategory extends StatelessWidget {
   }
 
   Widget _label(Color color) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (icon != null) ...[
-          Icon(icon, size: 16, color: color),
-          const SizedBox(width: 4),
-        ],
-        Text(
-          label.toUpperCase(),
-          // `.it-card footer .it-card-category { text-transform: uppercase;
-          //   color: hsl(210,17%,44%); font-size: 1rem; font-weight: 600;
-          //   letter-spacing: 0.5px }`
-          style: TextStyle(
-            fontFamily: BootstrapItaliaFontFamily.sansSerif,
-            package: BootstrapItaliaFontFamily.package,
-            fontSize: 16,
-            height: 24 / 16,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.5,
-            color: color,
-            decoration:
-                onTap != null ? TextDecoration.underline : TextDecoration.none,
-            decorationColor: color,
-          ),
-        ),
-      ],
+    final text = Text(
+      label.toUpperCase(),
+      // `.it-card footer .it-card-category { text-transform: uppercase;
+      //   color: hsl(210,17%,44%); font-size: 1rem; font-weight: 600;
+      //   letter-spacing: 0.5px }`
+      style: TextStyle(
+        fontFamily: BootstrapItaliaFontFamily.sansSerif,
+        package: BootstrapItaliaFontFamily.package,
+        fontSize: 16,
+        height: 24 / 16,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.5,
+        color: color,
+        decoration:
+            onTap != null ? TextDecoration.underline : TextDecoration.none,
+        decorationColor: color,
+      ),
+    );
+
+    if (icon == null) return text;
+
+    // A Wrap, not a Row. An uppercase category beside its glyph is a flex item,
+    // and a flex item's main axis is unbounded, so a `Row` sized the label to
+    // its natural width and ran it past the card's edge — 52px on a phone.
+    //
+    // `Flexible` would fix that and needs a bounded width, which a category
+    // used outside the footer may not have; a `LayoutBuilder` guard would
+    // supply the bound and cost more than it is worth, because a LayoutBuilder
+    // cannot answer intrinsic queries, and `IntrinsicHeight` around a row of
+    // cards — the way «Altezze delle card» equalises them — is exactly what
+    // asks. A Wrap has neither problem: it passes its own width down, so the
+    // label wraps, and it answers intrinsics.
+    return Wrap(
+      crossAxisAlignment: WrapCrossAlignment.center,
+      // `.it-card-category .icon { margin-right: 4px }`
+      spacing: 4,
+      children: [Icon(icon, size: 16, color: color), text],
     );
   }
 }

@@ -4,8 +4,8 @@ import 'package:bootstrap_italia_icons/bootstrap_italia_icons.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter/semantics.dart';
 
-import '../../a11y/it_focus_ring.dart';
 import '../../l10n/it_localizations.dart';
+import '../../a11y/it_focus_ring.dart';
 import '../../theme/bootstrap_italia_theme_data.dart';
 import '../../theme/it_default_text_style.dart';
 import '../../theme/theme_extensions.dart';
@@ -29,6 +29,16 @@ enum ItNotificationVariant {
 }
 
 /// Screen position for overlay notifications.
+///
+/// The first six values float the card clear of the viewport edge, which is
+/// Bootstrap Italia's default placement — *"la posizione predefinita delle
+/// notifiche è nella parte destra inferiore della finestra"*, with all four
+/// corners rounded.
+///
+/// The four `…Fix` values are the kit's `.top-fix` / `.bottom-fix` /
+/// `.left-fix` / `.right-fix` modifiers: the card sits flush against that edge
+/// and the two corners touching it are squared off, so it reads as attached to
+/// the window rather than floating above it.
 enum ItNotificationPosition {
   /// Top-right corner.
   topRight,
@@ -47,6 +57,53 @@ enum ItNotificationPosition {
 
   /// Bottom center.
   bottomCenter,
+
+  /// `.notification.top-fix { border-top-left-radius: 0;
+  ///   border-top-right-radius: 0; top: 0; left: 50%;
+  ///   transform: translateX(-50%) }` — flush with the top edge, centred.
+  topFix,
+
+  /// `.notification.bottom-fix { border-bottom-left-radius: 0;
+  ///   border-bottom-right-radius: 0; left: 50%; bottom: 0;
+  ///   transform: translateX(-50%) }` — flush with the bottom edge, centred.
+  bottomFix,
+
+  /// `.notification.left-fix { border-top-left-radius: 0;
+  ///   border-bottom-left-radius: 0; border-left: none;
+  ///   border-right-style: solid; border-right-width: 4px; left: 0; top: 50%;
+  ///   transform: translateY(-50%) }` — flush with the left edge, vertically
+  /// centred.
+  ///
+  /// Note the accent: the 4px variant border moves to the *right* of the card,
+  /// because the left edge is the one against the window.
+  leftFix,
+
+  /// `.notification.right-fix { border-top-right-radius: 0;
+  ///   border-bottom-right-radius: 0; right: 0; top: 50%;
+  ///   transform: translateY(-50%) }` — flush with the right edge, vertically
+  /// centred.
+  rightFix;
+
+  /// The corners this placement leaves rounded.
+  ///
+  /// `border-radius: 4px` on all four by default; each `…Fix` modifier zeroes
+  /// the pair that meets the window edge.
+  BorderRadius get borderRadius {
+    const r = Radius.circular(BootstrapItaliaBorders.radius);
+    return switch (this) {
+      topFix => const BorderRadius.vertical(bottom: r),
+      bottomFix => const BorderRadius.vertical(top: r),
+      leftFix => const BorderRadius.horizontal(right: r),
+      rightFix => const BorderRadius.horizontal(left: r),
+      _ => const BorderRadius.all(r),
+    };
+  }
+
+  /// Whether the 4px variant accent is painted on the card's right edge.
+  ///
+  /// Only `.left-fix` moves it: `{ border-left: none; border-right-style:
+  /// solid; border-right-width: 4px }`.
+  bool get accentOnRight => this == leftFix;
 }
 
 /// A Bootstrap Italia notification (toast) component.
@@ -160,6 +217,16 @@ class ItNotification extends StatefulWidget {
   /// Width of the notification card. Defaults to [defaultWidth] (376px).
   final double width;
 
+  /// Where the card sits, which decides how it is *drawn*.
+  ///
+  /// [show] uses this to place the overlay; the card itself reads only the two
+  /// things the CSS modifiers change about its own painting —
+  /// [ItNotificationPosition.borderRadius] and
+  /// [ItNotificationPosition.accentOnRight]. The default is the kit's own
+  /// default placement, so a card built directly (outside [show]) renders
+  /// exactly as it always has: four rounded corners, accent on the left.
+  final ItNotificationPosition position;
+
   /// Creates a Bootstrap Italia notification widget.
   const ItNotification({
     super.key,
@@ -171,6 +238,7 @@ class ItNotification extends StatefulWidget {
     this.onDismissed,
     this.duration,
     this.width = defaultWidth,
+    this.position = ItNotificationPosition.bottomRight,
   });
 
   /// Shows a notification as an overlay positioned on screen.
@@ -213,8 +281,45 @@ class ItNotification extends StatefulWidget {
           icon: icon,
           dismissible: dismissible,
           duration: duration,
+          position: position,
           onDismissed: () => entry.remove(),
         );
+
+        // The `…Fix` placements sit flush against their edge, so they take no
+        // inset and no safe-area padding: `top: 0` means the window's top, and
+        // adding a gap would undo the squared corners the modifier exists for.
+        switch (position) {
+          case ItNotificationPosition.topFix:
+            return Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: Center(child: child),
+            );
+          case ItNotificationPosition.bottomFix:
+            return Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Center(child: child),
+            );
+          case ItNotificationPosition.leftFix:
+            return Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              child: Center(child: child),
+            );
+          case ItNotificationPosition.rightFix:
+            return Positioned(
+              right: 0,
+              top: 0,
+              bottom: 0,
+              child: Center(child: child),
+            );
+          default:
+            break;
+        }
 
         final isTop = position == ItNotificationPosition.topRight ||
             position == ItNotificationPosition.topLeft ||
@@ -476,19 +581,30 @@ class _ItNotificationState extends State<ItNotification>
                   width: widget.width,
                   decoration: BoxDecoration(
                     color: colors.white,
-                    // `border-radius: 4px`
-                    borderRadius:
-                        BorderRadius.circular(BootstrapItaliaBorders.radius),
+                    // `border-radius: 4px`, squared on the pair of corners the
+                    // `…-fix` placements push against the window edge.
+                    borderRadius: widget.position.borderRadius,
                     // `box-shadow: 0 0 1rem rgba(0,0,0,.15)`
                     boxShadow: const [
                       BoxShadow(color: Color(0x26000000), blurRadius: 16),
                     ],
+                    // `.notification.with-icon { border-left: 4px solid }`,
+                    // which `.left-fix` moves to the right edge — the left one
+                    // is the side against the window.
                     border: hasIcon
                         ? Border(
-                            left: BorderSide(
-                              color: accentColor,
-                              width: ItNotification._accentWidth,
-                            ),
+                            left: widget.position.accentOnRight
+                                ? BorderSide.none
+                                : BorderSide(
+                                    color: accentColor,
+                                    width: ItNotification._accentWidth,
+                                  ),
+                            right: widget.position.accentOnRight
+                                ? BorderSide(
+                                    color: accentColor,
+                                    width: ItNotification._accentWidth,
+                                  )
+                                : BorderSide.none,
                           )
                         : null,
                   ),

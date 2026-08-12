@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 
 import '../a11y/it_focus_ring.dart';
 import '../theme/theme_extensions.dart';
+import '../tokens/spacing.dart';
 import 'it_field_support.dart';
 import 'it_form_metrics.dart';
 
@@ -56,6 +57,22 @@ class ItToggle extends StatefulWidget {
   /// Accessible name, when the control has no visible [label].
   final String? semanticLabel;
 
+  /// `.form-check.form-check-group` — the docs' "Raggruppati visivamente".
+  ///
+  /// ```
+  /// .form-check.form-check-group { padding:0 0 1rem 0; margin-bottom:1rem;
+  ///                                box-shadow:inset 0 -1px 0 0 rgba(1,1,1,.1) }
+  /// .form-check.form-check-group .form-text
+  ///   { display:block; padding-right:3.25rem; margin-bottom:.5rem }
+  /// ```
+  ///
+  /// Less happens here than on the checkbox and the radio, and that is the
+  /// point: `.form-check-group` moves the indicator to the right, and
+  /// `.lever { float:right }` has already put it there. So the grouped toggle
+  /// gains only the row's separator, its 1rem of padding and margin, and the
+  /// block treatment of its description — the row itself is untouched.
+  final bool visuallyGrouped;
+
   /// Optional external focus node.
   final FocusNode? focusNode;
 
@@ -71,6 +88,7 @@ class ItToggle extends StatefulWidget {
     this.errorText,
     this.validationState,
     this.semanticLabel,
+    this.visuallyGrouped = false,
     this.focusNode,
   });
 
@@ -248,6 +266,12 @@ class _ItToggleState extends State<ItToggle> {
           },
           child: GestureDetector(
             onTap: _interactive ? _toggle : null,
+            // The enclosing `Semantics` already carries `onTap`, so this
+            // detector must not contribute a node of its own: it produced an
+            // unnamed tappable child inside the named control, which a screen
+            // reader offers as a second, meaningless stop. Hit testing and
+            // behaviour are unchanged — only the duplicate node goes.
+            excludeFromSemantics: true,
             // WCAG 2.5.8: the row is 32px tall and spans the full width, so
             // the whole of it — not just the 46x16 lever — is the target.
             behavior: HitTestBehavior.opaque,
@@ -260,6 +284,7 @@ class _ItToggleState extends State<ItToggle> {
     return ItFieldSupport(
       helperText: widget.helperText,
       errorText: widget.errorText,
+      grouped: widget.visuallyGrouped,
       child: control,
     );
   }
@@ -298,4 +323,235 @@ class _ToggleGlyphPainter extends CustomPainter {
   @override
   bool shouldRepaint(_ToggleGlyphPainter oldDelegate) =>
       oldDelegate.checked != checked;
+}
+
+/// An option within an [ItToggleGroup].
+class ItToggleOption<T> {
+  /// The option value — the key under which this switch's "on" state is
+  /// reported in [ItToggleGroup.values].
+  final T value;
+
+  /// The display label.
+  final String label;
+
+  /// Whether this switch is enabled. Same polarity as [ItToggle.enabled], so a
+  /// group and the switches it builds cannot read in opposite directions.
+  final bool enabled;
+
+  /// `<small class="form-text">` for this row alone.
+  ///
+  /// The second "Raggruppati visivamente" example on the Toggles docs page
+  /// gives every switch its own description. Read only when the group sets
+  /// [ItToggleGroup.visuallyGrouped]: `.form-check-group .form-text
+  /// { display:block }` is what turns it into a line of its own.
+  final String? helperText;
+
+  /// Creates a toggle option.
+  const ItToggleOption({
+    required this.value,
+    required this.label,
+    this.enabled = true,
+    this.helperText,
+  });
+}
+
+/// A `<fieldset>` of [ItToggle] switches under one `<legend>`.
+///
+/// ```html
+/// <fieldset>
+///   <legend>Gruppo di toggle</legend>
+///   <div class="form-check form-check-group"> … </div>
+///   <div class="form-check form-check-group"> … </div>
+/// </fieldset>
+/// ```
+///
+/// Two of the four sections on the Toggles docs page put their switches in a
+/// fieldset with a legend, and the 2.10.0 breaking change makes that native
+/// element mandatory for grouped inputs. Without a group widget the legend
+/// could only be a loose `Text` above the rows — visually a caption, and to a
+/// screen reader an unrelated paragraph.
+///
+/// The switches are **independent**, unlike [ItRadioGroup]: a set of toggles is
+/// a set of separate answers that happen to share a caption. So the selection
+/// is a `Set` of the values that are on, which is [ItCheckboxGroup]'s shape,
+/// and turning one on or off does not touch the others.
+///
+/// ```dart
+/// ItToggleGroup<String>(
+///   label: 'Notifiche',
+///   options: [
+///     ItToggleOption(value: 'email', label: 'Email'),
+///     ItToggleOption(value: 'sms', label: 'SMS'),
+///   ],
+///   values: {'email'},
+///   onChanged: (values) {},
+/// )
+/// ```
+class ItToggleGroup<T> extends StatelessWidget {
+  /// `<legend>` — the caption for the set.
+  final String? label;
+
+  /// The available switches.
+  final List<ItToggleOption<T>> options;
+
+  /// The values whose switch is currently on.
+  final Set<T> values;
+
+  /// Called with the new set of values that are on.
+  final ValueChanged<Set<T>>? onChanged;
+
+  /// `.form-check-inline` — lays the switches out side by side.
+  final bool inline;
+
+  /// Whether the set must be answered before the form can be submitted.
+  final bool required;
+
+  /// `.form-text` — instruction for the set.
+  final String? helperText;
+
+  /// `.form-feedback` — validation message for the set.
+  final String? errorText;
+
+  /// Validation state tinting every label in the group. [errorText] implies
+  /// [ItValidationState.danger].
+  final ItValidationState? validationState;
+
+  /// `.form-check.form-check-group` applied to every row — the docs'
+  /// "Raggruppati visivamente".
+  ///
+  /// Not the same axis as [inline]: `.form-check-inline` lays rows out side by
+  /// side, `.form-check-group` restyles each one. Combining them is not a
+  /// layout the stylesheet describes, so [inline] wins and this is ignored when
+  /// both are set.
+  final bool visuallyGrouped;
+
+  /// Creates a Bootstrap Italia toggle group.
+  const ItToggleGroup({
+    super.key,
+    this.label,
+    required this.options,
+    required this.values,
+    this.onChanged,
+    this.inline = false,
+    this.required = false,
+    this.helperText,
+    this.errorText,
+    this.validationState,
+    this.visuallyGrouped = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    ItFieldValidation.debugCheckConfig(
+      label: label,
+      required: required,
+      optionCount: options.length,
+      optionValues: options.map((o) => o.value),
+      widgetName: 'ItToggleGroup',
+    );
+    final colors = resolveColorScheme(context);
+
+    // `.form-check-inline` and `.form-check-group` are alternatives, not a
+    // matrix — see [visuallyGrouped].
+    final grouped = visuallyGrouped && !inline;
+
+    final toggles = options.map((option) {
+      return ItToggle(
+        value: values.contains(option.value),
+        label: option.label,
+        enabled: option.enabled,
+        visuallyGrouped: grouped,
+        helperText: grouped ? option.helperText : null,
+        // The tint is a property of the set, so it reaches every label; the
+        // message and the instruction belong to the group and are painted once,
+        // below it.
+        validationState: validationState,
+        onChanged: (on) {
+          final next = Set<T>.from(values);
+          if (on) {
+            next.add(option.value);
+          } else {
+            next.remove(option.value);
+          }
+          onChanged?.call(next);
+        },
+      );
+    }).toList();
+
+    // WCAG 1.3.1 / 4.1.2: `<fieldset>` + `<legend>` is a labelled group, so the
+    // caption is announced as the container's name rather than as a stray line
+    // of text before the first switch.
+    //
+    // Deliberately NOT `SemanticsRole.radioGroup` (which [ItRadioGroup] uses):
+    // these switches are independent, and announcing them as a radio group
+    // would tell the user that choosing one clears the others.
+    return Semantics(
+      container: true,
+      explicitChildNodes: true,
+      label: label,
+      // WCAG 3.3.1 / 3.3.2: the instruction and the validation message describe
+      // the *set*, so they are the group node's hint, not any one switch's.
+      hint: ItFieldValidation.hint(errorText, helperText),
+      isRequired: required,
+      validationResult: ItFieldValidation.result(
+        ItFieldValidation.effective(errorText, validationState),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (label != null)
+            // Announced once, as the group's container label.
+            ExcludeSemantics(
+              child: Text(
+                label!,
+                // `fieldset legend { font-size:.875rem; font-weight:700;
+                //                    line-height:calc(2.5rem - 1px) }` — the
+                // same treatment [ItCheckboxGroup] and [ItRadioGroup] give it.
+                style: ItFormMetrics.textStyle(
+                  fontSize: 14,
+                  lineHeight: 39,
+                  fontWeight: FontWeight.w700,
+                  color: colors.bodyColor,
+                ),
+              ),
+            ),
+          if (inline)
+            Wrap(
+              // `.form-check-inline { display:inline-block; margin-right:1rem }`
+              spacing: BootstrapItaliaSpacing.space4,
+              runSpacing: BootstrapItaliaSpacing.space2,
+              children: [
+                // An inline switch cannot take the full-width row the default
+                // layout uses — `.toggles label { width:100% }` would make one
+                // switch fill the line — so each is given the intrinsic width
+                // of its own label plus its lever.
+                for (final toggle in toggles) IntrinsicWidth(child: toggle),
+              ],
+            )
+          else if (grouped)
+            // No extra gap: `.form-check-group` already declares
+            // `padding-bottom:1rem; margin-bottom:1rem`.
+            ...toggles
+          else
+            // `.toggles label { margin-bottom: 8px }`
+            ...toggles.map(
+              (t) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: t,
+              ),
+            ),
+          // Inside the Column rather than around it, so the two lines stay
+          // left-aligned with the labels and the group node above keeps
+          // carrying them.
+          if (helperText != null || errorText != null)
+            ItFieldSupport(
+              helperText: helperText,
+              errorText: errorText,
+              child: const SizedBox.shrink(),
+            ),
+        ],
+      ),
+    );
+  }
 }

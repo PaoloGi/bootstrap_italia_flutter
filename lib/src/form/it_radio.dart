@@ -20,11 +20,25 @@ class ItRadioOption<T> {
   /// group and the radios it builds cannot read in opposite directions.
   final bool enabled;
 
+  /// `<small class="form-text">` for this row alone.
+  ///
+  /// The second "Raggruppati visivamente" example in the docs gives every
+  /// option its own description. It is read only when the group sets
+  /// [ItRadioGroup.visuallyGrouped]: `.form-check-group .form-text
+  /// { display:block }` is what turns it into a line of its own, and without
+  /// that rule the kit paints no per-row description anywhere.
+  ///
+  /// Distinct from [ItRadioGroup.helperText], which describes the whole set and
+  /// is announced on the group's node; this one is announced on the row's,
+  /// which is the `aria-describedby` the docs put on each input.
+  final String? helperText;
+
   /// Creates a radio option.
   const ItRadioOption({
     required this.value,
     required this.label,
     this.enabled = true,
+    this.helperText,
   });
 }
 
@@ -93,6 +107,25 @@ class ItRadio extends StatefulWidget {
   /// there is no visible label at all, which WCAG 4.1.2 does not permit.
   final String? semanticLabel;
 
+  /// `.form-check.form-check-group` — the docs' "Raggruppati visivamente".
+  ///
+  /// ```
+  /// .form-check.form-check-group { padding:0 0 1rem 0; margin-bottom:1rem;
+  ///                                box-shadow:inset 0 -1px 0 0 rgba(1,1,1,.1) }
+  /// .form-check.form-check-group [type=radio]+label
+  ///   { position:static; padding-left:0; padding-right:3.25rem }
+  /// .form-check.form-check-group [type=radio]+label::after,::before
+  ///   { right:0px; left:auto }
+  /// ```
+  ///
+  /// The row spans the full width, the label reads from the left and the ring
+  /// moves to the right-hand gutter, with a hairline beneath separating it from
+  /// the next row. Only the ring's *anchor* flips; its 5px margin, its 20px
+  /// diameter and the `scale(.64)` dot inside it are unchanged.
+  ///
+  /// Purely presentational — the exclusive-selection semantics are unaffected.
+  final bool visuallyGrouped;
+
   /// Optional external focus node. [ItRadioGroup] supplies one per option so
   /// it can move focus with the arrow keys.
   final FocusNode? focusNode;
@@ -116,6 +149,7 @@ class ItRadio extends StatefulWidget {
     this.errorText,
     this.validationState,
     this.semanticLabel,
+    this.visuallyGrouped = false,
     this.focusNode,
     this.indexInGroup,
     this.groupLength,
@@ -182,12 +216,21 @@ class _ItRadioState extends State<ItRadio> {
     final labelColor =
         enabled && validationColor != null ? validationColor : colors.bodyColor;
 
-    final row = SizedBox(
+    // The ring and its dot, in a box of their own.
+    //
+    // Extracted so `.form-check-group` can move the *same* pixels to the other
+    // side of the label: the sheet flips `left` for `right` on both pseudos and
+    // changes nothing else, and a second hand-offset copy of these two children
+    // is exactly how the two variants would drift apart.
+    //
+    // 30px wide because the 20px ring carries a 5px margin on each side; the
+    // resting layout's `left: 5` and the grouped layout's `right: 5` are then
+    // the same edge, measured from opposite sides.
+    final indicator = SizedBox(
+      width: 30,
       height: ItFormMetrics.textLineHeight,
       child: Stack(
         children: [
-          if (label == null)
-            const SizedBox(width: 30, height: ItFormMetrics.textLineHeight),
           // ::before — the 20x20 ring, margin 5px, 2px border.
           Positioned(
             left: 5,
@@ -215,23 +258,55 @@ class _ItRadioState extends State<ItRadio> {
                 ),
               ),
             ),
-          if (label != null)
-            Padding(
-              // .form-check […]+label { padding-left: 2rem }
-              padding: const EdgeInsets.only(left: 32),
-              child: Text(
-                label,
-                style: ItFormMetrics.textStyle(
-                  fontSize: ItFormMetrics.fontSize,
-                  lineHeight: ItFormMetrics.textLineHeight,
-                  fontWeight: FontWeight.w600,
-                  color: labelColor,
-                ),
-              ),
-            ),
         ],
       ),
     );
+
+    final Widget? labelChild = label == null
+        ? null
+        : Text(
+            label,
+            style: ItFormMetrics.textStyle(
+              fontSize: ItFormMetrics.fontSize,
+              lineHeight: ItFormMetrics.textLineHeight,
+              fontWeight: FontWeight.w600,
+              color: labelColor,
+            ),
+          );
+
+    final row = widget.visuallyGrouped
+        // `.form-check.form-check-group [type=radio]+label
+        //    { position:static; padding-left:0; padding-right:3.25rem }`
+        // with `::before,::after { right:0; left:auto }`.
+        ? SizedBox(
+            height: ItFormMetrics.textLineHeight,
+            child: Row(
+              children: [
+                Expanded(child: labelChild ?? const SizedBox.shrink()),
+                SizedBox(
+                  width: ItFormMetrics.checkGroupGutter,
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: indicator,
+                  ),
+                ),
+              ],
+            ),
+          )
+        : SizedBox(
+            height: ItFormMetrics.textLineHeight,
+            child: Stack(
+              children: [
+                indicator,
+                if (labelChild != null)
+                  Padding(
+                    // .form-check […]+label { padding-left: 2rem }
+                    padding: const EdgeInsets.only(left: 32),
+                    child: labelChild,
+                  ),
+              ],
+            ),
+          );
 
     // WCAG 4.1.2: `inMutuallyExclusiveGroup` is what makes a screen reader
     // treat this as a radio rather than a checkbox, and it is the flag the
@@ -281,6 +356,12 @@ class _ItRadioState extends State<ItRadio> {
             },
             child: GestureDetector(
               onTap: _interactive ? _select : null,
+              // The enclosing `Semantics` already carries `onTap`, so this
+              // detector must not contribute a node of its own: it produced an
+              // unnamed tappable child inside the named control, which a screen
+              // reader offers as a second, meaningless stop. Hit testing and
+              // behaviour are unchanged — only the duplicate node goes.
+              excludeFromSemantics: true,
               // WCAG 2.5.8: the painted ring is only 20x20 and used to be the
               // whole target. The row is 24px tall and at least 30px wide.
               behavior: HitTestBehavior.opaque,
@@ -294,6 +375,7 @@ class _ItRadioState extends State<ItRadio> {
     return ItFieldSupport(
       helperText: widget.helperText,
       errorText: widget.errorText,
+      grouped: widget.visuallyGrouped,
       child: control,
     );
   }
@@ -343,6 +425,20 @@ class ItRadioGroup<T> extends StatefulWidget {
   /// [ItValidationState.danger].
   final ItValidationState? validationState;
 
+  /// `.form-check.form-check-group` applied to every row — the docs'
+  /// "Raggruppati visivamente".
+  ///
+  /// Reaches each [ItRadio] as [ItRadio.visuallyGrouped]. In the kit's markup
+  /// the class sits on the individual `.form-check`, not on the `<fieldset>`
+  /// around them, so a caller can also apply it row by row; this is the
+  /// shorthand for the case the docs actually show.
+  ///
+  /// Not the same axis as [inline]: `.form-check-inline` lays rows out side by
+  /// side, `.form-check-group` restyles each one. Combining them is not a
+  /// layout the stylesheet describes, so [inline] wins and this is ignored when
+  /// both are set.
+  final bool visuallyGrouped;
+
   /// Creates a Bootstrap Italia radio group.
   const ItRadioGroup({
     super.key,
@@ -355,6 +451,7 @@ class ItRadioGroup<T> extends StatefulWidget {
     this.helperText,
     this.errorText,
     this.validationState,
+    this.visuallyGrouped = false,
   });
 
   @override
@@ -426,7 +523,18 @@ class _ItRadioGroupState<T> extends State<ItRadioGroup<T>> {
 
   @override
   Widget build(BuildContext context) {
+    ItFieldValidation.debugCheckConfig(
+      label: widget.label,
+      required: widget.required,
+      optionCount: widget.options.length,
+      optionValues: widget.options.map((o) => o.value),
+      widgetName: 'ItRadioGroup',
+    );
     final colors = resolveColorScheme(context);
+
+    // `.form-check-inline` and `.form-check-group` are alternatives, not a
+    // matrix — see [visuallyGrouped].
+    final grouped = widget.visuallyGrouped && !widget.inline;
 
     final radios = <Widget>[
       for (var i = 0; i < widget.options.length; i++)
@@ -434,6 +542,10 @@ class _ItRadioGroupState<T> extends State<ItRadioGroup<T>> {
           value: widget.options[i].value == widget.value,
           label: widget.options[i].label,
           enabled: widget.options[i].enabled,
+          visuallyGrouped: grouped,
+          // Per-row `<small class="form-text">`, which only the grouped layout
+          // has room for — see [ItRadioOption.helperText].
+          helperText: grouped ? widget.options[i].helperText : null,
           // The tint is a property of the set, so it reaches every radio; the
           // message, the instruction and the required state belong to the group
           // and are carried on its own node.
@@ -473,6 +585,12 @@ class _ItRadioGroupState<T> extends State<ItRadioGroup<T>> {
             runSpacing: BootstrapItaliaSpacing.space2,
             children: radios,
           )
+        else if (grouped)
+          // No extra gap: `.form-check-group` already declares
+          // `padding-bottom:1rem; margin-bottom:1rem`, and stacking the resting
+          // `.form-check + .form-check { margin-top:.5rem }` on top of it would
+          // push the rows 8px further apart than the sheet does.
+          ...radios
         else
           // .form-check + .form-check { margin-top: .5rem }
           ...radios.map(

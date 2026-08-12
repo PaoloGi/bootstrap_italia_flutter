@@ -380,6 +380,39 @@ edit. Only worth doing if Phase 1.5 shows the scheme needs to grow.
 
 ## Phase 4 — Robustness and developer experience
 
+**4.1 Apply the house assert style evenly — done.** `ItModal.show`'s assert
+names the criterion and both fixes; nothing else matched it. Now:
+
+- `ItTabBar` validates what `ItTabView` already did — an out-of-range index used
+  to surface as a `RangeError` from inside the framework, naming neither widget
+  — plus an empty bar and an all-disabled bar. The last is a §2.1.1 failure:
+  traversal skips disabled tabs, so every tab disabled means the tablist is
+  reachable by no route at all.
+- `ItBackToTop` enforces the `Stack` its own doc comment required. Without one,
+  `Positioned` threw a `ParentDataWidget` error naming neither the widget nor
+  the fix.
+- The six form widgets had **zero** asserts while carrying the most
+  misuse-prone parameters. One shared `ItFieldValidation.debugCheckConfig`
+  covers the three cases where the widget *renders* and is silently wrong:
+  `required` with no label (the state is announced against a name that does not
+  exist), no options at all (a group role with nothing operable), and duplicate
+  option values (selection matches by value, so one click changes two rows).
+
+Deliberately **not** asserted: `validationState: danger` without `errorText`. It
+looks like the same class of bug, but the control still reports
+`SemanticsValidationResult.invalid`, so the state reaches AT even when the
+description is rendered by a form-level error summary elsewhere. Asserting it
+would reject a correct design — `test/misuse_asserts_test.dart` pins that it
+does not fire.
+
+Writing the guard also found a test reaching a hover colour through an invalid
+state: `ItTabBar(selectedIndex: -1)`. `inTabOrder` follows the selection, so -1
+put no tab in the tab order and made the whole tablist keyboard-unreachable. The
+test now uses two tabs and hovers the inactive one, which is the real
+configuration anyway.
+
+### Original statement
+
 **4.1 Apply the house assert style evenly.** `ItModal.show`'s assert is the best
 error message in the package — it names the WCAG criterion and the two fixes.
 But there are **zero asserts in any of the six form widgets**, which have the
@@ -397,35 +430,46 @@ internally with no way for a parent to reset it — the state renders
 `SizedBox.shrink()` forever. `ItAccordion` computes expansion in `initState`
 with no `didUpdateWidget`, so index-based state goes stale when `items` changes.
 
-**4.4 Decide the localisation strategy.** — **done.** Both, layered: an
-`ItLocalizations` delegate carries all 25 strings, and the eight existing
-per-widget parameters stay, now nullable and falling through to it. The
-reasoning, and the two shapes rejected, are in
+**4.4 Decide the localisation strategy — done.** Both shapes, layered: an
+`ItLocalizations` delegate carries all 25 strings, and the per-widget parameters
+stay, now falling through to it. Reasoning and rejected alternatives in
 [ADR 0002](adr/0002-localisation-delegate-with-overrides.md).
+
+It was built, deliberately reverted, and then re-landed on request. The revert is
+worth recording rather than erasing, because of what it demonstrated: with the
+layer removed, **eleven** accessible names had no override at all — `Apri menu`,
+`Chiudi menu`, `Chiudi notifica`, `Menu di navigazione`, `Breadcrumb`,
+`Cerca...`, `Chiudi finestra modale`, `Ignora`, `Finestra di dialogo`,
+`Ricerca in corso`, `Suggerimenti` — while nine others were overridable per call
+site. A German-language service in Bolzano could translate about half of what a
+screen reader says and none of the rest. That is the "half-done is the worst
+option" case, measured rather than asserted.
 
 - Italian, German and French bundled. **English deliberately is not** —
   `MaterialApp.supportedLocales` defaults to `[Locale('en','US')]`, so bundling
   it would give an unconfigured *Italian* app English accessible names. For the
-  same reason `ItLocalizations.of` does **not** resolve from
-  `Localizations.localeOf` when no delegate is installed: no delegate means
-  Italian, full stop.
+  same reason `ItLocalizations.of` does not resolve from `Localizations.localeOf`
+  when no delegate is installed: no delegate means Italian, full stop.
 - `ItModal` no longer touches `MaterialLocalizations`, so it leaves the Material
-  allowlist in `import_hygiene_test.dart` — that was the last *behavioural*
-  Material dependency in the package, and it was the 4.2 hidden ancestor
-  requirement.
-- Two defects fell out of putting the strings in one table: the mobile megamenu
-  said `'Chiudi il menu'` where the headers said `'Chiudi menu'`, and
-  `ItNotificationBadge` announced "1 notifiche".
-- Guards: `test/l10n_test.dart` drives every string through its real component
-  under a German delegate, pins the no-ancestor Italian fallback, and reads the
-  source to fail on a German or French field that still equals the Italian.
-  `no_ambient_material_test.dart` gained the untitled-modal case.
-- Still open: `ItSelect(searchable: true)` **threw** before this — its
-  `TextField` sits in an `OverlayEntry` above the host `Scaffold`, so nothing
-  satisfied `debugCheckHasMaterial`. Found while writing the guard for
-  `'Cerca...'`, since no test and no capture had ever opened one. Fixed with the
-  smallest possible `MaterialType.transparency` ancestor; see the comment at the
-  call site.
+  allowlist — that was the last *behavioural* Material dependency in the package
+  and the 4.2 hidden ancestor requirement. Material imports: **4**, all of them
+  text fields plus the theme bridge.
+- `breadcrumb` is `'Breadcrumb'` in all three locales, Italian included. Not an
+  omission: Bootstrap Italia's own markup is `<nav aria-label="breadcrumb">` on
+  an Italian page, as is Bootstrap 5's. Diverging would mean guessing the
+  PA-standard German and French wording for a landmark name, in a string that is
+  legally binding. It is routed through the table anyway, so an administration
+  whose style guide says *"Percorso di navigazione"* can say so.
+- Guards: `test/l10n_test.dart` — 33 of them — drives every string through its
+  real component under a German delegate, pins the no-ancestor Italian fallback,
+  and reads the source to fail on a German or French field that still equals the
+  Italian.
+
+Three fixes found while building it were kept through the revert, because none
+of them depends on the layer: the `ItSelect(searchable: true)` crash (its search
+field sits in an `OverlayEntry`, a sibling of the host `Scaffold`, so nothing
+satisfied `debugCheckHasMaterial`), the modal barrier and close button no longer
+sharing one name, and the mobile megamenu agreeing with the header toggles.
 
 ### Original statement
 
@@ -492,49 +536,123 @@ on principle, this is the component that most needs a name.
 
 ---
 
+## De-Materialisation — finished
+
+ADR 0001's target was `flutter/widgets`. The package is at **four** Material
+imports — three text fields and the theme bridge — all of them justified and each named with its reason in
+`import_hygiene_test.dart`: three text fields (`TextField` owns IME composition,
+selection handles, autofill and the platform text-input channel — reimplementing
+it is a worse accessibility outcome than the visual cost) and
+`bootstrap_italia_theme_data.dart`, which exists to *be* the Material bridge.
+`ItModal` left the list when ADR 0002 replaced its `MaterialLocalizations`
+lookup: that was the last *behavioural* Material dependency in the package.
+
+The last eight fell to a question worth recording, because the obvious answer was
+wrong. Each held a Material import for `Colors.white` alone, and `--bs-white` is
+a real declared token that the scheme exposes — so routing them through
+`colors.white` looked like the tidy fix.
+
+It would have been the inverse defect. **The bands those whites sit on are
+literals**: the footer is `#004D99`, the slim header `#0059B3`, the dark
+breadcrumb `hsl(210,25%,35.2%)` — none of them tokens. A themed foreground on an
+unthemed surface is worse than two literals, because retinting would move one
+and not the other. So they became `Color(0xFFFFFFFF)`, and the Material import
+went with them.
+
+Where the band *is* themed the whites already follow it: `ItNavHeader` and
+`ItCenterHeader` sit on `colors.primary`, so their labels resolve
+`colors.white` — retinting a band without its foreground is how a themed header
+loses its contrast. Same value, opposite verdicts, decided by what the value sits
+on rather than what it is.
+
+---
+
 ## Phase 6 — The part automation cannot cover
 
-**Real assistive-technology testing** with VoiceOver, TalkBack and NVDA. The 157
-contracts prove a role and state are *exposed*; they cannot prove the resulting
-announcement is intelligible, correctly ordered, or not maddening to hear. No
-conformance claim should be made before this.
+**Real assistive-technology testing** with VoiceOver, TalkBack and NVDA. The
+contracts prove a role and a state are *exposed*; they cannot prove the
+resulting announcement is intelligible, correctly ordered, or bearable to listen
+to. No conformance claim should be made before this pass exists.
 
----
+That has not changed. What has changed is the cost of doing it.
 
-## Standing guards to add
+**`doc/at-testing-protocol.md`** — what to test, on which platforms, what to
+record, and what claim may be made afterwards. It also lists what is *already*
+checked automatically, so a session is not spent rediscovering unnamed buttons.
+
+**`flutter test tool/a11y/preview`** → `doc/at-announcements.md`, which dumps
+every semantics node with a name or role per component, in tree order, plus the
+Tab order. Knowing what *should* be said is what makes it possible to notice
+what *is*. Tree order and Tab order are computed separately, so a disagreement
+between the two lines is a §2.4.3 finding before a screen reader is involved.
+
+**`test/a11y/announcement_quality_test.dart`** takes the mechanical subset off
+the reviewer entirely: on realistic *compositions* rather than single widgets,
+every interactive node must be named, no two controls on one screen may share a
+name, and a named wrapper must not repeat its child.
+
+Writing it found two defects immediately, neither visible to any per-component
+contract:
+
+1. **`ItCheckbox`, `ItRadio` and `ItToggle` each emitted an unnamed tappable
+   node** nested inside the named control — same rect, no label. Their inner
+   `GestureDetector` contributed semantics the enclosing `Semantics(onTap:)`
+   already supplied, so a screen reader offered a second, meaningless stop on
+   every one of them. Fixed with `excludeFromSemantics: true`; hit testing and
+   behaviour unchanged.
+2. **Every `ItChip` dismiss button was called "Rimuovi".** A filter bar with
+   five chips gave five identically-named buttons, indistinguishable in an
+   element list — a user choosing between them is guessing. Now
+   `ItLocalizations.removeNamed(label)`, a template rather than a
+   concatenation, because German puts the verb last (`"Lazio entfernen"`) and
+   joining strings in code would hard-code Italian word order into every other
+   language.
+
+Both are the *kind* of defect a screen-reader session finds on its first
+minute — which is the argument for the automated subset: a reviewer's time
+should go on the four questions in the protocol that only a person can answer.
+
+## Standing guards — all five in place
 
 Fixes decay; guards do not. Each of these turns a class of defect into a test
-failure rather than a code review.
+failure rather than a code review. Every one was verified to fail without the
+fix it guards — a guard that has never been seen red is a guess.
 
-1. **No hardcoded theme tokens — done.** `test/token_hygiene_test.dart` scans
-   `lib/` for palette values outside `tokens/`, reading the palette from the
-   tokens themselves so the guard cannot drift from what it guards. Verified to
-   have teeth by planting a violation. The allowlist requires a CSS rule per
-   entry, and a second test fails any entry that no longer matches a real
-   literal — a stale exemption silently permits a future one.
+1. **No hardcoded theme tokens** — `test/token_hygiene_test.dart`. Reads the
+   palette from the tokens themselves so it cannot drift from what it guards.
+   The allowlist demands a CSS rule per entry, and a second test fails any entry
+   that no longer matches a real literal: a stale exemption silently permits a
+   future one.
+2. **Import hygiene** — `test/import_hygiene_test.dart`. The analyzer cannot do
+   this, because `material.dart` re-exports all of `widgets.dart`, so a file
+   using only `Widget` is never an "unused import". Each remaining Material
+   import must name the symbol that justifies it.
+3. **Public API snapshot** — `test/public_api_snapshot_test.dart` against
+   `test/api_snapshot.txt`. Restricted to the 51 files the barrel exports, not
+   all 56 in `lib/` — scanning everything listed internal classes no consumer
+   can name, 1,635 lines in which a real change would be invisible. A removed
+   line is a breaking change; an added line is a new promise.
+   `UPDATE_API_SNAPSHOT=1` accepts a change deliberately.
+4. **Bare-host rendering** — `test/no_ambient_material_test.dart`, now
+   data-driven over twelve text-bearing components rather than three hand-picked
+   ones. It asserts the resolved font family, because
+   `DefaultTextStyle.fallback()` carries none: a component leaning on an ambient
+   `Material` renders in the platform font while looking perfect in the parity
+   capture, which supplies a `Material` of its own. Verified by deleting
+   `ItChip`'s font family and watching it go red.
+5. **A11y contract per component** — `test/a11y_coverage_test.dart`. Adding it
+   flagged sixteen components, and the flags were not noise: **`ItActivatable`**
+   — the widget supplying focus, keyboard activation and the focus ring to most
+   of the package, and the thing ADR 0001 is built around — had been driven
+   indirectly by dozens of tests and asserted directly by none. It now has
+   contracts, along with `ItIconAction`, `ItBadge` and `ItBackToTop`, in
+   `test/a11y/uncovered_components_test.dart`. The rest are exempt with stated
+   reasons, and a second test fails any exemption naming a widget that no longer
+   exists.
 
-   Writing it found five more sites the nine-file list had missed, all writing
-   `#1A1A1A` — which *is* `--bs-body-color`. Four became the token; the fifth,
-   the megamenu link description, was a wrong *value*: the rule is
-   `.link-list-wrapper ul li a p { color: hsl(210,33%,28%) }` = `#30475F`, the
-   same value `ItList` already renders correctly. Only the megamenu heading is
-   captured, so nothing compared it.
-
-2. **Import hygiene — done.** `test/import_hygiene_test.dart`. The analyzer
-   cannot do this: `material.dart` re-exports all of `widgets.dart`, so a file
-   using only `Widget` is never reported as an unused import. Each remaining
-   Material import must name the symbol that justifies it; the eight that hold
-   one only for `Colors.white` are listed individually so the count cannot
-   quietly grow.
-3. **Public API snapshot** — a golden file of the exported surface, so a
-   rename or an accidental export is a visible diff.
-4. **Bare-host rendering** — extend `no_ambient_material_test.dart` to every
-   component, not the current five. It has already caught three font bugs.
-5. **A11y contract per component** — the coverage audit found `ItActivatable`,
-   the keyboard foundation for the whole package, had **zero** tests. Make a
-   component without a contract a build failure.
-
----
+Being named in `test/a11y/` does not prove a component is accessible. But a
+component named nowhere has certainly never been checked, and that is worth
+failing over.
 
 ## Sequencing rationale
 

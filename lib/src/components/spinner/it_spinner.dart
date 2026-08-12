@@ -47,7 +47,20 @@ enum ItSpinnerSize {
 /// ItSpinner(animating: false)              // the static track ring only
 /// ```
 class ItSpinner extends StatelessWidget {
-  /// The spinner color. Defaults to the theme's primary color.
+  /// The arc colour. Defaults to the theme's `secondary`.
+  ///
+  /// `.progress-spinner-active:not(.progress-spinner-double)
+  ///   { border-color: hsl(210,17%,44%) }` and, for the double form,
+  /// `.progress-spinner-double .progress-spinner-inner:after
+  ///   { border: 4px solid hsl(210,17%,44%) }` — the same value in both, and
+  /// byte-identical to `--bs-secondary` in a role that warrants the token: the
+  /// arc is the figure's only chromatic element, painted over the grey track.
+  ///
+  /// This defaulted to `primary`, which matched neither the stylesheet nor
+  /// [ItProgressSpinner] — the widget it delegates the painting to, which has
+  /// always resolved `secondary`. No parity capture arbitrates it, because the
+  /// only spinner capture is the *inactive* ring and an inactive ring has no
+  /// arc at all; the CSS is the whole of the evidence, and it is unambiguous.
   final Color? color;
 
   /// The size variant. Defaults to [ItSpinnerSize.medium].
@@ -71,7 +84,7 @@ class ItSpinner extends StatelessWidget {
 
   /// Semantic label for accessibility.
   ///
-  /// Defaults to [ItLocalizations.loading] — `'Caricamento in corso'` with no
+  /// Defaults to `'Caricamento in corso'`, with no
   /// delegate installed. Pass one to say what is loading; the locale can only
   /// say *that* something is.
   final String? semanticLabel;
@@ -88,7 +101,7 @@ class ItSpinner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveColor = color ?? resolveColorScheme(context).primary;
+    final effectiveColor = color ?? resolveColorScheme(context).secondary;
 
     // The label is the only thing AT has to go on — the spinner is a bare
     // painted figure with no text — so it is kept exactly as it was.

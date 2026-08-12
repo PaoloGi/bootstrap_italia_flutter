@@ -1,11 +1,12 @@
 import 'package:bootstrap_italia_icons/bootstrap_italia_icons.dart';
 import 'package:flutter/widgets.dart';
-import '../../a11y/it_activatable.dart';
 import '../../l10n/it_localizations.dart';
+import '../../a11y/it_activatable.dart';
 import '../../tokens/borders.dart';
 
 import '../../theme/bootstrap_italia_theme_data.dart';
 import '../../theme/theme_extensions.dart';
+import '../../utilities/interaction_states.dart';
 import '../../tokens/spacing.dart';
 import '../../tokens/typography.dart';
 
@@ -15,6 +16,13 @@ enum ItAlertVariant {
   primary,
 
   /// Secondary gray alert.
+  ///
+  /// Has no counterpart in the design system: the compiled stylesheet contains
+  /// no `.alert-secondary` rule, and «Esempi» lists five variants — primary,
+  /// info, success, warning, danger. It survives here because removing a public
+  /// enum value breaks callers, and because it is harmless: `--bs-secondary` and
+  /// `--bs-info` are the same `hsl(210, 17%, 44%)`, so a secondary alert is a
+  /// pixel-for-pixel info alert without the icon. Prefer [info].
   secondary,
 
   /// Green success alert.
@@ -46,6 +54,44 @@ extension ItAlertVariantColor on ItAlertVariant {
         ItAlertVariant.warning => ItVariantColor.warning,
         ItAlertVariant.info => ItVariantColor.info,
       };
+
+  /// The glyph the stylesheet paints for this variant.
+  ///
+  /// Bootstrap Italia does not treat the alert icon as optional. `.alert`
+  /// reserves the space for it unconditionally —
+  ///
+  /// ```css
+  /// .alert { padding-left: 4em;
+  ///          background-position: 20px 12px;
+  ///          background-size: 32px 32px;
+  ///          background-repeat: no-repeat }
+  /// ```
+  ///
+  /// — and each variant supplies the image:
+  /// `.alert-primary`, `.alert-info`, `.alert-success`, `.alert-warning` and
+  /// `.alert-danger` each carry a `background-image: url("data:image/svg+xml,…")`
+  /// inline SVG, tinted with the same colour as their 8px left border.
+  ///
+  /// The names below were recovered by matching those inline `<path d>` values
+  /// against `bootstrap-italia/svg/sprites.svg`, symbol by symbol — the kit
+  /// inlines its SVGs rather than referencing the sprite, so there is no id to
+  /// read. All four matched exactly, and two of them contradict the obvious
+  /// guess: *warning* is `it-warning-circle` (an exclamation in a circle), not
+  /// the `it-help-circle` the callout uses for the same word, and *danger* is
+  /// `it-error` (an exclamation in an **octagon**), not a circle at all.
+  ///
+  /// `secondary` returns null because it has no counterpart: the compiled
+  /// stylesheet declares no `.alert-secondary` at all, and the docs list five
+  /// variants, not six. See the note on [ItAlertVariant.secondary].
+  IconData? get defaultIcon => switch (this) {
+        ItAlertVariant.primary ||
+        ItAlertVariant.info =>
+          BootstrapItaliaIcons.it_info_circle,
+        ItAlertVariant.success => BootstrapItaliaIcons.it_check_circle,
+        ItAlertVariant.warning => BootstrapItaliaIcons.it_warning_circle,
+        ItAlertVariant.danger => BootstrapItaliaIcons.it_error,
+        ItAlertVariant.secondary => null,
+      };
 }
 
 /// A Bootstrap Italia alert component.
@@ -65,8 +111,29 @@ class ItAlert extends StatefulWidget {
   /// The alert color variant.
   final ItAlertVariant variant;
 
-  /// Optional leading icon.
+  /// Overrides the glyph the variant would paint.
+  ///
+  /// Leave null and the alert draws [ItAlertVariantColor.defaultIcon], which is
+  /// what the stylesheet does. Set this only to say something the variant does
+  /// not — and note that the icon is decoration either way: it is excluded from
+  /// the semantics tree, because the colour and the glyph both restate what the
+  /// text already says, and the docs make the same point under «Trasmettere
+  /// significato alle tecnologie assistive».
+  ///
+  /// Ignored when [showIcon] is false.
   final IconData? icon;
+
+  /// Whether the variant's glyph is painted.
+  ///
+  /// True by default, because `.alert` reserves `padding-left: 4em` for the
+  /// glyph whether or not one is drawn — an alert without it is a box with 64px
+  /// of empty gutter, which is what this widget used to render for every caller
+  /// who did not pass `icon:`.
+  ///
+  /// Setting it false keeps the gutter, matching the stylesheet: nothing in
+  /// `.alert` narrows the padding when the image is absent, so a `secondary`
+  /// alert (which has no glyph at all) indents exactly like the others.
+  final bool showIcon;
 
   /// Optional title text.
   final String? title;
@@ -117,10 +184,10 @@ class ItAlert extends StatefulWidget {
   ///
   /// An icon-only button with no name is announced as just "button", which
   /// tells a screen-reader user nothing (WCAG 4.1.2). Defaults to
-  /// [ItLocalizations.close] — `'Chiudi'` with no delegate installed. Set it
-  /// only to say something the locale cannot, e.g. `'Chiudi l'avviso di
-  /// manutenzione'`; for a non-Italian UI, install the delegate instead of
-  /// passing this at every call site (ADR 0002).
+  /// `'Chiudi'`. Set it
+  /// Override it to say something more specific, e.g. `'Chiudi l'avviso di
+  /// manutenzione'`, or for a non-Italian UI — there is no localisation layer,
+  /// so every non-Italian string has to be passed per call site.
   final String? dismissLabel;
 
   /// The alert content, rendered beneath [title].
@@ -131,6 +198,7 @@ class ItAlert extends StatefulWidget {
     super.key,
     this.variant = ItAlertVariant.info,
     this.icon,
+    this.showIcon = true,
     this.title,
     this.dismissible = false,
     this.onDismiss,
@@ -222,6 +290,10 @@ class _ItAlertState extends State<ItAlert> with SingleTickerProviderStateMixin {
     // as an 8px coloured left border (`.alert-primary { border-left: 8px ... }`)
     // plus a matching icon.
     final accentColor = colors.forVariant(widget.variant.variantColor);
+    // An explicit `icon:` overrides the variant's own glyph; `showIcon: false`
+    // suppresses both.
+    final glyph =
+        widget.showIcon ? (widget.icon ?? widget.variant.defaultIcon) : null;
     const bgColor = Color(0xFFFFFFFF);
     final fgColor = colors.bodyColor;
     final borderColor = colors.secondary;
@@ -230,6 +302,17 @@ class _ItAlertState extends State<ItAlert> with SingleTickerProviderStateMixin {
       opacity: _fadeAnimation,
       child: Semantics(
         liveRegion: true,
+        // `explicitChildNodes`, or the alert becomes ONE node. A `Semantics`
+        // that sets neither `container` nor this merges its annotations into
+        // the nearest enclosing node, so the dismiss button's `button: true`
+        // and its name folded into this live region: a screen reader announced
+        // the whole alert as a single focusable button called "Domanda non
+        // inviata. Chiudi", and there was no separate control to reach.
+        //
+        // Found by reading doc/at-announcements.md, not by a failing test —
+        // the existing contract matched the dismiss label as a substring, which
+        // the merged label still satisfies.
+        explicitChildNodes: true,
         child: Container(
           width: double.infinity,
           // .alert: padding 1rem, overridden to padding-left 4em (64px) to
@@ -255,13 +338,18 @@ class _ItAlertState extends State<ItAlert> with SingleTickerProviderStateMixin {
             // box's left padding; the default Clip.hardEdge would erase it.
             clipBehavior: Clip.none,
             children: [
-              if (widget.icon != null)
+              if (glyph != null)
                 Positioned(
                   // background-position: 20px 12px, measured from the padding
                   // box; the Stack is already inset by the box padding.
                   left: 20 - _contentInset,
                   top: 12 - BootstrapItaliaSpacing.space3,
-                  child: Icon(widget.icon, color: accentColor, size: 32),
+                  // `background-size: 32px 32px`. Decorative: the alert's
+                  // meaning is in its text, and `liveRegion` above already makes
+                  // that text announce itself.
+                  child: ExcludeSemantics(
+                    child: Icon(glyph, color: accentColor, size: 32),
+                  ),
                 ),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -339,6 +427,107 @@ class _ItAlertState extends State<ItAlert> with SingleTickerProviderStateMixin {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// A link inside an [ItAlert] — `.alert-link`.
+///
+/// ```css
+/// .alert-link { color: #06c; font-weight: 600; text-decoration: underline }
+/// ```
+///
+/// «Link evidenziato» exists because an ordinary link loses against the alert's
+/// own emphasis: the 600 weight and the underline are what pull it back out.
+///
+/// ## Why a widget and not a [TextStyle]
+///
+/// The docs put the link *inside* the sentence, so the obvious Flutter shape is
+/// a [TextSpan] with a `TapGestureRecognizer`. That renders correctly and is
+/// inaccessible: a recogniser on a span is reachable by pointer only — no focus
+/// node, no Enter/Space, and nothing announced as a link (WCAG §2.1.1 Keyboard,
+/// §4.1.2 Name, Role, Value). Flutter has no inline focusable text.
+///
+/// So this is a real control, placed in the sentence with a [WidgetSpan]:
+///
+/// ```dart
+/// Text.rich(TextSpan(children: [
+///   const TextSpan(text: 'Questo è un alert con un esempio di '),
+///   WidgetSpan(
+///     alignment: PlaceholderAlignment.baseline,
+///     baseline: TextBaseline.alphabetic,
+///     child: ItAlertLink(label: 'link', onPressed: () {}),
+///   ),
+///   const TextSpan(text: ' evidenziato.'),
+/// ]))
+/// ```
+///
+/// [PlaceholderAlignment.baseline] is not optional there: the default aligns the
+/// widget's bottom edge to the line box, which drops the link a few pixels below
+/// the words either side of it.
+class ItAlertLink extends StatelessWidget {
+  /// The link text.
+  final String label;
+
+  /// Called when the link is activated, by pointer or by keyboard.
+  final VoidCallback? onPressed;
+
+  /// Overrides the announced name.
+  ///
+  /// Use it where [label] would not stand on its own out of context — "link",
+  /// "qui", "leggi tutto" (WCAG §2.4.4 Link Purpose). The visible text is
+  /// unchanged.
+  final String? semanticLabel;
+
+  /// Creates a `.alert-link`.
+  const ItAlertLink({
+    super.key,
+    required this.label,
+    this.onPressed,
+    this.semanticLabel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = resolveColorScheme(context);
+    return ItHoverBuilder(
+      cursor: onPressed == null ? MouseCursor.defer : SystemMouseCursors.click,
+      builder: (context, hovered) {
+        // `a:hover { color: var(--bs-link-hover-color) }` —
+        // `rgb(0, 81.6, 163.2)`, the link colour at 80%. `.alert-link` adds no
+        // hover rule of its own, so it inherits the page's.
+        final color = hovered ? itShade(colors.primary, 0.20) : colors.primary;
+        return Semantics(
+          link: true,
+          label: semanticLabel ?? label,
+          child: ItActivatable(
+            onPressed: onPressed,
+            cursor: MouseCursor.defer,
+            disabledCursor: MouseCursor.defer,
+            // The link sits inside running text, so the ring must hug the
+            // glyphs rather than a padded box: no radius, and no layout space,
+            // which is what ItFocusRing's stroked painter gives.
+            borderRadius: BorderRadius.zero,
+            child: ExcludeSemantics(
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: color,
+                  fontWeight: FontWeight.w600,
+                  decoration: TextDecoration.underline,
+                  decorationColor: color,
+                  // Inherits size, family and line height from the alert's own
+                  // DefaultTextStyle — `.alert-link` sets none of the three, so
+                  // restating them here would make the link a different size
+                  // from the sentence it sits in.
+                  fontFamily: BootstrapItaliaFontFamily.sansSerif,
+                  package: BootstrapItaliaFontFamily.package,
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

@@ -38,6 +38,21 @@ TextStyle _resolvedStyle(WidgetTester tester) {
   return (richText.text as TextSpan).style!;
 }
 
+/// The resolved style of the [RichText] rendering [text].
+///
+/// `_resolvedStyle` takes whichever RichText paints first, which is fine while a
+/// component's first painted glyph is a letter. It stops being fine the moment
+/// one paints an icon first — an [Icon] is a RichText too, in the icon font, so
+/// the assertion silently starts checking that the icon font is the icon font.
+/// `ItAlert` now draws its variant glyph before the body, so it needs the
+/// stricter finder.
+TextStyle _resolvedStyleOf(WidgetTester tester, String text) {
+  final richText = tester.widget<RichText>(
+    find.descendant(of: find.text(text), matching: find.byType(RichText)),
+  );
+  return (richText.text as TextSpan).style!;
+}
+
 void main() {
   // `ItModal.show` was the one component this file could not have caught,
   // because it never rendered here: it called `MaterialLocalizations.of`, which
@@ -45,11 +60,10 @@ void main() {
   // modal did not merely look wrong outside a MaterialApp — it threw. The
   // package's own README says a Scaffold is not required.
   //
-  // It no longer looks anything up from Material: ADR 0002 moved both strings
-  // onto `ItLocalizations`, whose `of` cannot assert and cannot return null.
-  // The cases below therefore assert the *outcome* — Italian, and no
-  // exception — rather than which localisations class supplied it, so they
-  // keep holding if the mechanism changes again.
+  // It now uses `Localizations.of<MaterialLocalizations>`, which returns null
+  // instead of asserting, with an Italian fallback. The cases below assert the
+  // *outcome* — Italian, and no exception — rather than which class supplied
+  // it, so they keep holding if the mechanism changes.
   group('ItModal does not require MaterialApp', () {
     testWidgets('opens, names its route and closes with no Material ancestor',
         (tester) async {
@@ -80,10 +94,9 @@ void main() {
           reason: 'MaterialLocalizations.of asserted here before it was looked '
               'up nullably');
       expect(find.text('Procedere?'), findsOneWidget);
-      // The close button and the route name both come from ItLocalizations,
-      // which has no delegate here. Italian is what a missing delegate means:
-      // this is an Italian government design system, so the fallback is the
-      // language of the country, not English (ADR 0002).
+      // No Localizations ancestor of any kind here, so both names come from
+      // the hardcoded Italian fallback — which for an Italian government
+      // design system is the right default.
       expect(find.bySemanticsLabel('Chiudi finestra modale'), findsOneWidget);
       expect(find.bySemanticsLabel('Conferma'), findsWidgets,
           reason: 'the route is named after the title when there is one');
@@ -117,22 +130,10 @@ void main() {
     });
   });
 
-  // Every localised string has to survive the same conditions. Nothing here
-  // has a `Localizations` ancestor of any kind, which is what a route-level
-  // overlay or a non-MaterialApp host actually presents.
-  group('localised names fall back to Italian with no Localizations', () {
-    testWidgets('ItLocalizations.of never returns null and never asserts',
-        (tester) async {
-      late BuildContext ctx;
-      await tester.pumpWidget(_bare(Builder(builder: (context) {
-        ctx = context;
-        return const SizedBox.shrink();
-      })));
-
-      expect(tester.takeException(), isNull);
-      expect(ItLocalizations.of(ctx), same(ItLocalizations.italian));
-    });
-
+  // Accessible names have to survive the same conditions. Nothing here has a
+  // `Localizations` ancestor of any kind, which is what a route-level overlay
+  // or a non-MaterialApp host actually presents.
+  group('glyph-only controls are named with no Localizations', () {
     testWidgets('glyph-only controls are still named', (tester) async {
       final handle = tester.ensureSemantics();
       await tester.pumpWidget(_bare(
@@ -205,7 +206,7 @@ void main() {
 
       expect(tester.takeException(), isNull);
       expect(
-        _resolvedStyle(tester).fontFamily,
+        _resolvedStyleOf(tester, 'Operazione completata').fontFamily,
         'packages/${BootstrapItaliaFontFamily.package}/'
         '${BootstrapItaliaFontFamily.sansSerif}',
       );
@@ -235,6 +236,75 @@ void main() {
         'packages/${BootstrapItaliaFontFamily.package}/'
         '${BootstrapItaliaFontFamily.sansSerif}',
       );
+    });
+  });
+
+  // ── Every text-bearing component, rendered with no Material at all ────────
+  //
+  // The three hand-written cases above were the whole of this file's coverage
+  // for a long time, and the bug they were written for — an ambient `Material`
+  // silently supplying the font family — is not specific to them. It applies to
+  // every component that draws a glyph, and the parity harness cannot see any
+  // of it, because `captureWidget` wraps each capture in a `Material` of its
+  // own. So the check is data-driven rather than hand-picked: adding a
+  // component to the package means adding it here, and `a11y_coverage_test`
+  // enforces the equivalent for contracts.
+  group('every text-bearing component renders bare, in the package font', () {
+    final cases = <String, Widget>{
+      'ItAlert': const ItAlert(body: Text('Avviso')),
+      'ItBadge': const ItBadge(child: Text('Nuovo')),
+      'ItButton': ItButton(onPressed: () {}, child: const Text('Conferma')),
+      'ItCallout': const ItCallout(title: 'Nota', body: Text('Testo')),
+      'ItCard': const ItCard(title: 'Titolo', body: Text('Corpo')),
+      'ItChip': const ItChip(label: 'Etichetta'),
+      'ItAccordion': const ItAccordion(
+        items: [ItAccordionItem(title: 'Sezione', body: Text('Corpo'))],
+      ),
+      'ItList': const ItList(items: [ItListItem(title: 'Voce')]),
+      'ItBreadcrumb': const ItBreadcrumb(items: [
+        ItBreadcrumbItem(label: 'Home'),
+        ItBreadcrumbItem(label: 'Pagina'),
+      ]),
+      'ItTabBar': const ItTabBar(tabs: [ItTabItem(label: 'Uno')]),
+      'ItNotification': const ItNotification(title: 'Titolo', body: 'Corpo'),
+      'ItSkiplinks': const ItSkiplinks(
+        hideUntilFocused: false,
+        links: [ItSkiplink(label: 'Salta al contenuto')],
+      ),
+    };
+
+    cases.forEach((name, widget) {
+      testWidgets(name, (tester) async {
+        await tester.pumpWidget(_bare(SizedBox(width: 600, child: widget)));
+
+        expect(tester.takeException(), isNull,
+            reason: '$name threw with no Material ancestor — which is what a '
+                'route-level overlay, a custom dialog, or an app not built on '
+                'MaterialApp actually presents');
+
+        // `DefaultTextStyle.fallback()` carries NO fontFamily, so a component
+        // that leans on an ambient Material renders in the platform font here
+        // while looking perfect in the parity capture.
+        //
+        // Icons are `RichText` too, in the icon font — that is correct, not a
+        // leak, so they are filtered out rather than asserted against.
+        final prose = find.byType(RichText).evaluate().map((e) {
+          return ((e.widget as RichText).text as TextSpan).style;
+        }).where((style) =>
+            !(style?.fontFamily ?? '').contains('BootstrapItaliaIcons'));
+
+        expect(prose, isNotEmpty, reason: '$name should draw some prose');
+        for (final style in prose) {
+          expect(
+            style?.fontFamily,
+            startsWith('packages/${BootstrapItaliaFontFamily.package}/'),
+            reason: '$name renders text in a font it did not choose. With no '
+                'ambient Material there is nothing to fall back to, so this is '
+                'the platform font — and the parity captures cannot see it, '
+                'because they supply a Material of their own.',
+          );
+        }
+      });
     });
   });
 }

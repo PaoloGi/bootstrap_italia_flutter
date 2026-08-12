@@ -119,3 +119,24 @@ contrast is audited from tokens and never from screenshots.
 hermetically. The parity job is separate and `continue-on-error`, because it
 depends on a live third-party Storybook and upstream flakiness must never block
 an unrelated PR.
+
+## Checking whether a rendering moved
+
+**Do not use `git status tool/visual_parity/flutter_captures`.** That directory
+is in `.gitignore` — the PNGs are regeneratable — so the command always prints
+nothing and always looks like success. It was used as a verification step
+during a large feature pass and could never have failed; five components
+regressed behind it, one of them from parity to 67%.
+
+Use the hashes:
+
+    tool/visual_parity/capture_hashes.sh > /tmp/before.txt
+    flutter test tool/visual_parity/capture
+    tool/visual_parity/capture_hashes.sh > /tmp/after.txt
+    diff /tmp/before.txt /tmp/after.txt
+
+A non-empty diff means a default rendering moved. That is not automatically
+wrong — a fix to a genuine defect moves it too — but it must be deliberate, and
+only `diff/report.py` says whether it moved *toward* the reference or away.
+Score, do not eyeball: of the five regressions above, every one still looked
+like a plausible component on its own.

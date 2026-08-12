@@ -95,6 +95,78 @@ abstract final class ItFormMetrics {
   /// `.icon.icon-sm { width: 24px; height: 24px }`
   static const double iconSize = 24;
 
+  // ── .form-control-sm / .form-control-lg ────────────────────────────
+  //
+  // .form-control-sm { min-height:calc(1.5em + 0.5rem); padding:.25rem .5rem;
+  //                    font-size:0.875rem }
+  // .form-control-lg { min-height:calc(1.5em + 1rem);   padding:.5rem 1rem;
+  //                    font-size:1.25rem }
+  //
+  // Both are declared *after* `.form-control { min-height:2.5rem }` at the same
+  // specificity, so they win the cascade and the control really does change
+  // height — the docs describe them as changing "la grandezza del carattere e
+  // la spaziatura interna", but the min-height moves with them.
+  //
+  // `1.5em` resolves against the element's own computed font-size, which the
+  // same rule has just set: 1.5 x 14 + 8 = 29 for `sm`, 1.5 x 20 + 16 = 46 for
+  // `lg`. The border radius each rule also declares is overridden back to 0 by
+  // `.form-control.form-control-lg { border-radius:0 }` and by
+  // `.form-control { border-radius:0 !important }`, so no radius is carried.
+
+  /// `.form-control-sm { font-size: 0.875rem }`
+  static const double smallFontSize = 14;
+
+  /// `.form-control-sm { min-height: calc(1.5em + 0.5rem) }` at 14px type.
+  static const double smallControlHeight = 29;
+
+  /// `.form-control-sm { padding: .25rem .5rem }` — horizontal component.
+  static const double smallHorizontalPadding = 8;
+
+  /// `.form-control-lg { font-size: 1.25rem }`
+  static const double largeFontSize = 20;
+
+  /// `.form-control-lg { min-height: calc(1.5em + 1rem) }` at 20px type.
+  static const double largeControlHeight = 46;
+
+  /// `.form-control-lg { padding: .5rem 1rem }` — horizontal component.
+  static const double largeHorizontalPadding = 16;
+
+  // ── .form-check.form-check-group ("Raggruppati visivamente") ───────
+  //
+  // .form-check.form-check-group { padding:0 0 1rem 0; margin-bottom:1rem;
+  //                                box-shadow:inset 0 -1px 0 0 rgba(1,1,1,.1) }
+  // .form-check.form-check-group [type=checkbox]+label,
+  // .form-check.form-check-group [type=radio]+label
+  //   { position:static; padding-left:0; padding-right:3.25rem }
+  // .form-check.form-check-group [type=checkbox]+label::after,::before,
+  // .form-check.form-check-group [type=radio]+label::after,::before
+  //   { right:0px; left:auto }
+  // .form-check.form-check-group .form-text
+  //   { display:block; padding-right:3.25rem; margin-bottom:.5rem }
+  //
+  // The indicator does not move *within* its own box — only the box's anchor
+  // flips from `left` to `right`. Every offset the resting variant already
+  // uses is therefore reused verbatim, mirrored; that is why the grouped
+  // checkbox tick lands at `right:11px` in the sheet, which is the same +1px
+  // from the box's leading edge it has on the left.
+
+  /// `.form-check.form-check-group { padding-bottom: 1rem }`
+  static const double checkGroupPaddingBottom = 16;
+
+  /// `.form-check.form-check-group { margin-bottom: 1rem }`
+  static const double checkGroupMarginBottom = 16;
+
+  /// `.form-check.form-check-group […]+label { padding-right: 3.25rem }` — the
+  /// gutter the indicator is parked in, kept clear of the label text.
+  static const double checkGroupGutter = 52;
+
+  /// `.form-check.form-check-group .form-text { margin-bottom: .5rem }`
+  static const double checkGroupHelperBottomMargin = 8;
+
+  /// `.form-text { margin-top: .25rem }` — the base rule, which applies to the
+  /// grouped helper because it is not inside a `.form-group` in this layout.
+  static const double checkGroupHelperTopMargin = 4;
+
   // ── Colours ────────────────────────────────────────────────────────
   //
   // Which of these may follow [BootstrapItaliaColorScheme] cannot be read off
@@ -202,6 +274,32 @@ abstract final class ItFormMetrics {
   /// Literal: the same `.lightgrey-bg-a1` grey as [disabledBackground], which
   /// is not the value of any `--bs-*` custom property.
   static const Color disabledChrome = Color(0xFFD8D9DA);
+
+  /// `.form-check input.semi-checked:not(:checked)+label::after
+  ///   { border-color: rgb(32.13,123.165,214.2);
+  ///     background-color: rgb(32.13,123.165,214.2) }`, and identically inside
+  /// `.it-transfer-wrapper`, which is the component the docs point at for this
+  /// state.
+  ///
+  /// Literal, and *not* the primary token — this is the trap in the mixed
+  /// state. `--bs-primary` is `hsl(210,100%,40%)` = `rgb(0,102,204)`, which is
+  /// what `:checked+label::after` carries; the semi-checked box is deliberately
+  /// a different, lighter blue. The kit exposes this exact value as
+  /// `.primary-color-a5` — step 5 of the hand-authored primary ramp — and it
+  /// backs no custom property anywhere in the sheet, so retinting `primary`
+  /// would not move it upstream. Resolving it from the scheme would paint the
+  /// indeterminate box the *checked* colour, which is precisely the distinction
+  /// this state exists to draw.
+  static const Color semiCheckedFill = Color(0xFF207BD6);
+
+  /// `.form-check.form-check-group
+  ///   { box-shadow: inset 0 -1px 0 0 rgba(1,1,1,.1) }` — the hairline that
+  /// separates one visually-grouped row from the next.
+  ///
+  /// Literal: `rgba(1,1,1,.1)` is very nearly black at 10%, matches no token
+  /// (`--bs-black` is `hsl(0,0%,0%)`, one unit away on every channel) and is a
+  /// divider rather than an accent.
+  static const Color checkGroupSeparator = Color(0x1A010101);
 
   /// Builds a Titillium Web text style whose line box is exactly
   /// [lineHeight] CSS pixels tall, distributed like CSS half-leading.

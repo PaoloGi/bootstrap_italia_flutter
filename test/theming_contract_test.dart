@@ -326,9 +326,15 @@ void main() {
           reason: 'a focused field draws its ring in the un-themed brand blue');
     });
 
-    testWidgets('ItSpinner arc', (t) async {
+    testWidgets('ItSpinner arc follows secondary', (t) async {
+      // `secondary`, not `primary`: `.progress-spinner-active:not(
+      // .progress-spinner-double) { border-color: hsl(210,17%,44%) }`, and the
+      // double form declares the same value. This asserted `primary` because
+      // the widget defaulted to it — matching neither the stylesheet nor
+      // ItProgressSpinner, which does the painting and always resolved
+      // secondary.
       await expectThemed(t, const ItSpinner(doubleRing: true),
-          what: 'ItSpinner arc');
+          colour: _secondary, what: 'ItSpinner arc');
       await unmount(t);
     });
   });

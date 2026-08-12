@@ -1,7 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 
-import '../../a11y/it_activatable.dart';
 import '../../l10n/it_localizations.dart';
+import '../../a11y/it_activatable.dart';
 import '../../theme/theme_extensions.dart';
 import '../../tokens/breakpoints.dart';
 import '../../utilities/interaction_states.dart';
@@ -96,7 +96,8 @@ class ItBackToTopButton extends StatelessWidget {
     // administration that retints primary gets its own circle, not Blu Italia.
     // `.back-to-top.dark { background: #fff }` is the light-on-dark variant's
     // paper, not an accent, and stays white as everywhere else in the package.
-    final restColor = color ?? (dark ? Colors.white : colors.primary);
+    final restColor =
+        color ?? (dark ? const Color(0xFFFFFFFF) : colors.primary);
     // `.back-to-top:hover { background: rgb(0, 91.8, 183.6) }` — exactly
     // 0.9 x primary, so a 10% shade and not the button's 15%; measured as
     // `rgb(0, 92, 184)` on the React kit in both the hover and the pressed
@@ -111,14 +112,16 @@ class ItBackToTopButton extends StatelessWidget {
     final circleColor = hovered ? hoverColor : restColor;
     // `.back-to-top .icon:before { color: #fff }`, and `.dark` swaps in the
     // declared blue-grey above.
-    final arrowColor = iconColor ?? (dark ? _darkArrow : Colors.white);
+    final arrowColor =
+        iconColor ?? (dark ? _darkArrow : const Color(0xFFFFFFFF));
 
     // §2.4.4 Link Purpose / §4.1.2 Name, Role, Value: the control paints only
     // an arrow, so the accessible name has to be supplied here — an unlabelled
     // icon button is a hard failure. §2.1.1: ItActivatable makes it reachable
     // and activatable from the keyboard, which a bare GestureDetector is not.
-    // §3.1.2 Language of Parts: the name is spoken, so it follows the locale
-    // rather than the literal it used to be (ADR 0002).
+    // The name is hardcoded Italian; there is no localisation layer. See
+    // doc/quality-plan.md — Alto Adige and Valle d'Aosta carry statutory German
+    // and French obligations, so this is a known gap, not a decision.
     return Semantics(
       button: true,
       enabled: onPressed != null,
@@ -218,7 +221,20 @@ class ItBackToTop extends StatefulWidget {
   final double showAfter;
 
   /// Animation duration for scrolling to top.
+  ///
+  /// The kit's `BackToTop` plugin documents `duration: 800` under *Opzioni*;
+  /// this package has always defaulted to 500ms and that difference is kept
+  /// rather than changed under a docs-parity pass, which is not the place to
+  /// alter how long an existing application's page takes to scroll.
   final Duration scrollDuration;
+
+  /// Easing for the scroll animation.
+  ///
+  /// Defaults to [Curves.easeInOutSine], which is the plugin's documented
+  /// `easing: 'easeInOutSine'` — Flutter ships the same curve under the same
+  /// name, so the previous [Curves.easeInOut] was a near-miss rather than a
+  /// choice.
+  final Curve scrollCurve;
 
   /// Optional glyph replacing the built-in Bootstrap Italia arrow.
   final IconData? icon;
@@ -241,6 +257,7 @@ class ItBackToTop extends StatefulWidget {
     required this.scrollController,
     this.showAfter = 200,
     this.scrollDuration = const Duration(milliseconds: 500),
+    this.scrollCurve = Curves.easeInOutSine,
     this.icon,
     this.color,
     this.dark = false,
@@ -291,12 +308,26 @@ class _ItBackToTopState extends State<ItBackToTop> {
     widget.scrollController.animateTo(
       0,
       duration: widget.scrollDuration,
-      curve: Curves.easeInOut,
+      curve: widget.scrollCurve,
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    // The class doc says "must be placed inside a Stack" and nothing enforced
+    // it. Without one, `Positioned` throws from deep inside the framework with
+    // a message that names neither this widget nor the fix — the reader is told
+    // an incorrect-use-of-ParentDataWidget occurred, not that ItBackToTop needs
+    // a Stack.
+    assert(
+      context.findAncestorWidgetOfExactType<Stack>() != null,
+      'ItBackToTop must be placed inside a Stack.\n'
+      'It renders a Positioned so that it floats over the scrollable content '
+      'rather than taking part in its layout. Wrap the page in a Stack with '
+      'the scrollable first and this widget after it, or use '
+      'ItBackToTopButton, which is the same control without the positioning.',
+    );
+
     // `.back-to-top { bottom: 16px; right: 16px }`, `32px` from `xl` up.
     final width =
         MediaQuery.maybeSizeOf(context)?.width ?? ItBreakpoint.md.minWidth;

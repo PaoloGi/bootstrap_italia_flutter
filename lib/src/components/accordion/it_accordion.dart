@@ -1,5 +1,6 @@
 import 'package:bootstrap_italia_icons/bootstrap_italia_icons.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 
 import '../../a11y/it_activatable.dart';
 import '../../theme/it_default_text_style.dart';
@@ -71,11 +72,35 @@ class ItAccordion extends StatefulWidget {
   /// Whether multiple panels can be open simultaneously.
   final bool allowMultipleOpen;
 
+  /// Fills an expanded header with the primary colour.
+  ///
+  /// `.accordion-background-active .accordion-header .accordion-button
+  /// [aria-expanded=true] { background-color: #06c; color: #fff;
+  /// border-color: #06c }` — and the chevron turns white with it.
+  ///
+  /// The band becomes the primary token here, so its foreground follows the
+  /// theme too: an administration retinting `primary` without the label would
+  /// lose the contrast this variant depends on.
+  final bool backgroundActive;
+
+  /// Replaces the trailing chevron with a leading `+` / `−` glyph.
+  ///
+  /// `.accordion-left-icon .accordion-header .accordion-button:after
+  /// { content: none }`, and `:before { content: "-" }` becoming `"+"` when
+  /// `[aria-expanded=false]`.
+  ///
+  /// Deliberately typography rather than an icon: the kit renders these as text
+  /// in Titillium Web at weight 300, so an icon glyph would change both the
+  /// shape and the optical weight.
+  final bool leftIcon;
+
   /// Creates a Bootstrap Italia accordion.
   const ItAccordion({
     super.key,
     required this.items,
     this.allowMultipleOpen = false,
+    this.backgroundActive = false,
+    this.leftIcon = false,
   });
 
   @override
@@ -84,6 +109,54 @@ class ItAccordion extends StatefulWidget {
 
 class _ItAccordionState extends State<ItAccordion> {
   late Set<int> _expandedIndices;
+
+  final Map<int, FocusNode> _focusNodes = <int, FocusNode>{};
+
+  FocusNode _focusNode(int index) =>
+      _focusNodes.putIfAbsent(index, FocusNode.new);
+
+  /// Moves focus by [delta], wrapping at both ends.
+  ///
+  /// §2.1.1, and the ARIA accordion pattern the kit's own docs describe under
+  /// *Attivazione tramite codice*: Up/Down move between headers, Home/End jump
+  /// to the ends. Tab alone reaches a header but gives a keyboard user no
+  /// idiomatic way to move between them, which is the gap this closes.
+  ///
+  /// Unlike the tab pattern, this moves focus and **nothing else**: an
+  /// accordion header is a disclosure button, so arrowing onto it must not open
+  /// its panel. Tabs change selection as focus moves; accordions do not, and
+  /// conflating the two would make the keyboard expand panels the user never
+  /// asked for.
+  void _moveFocus(int delta) {
+    final count = widget.items.length;
+    if (count == 0) return;
+    var current = -1;
+    for (final entry in _focusNodes.entries) {
+      if (entry.value.hasFocus) {
+        current = entry.key;
+        break;
+      }
+    }
+    // Focus is somewhere else entirely — a panel's own content, say. Moving it
+    // to a header the user was not on would be worse than doing nothing.
+    if (current < 0) return;
+    var next = (current + delta) % count;
+    if (next < 0) next += count;
+    _focusNode(next).requestFocus();
+  }
+
+  void _focusAt(int index) {
+    if (index < 0 || index >= widget.items.length) return;
+    _focusNode(index).requestFocus();
+  }
+
+  @override
+  void dispose() {
+    for (final node in _focusNodes.values) {
+      node.dispose();
+    }
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -138,6 +211,23 @@ class _ItAccordionState extends State<ItAccordion> {
 
   @override
   Widget build(BuildContext context) {
+    // §2.1.1 and the ARIA accordion pattern, which the kit's docs describe
+    // under *Attivazione tramite codice*. Bound at the accordion rather than
+    // per header so the keys work wherever focus sits inside it.
+    return CallbackShortcuts(
+      bindings: <ShortcutActivator, VoidCallback>{
+        const SingleActivator(LogicalKeyboardKey.arrowDown): () =>
+            _moveFocus(1),
+        const SingleActivator(LogicalKeyboardKey.arrowUp): () => _moveFocus(-1),
+        const SingleActivator(LogicalKeyboardKey.home): () => _focusAt(0),
+        const SingleActivator(LogicalKeyboardKey.end): () =>
+            _focusAt(widget.items.length - 1),
+      },
+      child: _buildAccordion(context),
+    );
+  }
+
+  Widget _buildAccordion(BuildContext context) {
     return Container(
       // `.accordion { border-bottom: 1px solid hsl(210, 4%, 78%) }`
       // A Container (unlike DecoratedBox) reserves layout space for the rule.
@@ -168,6 +258,9 @@ class _ItAccordionState extends State<ItAccordion> {
                 isExpanded: isExpanded,
                 panelId: panelId,
                 onTap: () => _toggle(index),
+                backgroundActive: widget.backgroundActive,
+                leftIcon: widget.leftIcon,
+                focusNode: _focusNode(index),
               ),
               Semantics(
                 identifier: panelId,
@@ -175,7 +268,7 @@ class _ItAccordionState extends State<ItAccordion> {
                   isExpanded: isExpanded,
                   child: Container(
                     width: double.infinity,
-                    color: Colors.white,
+                    color: const Color(0xFFFFFFFF),
                     padding: _AccordionTokens.bodyPadding,
                     child: DefaultTextStyle.merge(
                       // `.accordion-body { font-size: 1.125rem;
@@ -208,6 +301,9 @@ class _AccordionHeader extends StatelessWidget {
   final bool isExpanded;
   final String panelId;
   final VoidCallback onTap;
+  final bool backgroundActive;
+  final bool leftIcon;
+  final FocusNode? focusNode;
 
   const _AccordionHeader({
     required this.title,
@@ -215,6 +311,9 @@ class _AccordionHeader extends StatelessWidget {
     required this.isExpanded,
     required this.panelId,
     required this.onTap,
+    this.backgroundActive = false,
+    this.leftIcon = false,
+    this.focusNode,
   });
 
   @override
@@ -226,11 +325,20 @@ class _AccordionHeader extends StatelessWidget {
   }
 
   Widget _build(BuildContext context, bool hovered) {
-    final color = isExpanded
-        // `.accordion-button { color: #06c }` collapsed and
-        // `hsl(210,17%,44%)` expanded — the primary and secondary tokens.
-        ? resolveColorScheme(context).secondary
-        : resolveColorScheme(context).primary;
+    final colors = resolveColorScheme(context);
+    // `.accordion-background-active … [aria-expanded=true]
+    //   { background-color: #06c; color: #fff }` — #06c is `--bs-primary` and
+    // the band therefore re-themes, so its foreground must follow it or a
+    // retinted administration loses the contrast this variant depends on.
+    final activeBand = backgroundActive && isExpanded;
+
+    final color = activeBand
+        ? colors.white
+        : isExpanded
+            // `.accordion-button { color: #06c }` collapsed and
+            // `hsl(210,17%,44%)` expanded — the primary and secondary tokens.
+            ? colors.secondary
+            : colors.primary;
 
     // The kit's markup is `<h2 class="accordion-header"><button
     // class="accordion-button" aria-expanded aria-controls>`, so this node is
@@ -251,6 +359,7 @@ class _AccordionHeader extends StatelessWidget {
       // because the InkWell kept its focus node private.
       child: ItActivatable(
         onPressed: onTap,
+        focusNode: focusNode,
         child: ExcludeSemantics(
           // The header's Text states its own font and metrics, so it does not
           // depend on the ambient style the removed Material supplied — but
@@ -264,15 +373,23 @@ class _AccordionHeader extends StatelessWidget {
               // and `.accordion-header .accordion-button { background: none }`
               // means it must not change on hover or press, which is why the
               // overlay was suppressed in the first place.
-              decoration: const BoxDecoration(
-                color: Colors.white,
+              decoration: BoxDecoration(
+                color: activeBand ? colors.primary : const Color(0xFFFFFFFF),
                 border: Border(
-                  top: BorderSide(color: _AccordionTokens.borderColor),
+                  top: BorderSide(
+                    // `border-color: #06c` on the active band, so the rule
+                    // between two open sections does not cut across the fill.
+                    color: activeBand
+                        ? colors.primary
+                        : _AccordionTokens.borderColor,
+                  ),
                 ),
               ),
               padding: _AccordionTokens.headerPadding,
               child: Row(
                 children: [
+                  if (leftIcon)
+                    _LeftGlyph(isExpanded: isExpanded, color: color),
                   if (icon != null) ...[
                     Icon(icon, size: 20, color: color),
                     const SizedBox(width: 8),
@@ -299,19 +416,66 @@ class _AccordionHeader extends StatelessWidget {
                       ),
                     ),
                   ),
-                  AnimatedRotation(
-                    turns: isExpanded ? 0.5 : 0,
-                    duration: const Duration(milliseconds: 200),
-                    child: Icon(
-                      BootstrapItaliaIcons.it_expand,
-                      size: _AccordionTokens.iconSize,
-                      // The chevron keeps the link colour in both states.
-                      color: resolveColorScheme(context).primary,
+                  // `.accordion-left-icon … .accordion-button:after
+                  //   { content: none }` — the two indicators are alternatives,
+                  // never both.
+                  if (!leftIcon)
+                    AnimatedRotation(
+                      turns: isExpanded ? 0.5 : 0,
+                      duration: const Duration(milliseconds: 200),
+                      child: Icon(
+                        BootstrapItaliaIcons.it_expand,
+                        size: _AccordionTokens.iconSize,
+                        // The chevron keeps the link colour, except on the
+                        // active band where it turns white with the label.
+                        color: activeBand ? colors.white : colors.primary,
+                      ),
                     ),
-                  ),
                 ],
               ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The `+` / `−` indicator of `.accordion-left-icon`.
+///
+/// `.accordion-left-icon .accordion-header .accordion-button:before
+/// { font-weight: 300; content: "-"; float: left; margin: 0 1rem .333rem 0;
+///   width: 1.5rem; font-size: 1.5rem; line-height: 1.2rem;
+///   font-family: "Titillium Web" }`, with `content: "+"` while collapsed.
+///
+/// Text rather than an icon, because that is what the kit draws — a glyph from
+/// the icon set would differ in both shape and optical weight. The box is fixed
+/// at 24px so the title does not shift by a pixel when `+` becomes `−`, which
+/// the differing advance widths would otherwise cause on every toggle.
+class _LeftGlyph extends StatelessWidget {
+  const _LeftGlyph({required this.isExpanded, required this.color});
+
+  final bool isExpanded;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      // `margin: 0 1rem .3333rem 0`
+      padding: const EdgeInsets.only(right: 16, bottom: 5.33),
+      child: SizedBox(
+        width: 24,
+        child: Text(
+          isExpanded ? '-' : '+',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontFamily: BootstrapItaliaFontFamily.sansSerif,
+            package: BootstrapItaliaFontFamily.package,
+            fontSize: 24,
+            height: 19.2 / 24,
+            fontWeight: FontWeight.w300,
+            color: color,
+            leadingDistribution: TextLeadingDistribution.even,
           ),
         ),
       ),

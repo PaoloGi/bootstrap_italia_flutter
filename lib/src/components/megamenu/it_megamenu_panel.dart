@@ -89,8 +89,35 @@ class ItMegamenuPanel extends StatelessWidget {
   /// The section whose content is displayed.
   final ItMegamenuSection section;
 
+  /// The dark panel — Bootstrap Italia's *"completo scuro desktop"*.
+  ///
+  /// Named after what it looks like rather than after the class that triggers
+  /// it, because that class is confusingly named: the panel goes dark when its
+  /// `<nav>` carries `.theme-light-desk`, which lightens the *bar* above it.
+  /// [ItMegamenu.lightDesk] sets both halves of that pairing at once.
+  ///
+  /// `.theme-light-desk .navbar .dropdown-menu { background: #06c }` with
+  /// `… ul li a span { color: #fff }`, `… a.it-heading-link,
+  /// … a.it-footer-link { color: #fff }`, `… a svg { fill: #fff }` and
+  /// `… .it-description p { color: #fff }`. The wrapper rules keep their
+  /// `hsl(210,4%,78%)` border in both themes.
+  final bool dark;
+
   /// Creates a megamenu panel.
-  const ItMegamenuPanel({super.key, required this.section});
+  const ItMegamenuPanel({
+    super.key,
+    required this.section,
+    this.dark = false,
+  });
+
+  /// The panel's content colour.
+  ///
+  /// `#fff` on the dark panel, in the on-primary role `--bs-white` names for a
+  /// fill that is `--bs-primary` itself, so both halves travel with the scheme
+  /// together. On the light panel each element keeps its own declared colour,
+  /// so this is only consulted where the dark rule overrides one.
+  Color _fg(BootstrapItaliaColorScheme colors, Color light) =>
+      dark ? colors.white : light;
 
   @override
   Widget build(BuildContext context) {
@@ -102,8 +129,10 @@ class ItMegamenuPanel extends StatelessWidget {
       decoration: BoxDecoration(
         // `.dropdown-menu { background-color: var(--bs-dropdown-bg) }` with
         // `--bs-dropdown-bg: hsl(0, 0%, 100%)` — the panel surface is the white
-        // token by name, so it follows a retinted `white`.
-        color: colors.white,
+        // token by name, so it follows a retinted `white`. The dark panel's
+        // `{ background: #06c }` is `--bs-primary` in the accent role, resolved
+        // for the same reason.
+        color: dark ? colors.primary : colors.white,
         // `.dropdown-menu { border-radius: 0 0 4px 4px }`
         borderRadius: const BorderRadius.vertical(bottom: Radius.circular(4)),
         // `box-shadow: rgba(0,0,0,.1) 0 3px 15px 0` — an `rgba()` stated in its
@@ -136,6 +165,7 @@ class ItMegamenuPanel extends StatelessWidget {
                       child: _DescriptionPanel(
                         description: section.description,
                         image: section.image,
+                        dark: dark,
                       ),
                     ),
                     const SizedBox(width: _panelColumnGap),
@@ -157,12 +187,18 @@ class ItMegamenuPanel extends StatelessWidget {
                   for (var i = 0; i < section.columns.length; i++) ...[
                     if (i > 0) const SizedBox(width: _panelColumnGap),
                     Expanded(
-                      child: _DesktopColumn(column: section.columns[i]),
+                      child: _DesktopColumn(
+                          column: section.columns[i], dark: dark),
                     ),
+                  ],
+                  if (section.sideCtas.isNotEmpty) ...[
+                    const SizedBox(width: _panelColumnGap),
+                    _buildSideCtas(colors),
                   ],
                 ],
               ),
             ),
+            if (section.footerCtas.isNotEmpty) _buildFooterCtaRow(colors),
             if (section.footerCta != null) _buildFooterLink(colors),
           ],
         ),
@@ -205,11 +241,11 @@ class ItMegamenuPanel extends StatelessWidget {
                           ? Icon(
                               cta.icon,
                               size: _headingLinkIconSize,
-                              color: colors.primary,
+                              color: _fg(colors, colors.primary),
                             )
                           : ItArrowRightTriangle(
                               size: _headingLinkIconSize,
-                              color: colors.primary,
+                              color: _fg(colors, colors.primary),
                             ),
                     ),
                     const SizedBox(width: _panelIconGap),
@@ -222,7 +258,9 @@ class ItMegamenuPanel extends StatelessWidget {
                             size: _headingLinkFontSize,
                             lineHeight: _headingLinkFontSize * 1.2,
                             weight: FontWeight.w600,
-                            color: colors.primary,
+                            // `.theme-light-desk … a.it-heading-link
+                            //   { color: #fff }` on the dark panel.
+                            color: _fg(colors, colors.primary),
                           ),
                         ),
                       ),
@@ -269,7 +307,9 @@ class ItMegamenuPanel extends StatelessWidget {
                       style: _panelStyle(
                         size: 16,
                         lineHeight: _panelItemLineHeight,
-                        color: colors.primary,
+                        // `.theme-light-desk … a.it-footer-link
+                        //   { color: #fff }` on the dark panel.
+                        color: _fg(colors, colors.primary),
                         underline: true,
                       ),
                     ),
@@ -277,12 +317,123 @@ class ItMegamenuPanel extends StatelessWidget {
                     Icon(
                       cta.icon ?? BootstrapItaliaIcons.it_arrow_right,
                       size: 24,
-                      color: colors.primary,
+                      color: _fg(colors, colors.primary),
                     ),
                   ],
                 ),
               ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// `.it-footer-link-wrapper { margin: 24px 0 0 0; padding-top: 24px;
+  ///   border-top: 1px solid hsl(210,4%,78%) }` with
+  /// `a.it-footer-link { margin-right: 16px }` — the CTAs run left to right
+  /// beneath the columns, above a rule that separates them from the lists.
+  Widget _buildFooterCtaRow(BootstrapItaliaColorScheme colors) {
+    return Padding(
+      padding: const EdgeInsets.only(top: _panelDividerSpacing),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.only(top: _panelDividerSpacing),
+        decoration: const BoxDecoration(
+          border: Border(top: BorderSide(color: _panelDividerColor)),
+        ),
+        // `flex-wrap` on the wrapper: a menu with four CTAs and a narrow
+        // viewport moves the surplus onto a second line rather than overflowing.
+        child: Wrap(
+          spacing: BootstrapItaliaSpacing.space3,
+          runSpacing: BootstrapItaliaSpacing.space2,
+          children: [
+            for (final cta in section.footerCtas)
+              _CtaLink(cta: cta, dark: dark),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// `.it-footer-link-wrapper-vertical { margin: 0; padding: 0;
+  ///   padding-left: 24px; border-top: none; border-left: 1px solid #d9dadb;
+  ///   height: 100% }` — the same links stacked in a right-hand column, with
+  /// the rule down their left rather than across their top.
+  ///
+  /// Note the border colour: `#d9dadb`, not the `hsl(210,4%,78%)` (`#c5c7c9`)
+  /// every other wrapper in this file uses. Bootstrap Italia states it that way,
+  /// so it is reproduced that way rather than quietly unified.
+  Widget _buildSideCtas(BootstrapItaliaColorScheme colors) {
+    return Container(
+      padding: const EdgeInsets.only(left: _panelDividerSpacing),
+      decoration: const BoxDecoration(
+        border: Border(left: BorderSide(color: _panelSideCtaDividerColor)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final cta in section.sideCtas)
+            Padding(
+              padding:
+                  const EdgeInsets.only(bottom: BootstrapItaliaSpacing.space2),
+              child: _CtaLink(cta: cta, dark: dark),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// `.it-footer-link-wrapper-vertical { border-left: 1px solid #d9dadb }`.
+///
+/// Matches no palette token, so it stays a literal — as does its sibling
+/// [_panelDividerColor], which it is deliberately one shade away from.
+const Color _panelSideCtaDividerColor = Color(0xFFD9DADB);
+
+/// One `a.it-footer-link` in a CTA group.
+///
+/// `{ color: #06c }` with the trailing arrow sprite, turning white on the dark
+/// panel through the same `.theme-light-desk … a.it-footer-link { color: #fff }`
+/// rule the single [ItMegamenuPanel.section] footer link follows.
+class _CtaLink extends StatelessWidget {
+  final ItMegamenuCta cta;
+  final bool dark;
+
+  const _CtaLink({required this.cta, required this.dark});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = resolveColorScheme(context);
+    final color = dark ? colors.white : colors.primary;
+
+    return Semantics(
+      link: true,
+      label: cta.label,
+      child: ItActivatable(
+        onPressed: cta.onTap,
+        child: ExcludeSemantics(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(
+                cta.label,
+                style: _panelStyle(
+                  size: 16,
+                  lineHeight: _panelItemLineHeight,
+                  color: color,
+                  underline: true,
+                ),
+              ),
+              const SizedBox(width: _panelIconGap),
+              Icon(
+                cta.icon ?? BootstrapItaliaIcons.it_arrow_right,
+                size: 24,
+                color: color,
+              ),
+            ],
           ),
         ),
       ),
@@ -294,8 +445,9 @@ class ItMegamenuPanel extends StatelessWidget {
 
 class _DesktopColumn extends StatelessWidget {
   final ItMegamenuColumn column;
+  final bool dark;
 
-  const _DesktopColumn({required this.column});
+  const _DesktopColumn({required this.column, required this.dark});
 
   @override
   Widget build(BuildContext context) {
@@ -324,12 +476,18 @@ class _DesktopColumn extends StatelessWidget {
                   size: ItMegamenuTokens.headingFontSize,
                   lineHeight: ItMegamenuTokens.headingFontSize * 1.2,
                   weight: FontWeight.w600,
-                  color: resolveColorScheme(context).bodyColor,
+                  // The dark panel restates every foreground it carries as
+                  // `#fff`; a `hsl(0,0%,10%)` heading on `#06c` would sit at
+                  // about 1.9:1 (WCAG 1.4.3).
+                  color: dark
+                      ? resolveColorScheme(context).white
+                      : resolveColorScheme(context).bodyColor,
                 ),
               ),
             ),
           ),
-        for (final link in column.links) _DesktopLinkTile(link: link),
+        for (final link in column.links)
+          _DesktopLinkTile(link: link, dark: dark),
       ],
     );
   }
@@ -339,8 +497,9 @@ class _DesktopColumn extends StatelessWidget {
 
 class _DesktopLinkTile extends StatelessWidget {
   final ItMegamenuLink link;
+  final bool dark;
 
-  const _DesktopLinkTile({required this.link});
+  const _DesktopLinkTile({required this.link, required this.dark});
 
   @override
   Widget build(BuildContext context) {
@@ -349,7 +508,11 @@ class _DesktopLinkTile extends StatelessWidget {
     // a `.dropdown-menu`, and that value is declared as `--bs-dark`, so the
     // item colour is the dark token reached through the dropdown's own
     // variable rather than a standalone navy.
-    final itemColor = resolveColorScheme(context).dark;
+    //
+    // `.theme-light-desk … .link-list-wrapper ul li a span { color: #fff }` and
+    // `… a svg { fill: #fff }` replace both on the dark panel.
+    final colors = resolveColorScheme(context);
+    final itemColor = dark ? colors.white : colors.dark;
 
     // One node per link carrying label + description, so AT announces a single
     // coherent link instead of two adjacent text runs (§2.4.4, §4.1.2).
@@ -434,8 +597,9 @@ class _DesktopLinkTile extends StatelessWidget {
 class _DescriptionPanel extends StatelessWidget {
   final String? description;
   final Widget? image;
+  final bool dark;
 
-  const _DescriptionPanel({this.description, this.image});
+  const _DescriptionPanel({this.description, this.image, required this.dark});
 
   @override
   Widget build(BuildContext context) {
@@ -460,7 +624,9 @@ class _DescriptionPanel extends StatelessWidget {
             style: TextStyle(
               // $megamenu-vertical-description-font-size: 1rem
               fontSize: 16,
-              color: colors.bodyColor,
+              // `.theme-light-desk … li.megamenu .it-description p
+              //   { color: #fff }` on the dark panel.
+              color: dark ? colors.white : colors.bodyColor,
               height: 1.5,
             ),
           ),

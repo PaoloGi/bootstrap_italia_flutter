@@ -94,7 +94,7 @@ abstract final class BootstrapItaliaColors {
   static const Color teal = Color(0xFF08A3A0);
 
   /// Cyan. hsl(178, 100%, 50%)
-  static const Color cyan = Color(0xFF00FFFA);
+  static const Color cyan = Color(0xFF00FFF7);
 
   // ── Italia-Specific Colors ─────────────────────────────────────
 

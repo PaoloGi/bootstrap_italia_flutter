@@ -87,6 +87,29 @@ class ItCheckbox extends StatefulWidget {
   /// control has no visible label at all (WCAG 4.1.2 requires a name).
   final String? semanticLabel;
 
+  /// `.form-check.form-check-group` — the docs' "Raggruppati visivamente".
+  ///
+  /// ```
+  /// .form-check.form-check-group { padding:0 0 1rem 0; margin-bottom:1rem;
+  ///                                box-shadow:inset 0 -1px 0 0 rgba(1,1,1,.1) }
+  /// .form-check.form-check-group [type=checkbox]+label
+  ///   { position:static; padding-left:0; padding-right:3.25rem }
+  /// .form-check.form-check-group [type=checkbox]+label::after,::before
+  ///   { right:0px; left:auto }
+  /// ```
+  ///
+  /// The row spans the full width, the label reads from the left and the box
+  /// moves to the right-hand gutter, with a hairline beneath separating it from
+  /// the next row. Only the box's *anchor* flips: every offset inside it is the
+  /// resting variant's, mirrored, which is why the sheet parks the grouped tick
+  /// at `right:11px` — the same 1px inside the box's leading edge it sits at on
+  /// the left.
+  ///
+  /// Purely presentational. Nothing about the control's semantics changes, and
+  /// [ItCheckboxGroup] is still what binds several boxes to one value: this is
+  /// the treatment applied *to* rows, not a grouping of them.
+  final bool visuallyGrouped;
+
   /// Optional external focus node.
   final FocusNode? focusNode;
 
@@ -104,6 +127,7 @@ class ItCheckbox extends StatefulWidget {
     this.errorText,
     this.validationState,
     this.semanticLabel,
+    this.visuallyGrouped = false,
     this.focusNode,
   });
 
@@ -162,6 +186,17 @@ class _ItCheckboxState extends State<ItCheckbox> {
     } else if (validationColor != null) {
       boxColor = validationColor;
       fill = checked ? validationColor : const Color(0x00000000);
+    } else if (indeterminate) {
+      // `input.semi-checked:not(:checked)+label::after
+      //   { border-color:rgb(32.13,123.165,214.2);
+      //     background-color:rgb(32.13,123.165,214.2) }`
+      //
+      // A *different* blue from `:checked`, and deliberately so — see
+      // [ItFormMetrics.semiCheckedFill]. Painting `colors.primary` here, which
+      // is what this did, made "some selected" indistinguishable from "all
+      // selected" for anyone who could not resolve the bar-versus-tick glyph.
+      boxColor = ItFormMetrics.semiCheckedFill;
+      fill = ItFormMetrics.semiCheckedFill;
     } else if (checked) {
       boxColor = colors.primary;
       fill = colors.primary;
@@ -174,14 +209,21 @@ class _ItCheckboxState extends State<ItCheckbox> {
     final labelColor =
         enabled && validationColor != null ? validationColor : colors.bodyColor;
 
-    final row = SizedBox(
-      // .form-check [type=checkbox]+label { line-height: var(--bs-body-line-height) }
+    // The box, its tick and its indeterminate bar, in a box of their own.
+    //
+    // Extracted so the two layouts can place the *same* pixels on either side
+    // of the label: `.form-check-group` moves the anchor from `left` to
+    // `right` and changes nothing else, and a second hand-offset copy of these
+    // three children is exactly how the two variants would drift apart.
+    //
+    // 28px wide because the 20px box carries a 4px margin on each side; the
+    // resting layout's `left: 4` and the grouped layout's `right: 4` are then
+    // the same edge, measured from opposite sides.
+    final indicator = SizedBox(
+      width: 28,
       height: ItFormMetrics.textLineHeight,
       child: Stack(
         children: [
-          // Without a label the row is just the box plus its 4px margins.
-          if (label == null && labelWidget == null)
-            const SizedBox(width: 28, height: ItFormMetrics.textLineHeight),
           // ::after — the box itself: 20x20, margin 4px, 2px border, radius 4px.
           Positioned(
             left: 4,
@@ -223,34 +265,78 @@ class _ItCheckboxState extends State<ItCheckbox> {
             ),
           // input.semi-checked:not(:checked)+label::before
           //   { top:11px; left:4px; width:12px; height:2px; background:#fff }
+          //
+          // The `margin: 2px 4px` of the base `::before` rule survives — the
+          // semi-checked rule resets the borders and the transform but not the
+          // margin — so the bar really lands at (8, 13), not (4, 11). Those
+          // four and two pixels are the difference between a bar centred in its
+          // box and one crowding its top-left corner: the box's interior is
+          // 6..22 across and 6..22 down, and (8, 13) centres a 12x2 bar in it
+          // exactly.
           if (indeterminate)
             const Positioned(
-              left: 4,
-              top: 11,
+              left: 8,
+              top: 13,
               child: SizedBox(
                 width: 12,
                 height: 2,
                 child: ColoredBox(color: Color(0xFFFFFFFF)),
               ),
             ),
-          if (label != null || labelWidget != null)
-            Padding(
-              // .form-check […]+label { padding-left: 2rem }
-              padding: const EdgeInsets.only(left: 32),
-              child: labelWidget ??
-                  Text(
-                    label!,
-                    style: ItFormMetrics.textStyle(
-                      fontSize: ItFormMetrics.fontSize,
-                      lineHeight: ItFormMetrics.textLineHeight,
-                      fontWeight: FontWeight.w600,
-                      color: labelColor,
-                    ),
-                  ),
-            ),
         ],
       ),
     );
+
+    final Widget? labelChild = label == null && labelWidget == null
+        ? null
+        : labelWidget ??
+            Text(
+              label!,
+              style: ItFormMetrics.textStyle(
+                fontSize: ItFormMetrics.fontSize,
+                lineHeight: ItFormMetrics.textLineHeight,
+                fontWeight: FontWeight.w600,
+                color: labelColor,
+              ),
+            );
+
+    final row = widget.visuallyGrouped
+        // `.form-check.form-check-group [type=checkbox]+label
+        //    { position:static; padding-left:0; padding-right:3.25rem }`
+        // with `::after { right:0; left:auto }`: the row fills the width, the
+        // label reads from the left and the box parks in the 3.25rem gutter.
+        ? SizedBox(
+            height: ItFormMetrics.textLineHeight,
+            child: Row(
+              children: [
+                Expanded(child: labelChild ?? const SizedBox.shrink()),
+                SizedBox(
+                  width: ItFormMetrics.checkGroupGutter,
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: indicator,
+                  ),
+                ),
+              ],
+            ),
+          )
+        : SizedBox(
+            // .form-check [type=checkbox]+label
+            //   { line-height: var(--bs-body-line-height) }
+            height: ItFormMetrics.textLineHeight,
+            child: Stack(
+              children: [
+                // Without a label the row is just the box plus its 4px margins.
+                indicator,
+                if (labelChild != null)
+                  Padding(
+                    // .form-check […]+label { padding-left: 2rem }
+                    padding: const EdgeInsets.only(left: 32),
+                    child: labelChild,
+                  ),
+              ],
+            ),
+          );
 
     // WCAG 4.1.2: the box is hand-painted, so nothing in `row` tells assistive
     // technology this is a checkbox or whether it is checked — it previously
@@ -301,6 +387,12 @@ class _ItCheckboxState extends State<ItCheckbox> {
             },
             child: GestureDetector(
               onTap: _interactive ? _toggle : null,
+              // The enclosing `Semantics` already carries `onTap`, so this
+              // detector must not contribute a node of its own: it produced an
+              // unnamed tappable child inside the named control, which a screen
+              // reader offers as a second, meaningless stop. Hit testing and
+              // behaviour are unchanged — only the duplicate node goes.
+              excludeFromSemantics: true,
               // WCAG 2.5.8 Target Size: hit testing used to defer to the
               // children, leaving the 20x20 box (and the gaps around it) as the
               // only target. The row is 24px tall and at least 28px wide, so
@@ -321,6 +413,7 @@ class _ItCheckboxState extends State<ItCheckbox> {
     return ItFieldSupport(
       helperText: widget.helperText,
       errorText: widget.errorText,
+      grouped: widget.visuallyGrouped,
       child: control,
     );
   }
@@ -368,6 +461,22 @@ class ItCheckboxGroup<T> extends StatelessWidget {
   /// [ItValidationState.danger].
   final ItValidationState? validationState;
 
+  /// `.form-check.form-check-group` applied to every row — the docs'
+  /// "Raggruppati visivamente".
+  ///
+  /// Reaches each [ItCheckbox] as [ItCheckbox.visuallyGrouped]. In the kit's
+  /// markup the class sits on the individual `.form-check`, not on the
+  /// `<fieldset>` around them, so a caller can also apply it row by row; this
+  /// is the shorthand for the case the docs actually show, where every row in
+  /// the fieldset carries it.
+  ///
+  /// Note that it is not the same axis as [inline]: `.form-check-inline` lays
+  /// rows out side by side, `.form-check-group` restyles each one. Combining
+  /// them is not a layout the stylesheet describes — a full-width row with a
+  /// right-hand indicator has nothing to sit beside — so [inline] wins and this
+  /// is ignored when both are set.
+  final bool visuallyGrouped;
+
   /// Creates a checkbox group.
   const ItCheckboxGroup({
     super.key,
@@ -380,17 +489,36 @@ class ItCheckboxGroup<T> extends StatelessWidget {
     this.helperText,
     this.errorText,
     this.validationState,
+    this.visuallyGrouped = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    ItFieldValidation.debugCheckConfig(
+      label: label,
+      required: required,
+      optionCount: options.length,
+      optionValues: options.map((o) => o.value),
+      widgetName: 'ItCheckboxGroup',
+    );
     final colors = resolveColorScheme(context);
+
+    // `.form-check-inline` and `.form-check-group` are alternatives, not a
+    // matrix — see [visuallyGrouped].
+    final grouped = visuallyGrouped && !inline;
 
     final checkboxes = options.map((option) {
       return ItCheckbox(
         value: values.contains(option.value),
         label: option.label,
         enabled: option.enabled,
+        visuallyGrouped: grouped,
+        // Per-row `<small class="form-text">`, which only the grouped layout
+        // has room for: outside it the description would be painted below the
+        // box with nothing reserving the space, and `.form-check-group
+        // .form-text { display:block }` is the rule that makes it a line of its
+        // own at all.
+        helperText: grouped ? option.helperText : null,
         // The tint is a property of the set, so it reaches every box; the
         // message and the instruction belong to the group and are painted once,
         // below it.
@@ -445,6 +573,12 @@ class ItCheckboxGroup<T> extends StatelessWidget {
               runSpacing: BootstrapItaliaSpacing.space2,
               children: checkboxes,
             )
+          else if (grouped)
+            // No extra gap: `.form-check-group` already declares
+            // `padding-bottom:1rem; margin-bottom:1rem`, and stacking the
+            // resting `.form-check + .form-check { margin-top:.5rem }` on top
+            // of it would push the rows 8px further apart than the sheet does.
+            ...checkboxes
           else
             // .form-check + .form-check { margin-top: .5rem }
             ...checkboxes.map(
@@ -480,10 +614,24 @@ class ItCheckboxOption<T> {
   /// a group and the boxes it builds cannot read in opposite directions.
   final bool enabled;
 
+  /// `<small class="form-text">` for this row alone.
+  ///
+  /// The second "Raggruppati visivamente" example in the docs gives every
+  /// option its own description. It is read only when the group sets
+  /// [ItCheckboxGroup.visuallyGrouped]: `.form-check-group .form-text
+  /// { display:block }` is what turns it into a line of its own, and without
+  /// that rule the kit paints no per-row description anywhere.
+  ///
+  /// Distinct from [ItCheckboxGroup.helperText], which describes the whole set
+  /// and is announced on the group's node; this one is announced on the row's,
+  /// which is the `aria-describedby` the docs put on each input.
+  final String? helperText;
+
   /// Creates a checkbox option.
   const ItCheckboxOption({
     required this.value,
     required this.label,
     this.enabled = true,
+    this.helperText,
   });
 }

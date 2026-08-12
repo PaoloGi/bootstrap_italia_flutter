@@ -61,6 +61,13 @@ class ItActivatable extends StatefulWidget {
   /// Whether this control takes focus when first built.
   final bool autofocus;
 
+  /// Whether the control sits on a dark surface.
+  ///
+  /// Inverts the focus ring's two bands, per
+  /// `.bg-dark .btn:focus:not([data-focus-mouse=true])`. Forwarded to
+  /// [ItFocusRing.onDark].
+  final bool onDark;
+
   /// Called when the pointer enters or leaves the control.
   ///
   /// Bootstrap Italia expresses hover as a colour change the control paints
@@ -89,6 +96,7 @@ class ItActivatable extends StatefulWidget {
     this.hitTestBehavior = HitTestBehavior.opaque,
     this.focusNode,
     this.autofocus = false,
+    this.onDark = false,
     this.onHoverChanged,
     this.onPressedChanged,
   });
@@ -148,6 +156,7 @@ class _ItActivatableState extends State<ItActivatable> {
       // nothing at all, so parity captures are byte-identical.
       child: ItFocusRing(
         visible: widget.showFocusRing && _focused,
+        onDark: widget.onDark,
         radius: widget.borderRadius.topLeft.x,
         child: control,
       ),

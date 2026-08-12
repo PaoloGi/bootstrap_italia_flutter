@@ -137,16 +137,21 @@ void main() {
 
   // ── 5. ItSpinner uses theme primary ──────────────────────────────
 
-  testWidgets('ItSpinner uses theme primary color', (tester) async {
+  testWidgets('ItSpinner uses theme secondary color', (tester) async {
     await tester.pumpWidget(_wrapWithTheme(
       const ItSpinner(),
     ));
 
     // The arc colour of the painted `.progress-spinner`; the track keeps the
     // stylesheet's own hsl(210,3%,85%) regardless of the theme.
+    //
+    // `secondary`, not `primary`. `.progress-spinner-active:not(
+    // .progress-spinner-double) { border-color: hsl(210,17%,44%) }` — and
+    // ItProgressSpinner, which does the painting, already defaulted to it. This
+    // test asserted the widget's own divergence rather than the stylesheet.
     final spinner =
         tester.widget<ItProgressSpinner>(find.byType(ItProgressSpinner));
-    expect(spinner.color, const Color(0xFFFF0000));
+    expect(spinner.color, const Color(0xFF00FF00));
   });
 
   // ── 6. ItChip uses theme primary when selected ───────────────────

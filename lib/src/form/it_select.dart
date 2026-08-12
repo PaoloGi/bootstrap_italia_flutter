@@ -2,9 +2,9 @@ import 'package:bootstrap_italia_icons/bootstrap_italia_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../l10n/it_localizations.dart';
 import '../a11y/it_activatable.dart';
 import '../a11y/it_focus_ring.dart';
-import '../l10n/it_localizations.dart';
 import '../theme/it_default_text_style.dart';
 import '../theme/theme_extensions.dart';
 import '../tokens/borders.dart';
@@ -21,7 +21,17 @@ class ItSelectItem<T> {
   /// The display label.
   final String label;
 
-  /// Optional group name for grouped options.
+  /// `<optgroup label="…">` — the caption this option is filed under.
+  ///
+  /// The open list prints the caption once, above the first option carrying it,
+  /// and again whenever the value *changes* — which is how `<optgroup>` itself
+  /// works. Options of one group therefore have to be adjacent in [items], as
+  /// they are in the markup; scattering them produces the caption more than
+  /// once, exactly as scattered `<option>` elements between two `<optgroup>`
+  /// tags would.
+  ///
+  /// Null on every option is the ungrouped select, which prints no captions at
+  /// all.
   final String? group;
 
   /// Whether this option is enabled. Same polarity as [ItSelect.enabled], so a
@@ -53,6 +63,19 @@ class ItSelectItem<T> {
 ///   ],
 ///   value: 'RM',
 ///   onChanged: (value) {},
+/// )
+/// ```
+///
+/// Options can be filed under `<optgroup>` captions by giving them a
+/// [ItSelectItem.group]:
+///
+/// ```dart
+/// ItSelect<String>(
+///   label: 'Etichetta',
+///   items: [
+///     ItSelectItem(value: '1', label: 'Opzione 1', group: 'Gruppo 1'),
+///     ItSelectItem(value: '3', label: 'Opzione 3', group: 'Gruppo 2'),
+///   ],
 /// )
 /// ```
 ///
@@ -251,6 +274,32 @@ class _ItSelectState<T> extends State<ItSelect<T>> {
         .toList();
   }
 
+  /// The rows the open dropdown paints: the filtered options, with an
+  /// `<optgroup>` caption inserted wherever [ItSelectItem.group] changes.
+  ///
+  /// Emitted on *change* rather than by bucketing, because `<optgroup>` works
+  /// the same way: the browser renders the groups in document order and an
+  /// option belongs to whichever group encloses it. Re-sorting the list here
+  /// would silently reorder options the caller deliberately ordered, and would
+  /// also merge two same-named groups the markup keeps apart.
+  ///
+  /// Options with no [ItSelectItem.group] simply produce no caption, so a list
+  /// that mixes grouped and ungrouped options renders the ungrouped ones as
+  /// plain rows — which is what a `<select>` does with options outside any
+  /// `<optgroup>`.
+  List<_SelectRow<T>> get _rows {
+    final items = _filteredItems;
+    final rows = <_SelectRow<T>>[];
+    String? current;
+    for (var i = 0; i < items.length; i++) {
+      final group = items[i].group;
+      if (group != null && group != current) rows.add(_SelectGroupRow(group));
+      current = group;
+      rows.add(_SelectOptionRow(items[i], i));
+    }
+    return rows;
+  }
+
   String get _displayText {
     if (widget.multiple) {
       final selected = widget.values ?? {};
@@ -353,14 +402,14 @@ class _ItSelectState<T> extends State<ItSelect<T>> {
         _controlKey.currentContext!.findRenderObject()! as RenderBox;
     final size = renderBox.size;
     final colors = resolveColorScheme(context);
-    // Both read from the *state's* context, not the OverlayEntry builder's:
-    // the overlay is mounted in the Overlay's subtree, which is a sibling of
-    // this control and need not sit under the same Localizations.
+    // Read from the *state's* context, not the OverlayEntry builder's: the
+    // overlay mounts in the Overlay's subtree, which is a sibling of this
+    // control and need not sit under the same Localizations.
     final l10n = ItLocalizations.of(context);
 
     return OverlayEntry(
       builder: (context) {
-        final filtered = _filteredItems;
+        final filtered = _rows;
         return Stack(
           children: [
             // The scrim is a pointer-only affordance; Escape is the keyboard
@@ -465,8 +514,48 @@ class _ItSelectState<T> extends State<ItSelect<T>> {
                               shrinkWrap: true,
                               padding: EdgeInsets.zero,
                               itemCount: filtered.length,
-                              itemBuilder: (context, index) {
-                                final item = filtered[index];
+                              itemBuilder: (context, position) {
+                                final row = filtered[position];
+                                // `<optgroup label="…">` — a caption, not an
+                                // option. `.dropdown-header { display:block;
+                                // padding:.5rem 24px; font-size:.875rem }` and
+                                // `.dropdown-header .text
+                                //   { text-transform:uppercase;
+                                //     color:hsl(0,0%,10%); font-weight:600 }`.
+                                if (row is _SelectGroupRow<T>) {
+                                  return Semantics(
+                                    // WCAG 1.3.1: `<optgroup label="…">` is
+                                    // structure, not decoration — without a
+                                    // node of its own the caption reaches a
+                                    // screen reader as an unexplained line
+                                    // between two options, and the user cannot
+                                    // tell which options it covers. A heading
+                                    // is the shape assistive technology already
+                                    // navigates by, and it is not offered as a
+                                    // choice because it carries no tap action.
+                                    header: true,
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal:
+                                            BootstrapItaliaSpacing.space4,
+                                        vertical: BootstrapItaliaSpacing.space2,
+                                      ),
+                                      child: Text(
+                                        row.label.toUpperCase(),
+                                        style: ItFormMetrics.textStyle(
+                                          fontSize: 14,
+                                          lineHeight: 21,
+                                          fontWeight: FontWeight.w600,
+                                          color:
+                                              ItFormMetrics.textColor(colors),
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }
+                                final optionRow = row as _SelectOptionRow<T>;
+                                final item = optionRow.item;
+                                final index = optionRow.index;
                                 final isSelected = widget.multiple
                                     ? (widget.values ?? {}).contains(item.value)
                                     : widget.value == item.value;
@@ -610,6 +699,13 @@ class _ItSelectState<T> extends State<ItSelect<T>> {
 
   @override
   Widget build(BuildContext context) {
+    ItFieldValidation.debugCheckConfig(
+      label: widget.label,
+      required: widget.required,
+      optionCount: widget.items.length,
+      optionValues: widget.items.map((o) => o.value),
+      widgetName: 'ItSelect',
+    );
     final colors = resolveColorScheme(context);
     final validation =
         ItFieldValidation.effective(widget.errorText, widget.validationState);
@@ -799,6 +895,36 @@ class _ItSelectState<T> extends State<ItSelect<T>> {
 }
 
 /// Moves the keyboard cursor within an open [ItSelect] list.
+/// One row of an open [ItSelect]'s list.
+///
+/// A `<select>` has two kinds of child — `<option>` and `<optgroup>` — and the
+/// list has to paint both while the keyboard cursor walks only the first. This
+/// pair keeps the two indexes from being confused: [_SelectOptionRow.index] is
+/// the option's position among the *options*, which is what `_highlighted`
+/// holds, while the list view's own index counts captions too.
+sealed class _SelectRow<T> {
+  const _SelectRow();
+}
+
+/// An `<optgroup label="…">` caption.
+final class _SelectGroupRow<T> extends _SelectRow<T> {
+  const _SelectGroupRow(this.label);
+
+  /// The group name, as given on [ItSelectItem.group].
+  final String label;
+}
+
+/// An `<option>`, with its position among the visible options.
+final class _SelectOptionRow<T> extends _SelectRow<T> {
+  const _SelectOptionRow(this.item, this.index);
+
+  /// The option itself.
+  final ItSelectItem<T> item;
+
+  /// Its index in `_filteredItems` — the index the keyboard cursor uses.
+  final int index;
+}
+
 class _MoveSelectHighlightIntent extends Intent {
   const _MoveSelectHighlightIntent(this.delta);
 

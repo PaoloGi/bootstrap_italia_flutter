@@ -7,6 +7,19 @@ import 'capture_helpers.dart';
 
 const _outDir = 'tool/visual_parity/flutter_captures';
 
+/// The ambient size a `.badge`'s `em` resolves against in the reference story.
+///
+/// `--bs-badge-font-size: 0.875em` is relative, so a badge is comparable with
+/// its reference only when both sit in the same context. The kit's Storybook
+/// renders these on `--bs-body-font-size: 1rem`, while `captureWidget` hosts
+/// them on Italia's 18px body copy — so without this the capture measured a
+/// correct badge in the wrong surroundings: 66.5x24 CSS against a reference of
+/// 59x21, and five badge captures fell to 35-40%.
+Widget _atRootFontSize(Widget child) => DefaultTextStyle.merge(
+      style: const TextStyle(fontSize: 16),
+      child: child,
+    );
+
 void main() {
   testWidgets('capture: button_primary', (tester) async {
     await captureWidget(
@@ -64,7 +77,7 @@ void main() {
     await captureWidget(
       tester,
       outputPath: '$_outDir/badge_primary.png',
-      child: const ItBadge(child: Text('Primary')),
+      child: _atRootFontSize(const ItBadge(child: Text('Primary'))),
     );
   });
 
@@ -72,9 +85,9 @@ void main() {
     await captureWidget(
       tester,
       outputPath: '$_outDir/badge_secondary.png',
-      child: const ItBadge(
-        variant: ItBadgeVariant.secondary,
-        child: Text('Secondary'),
+      child: _atRootFontSize(
+        const ItBadge(
+            variant: ItBadgeVariant.secondary, child: Text('Secondary')),
       ),
     );
   });
@@ -83,9 +96,8 @@ void main() {
     await captureWidget(
       tester,
       outputPath: '$_outDir/badge_success.png',
-      child: const ItBadge(
-        variant: ItBadgeVariant.success,
-        child: Text('Success'),
+      child: _atRootFontSize(
+        const ItBadge(variant: ItBadgeVariant.success, child: Text('Success')),
       ),
     );
   });
@@ -94,9 +106,8 @@ void main() {
     await captureWidget(
       tester,
       outputPath: '$_outDir/badge_danger.png',
-      child: const ItBadge(
-        variant: ItBadgeVariant.danger,
-        child: Text('Danger'),
+      child: _atRootFontSize(
+        const ItBadge(variant: ItBadgeVariant.danger, child: Text('Danger')),
       ),
     );
   });
@@ -105,10 +116,11 @@ void main() {
     await captureWidget(
       tester,
       outputPath: '$_outDir/badge_pill.png',
-      child: const ItBadge(
-        variant: ItBadgeVariant.secondary,
-        pill: true,
-        child: Text('Badge'),
+      child: _atRootFontSize(
+        const ItBadge(
+            variant: ItBadgeVariant.secondary,
+            pill: true,
+            child: Text('Badge')),
       ),
     );
   });

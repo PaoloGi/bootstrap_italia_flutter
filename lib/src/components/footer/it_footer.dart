@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter/semantics.dart';
 
-import '../../a11y/it_activatable.dart';
 import '../../l10n/it_localizations.dart';
+import '../../a11y/it_activatable.dart';
 import '../../tokens/typography.dart';
 import '../../utilities/interaction_states.dart';
 import '../social_link/it_social_link.dart';
@@ -30,11 +30,22 @@ class ItFooterSection {
   /// The links in this column.
   final List<ItFooterLink> links;
 
+  /// Free content between the heading and the links.
+  ///
+  /// The kit's contacts column is `<h4>Contatti</h4>` followed by a `<p>` —
+  /// the administration's postal address and tax code — and only then the link
+  /// list. A `Widget` rather than a `String` because that paragraph is not
+  /// plain: the docs set the institution's name in `<strong>` on its own line,
+  /// which no single styled run can express. Same reason
+  /// [ItMegamenuSection.image] is a widget.
+  final Widget? content;
+
   /// Creates a footer section.
   const ItFooterSection({
     required this.title,
     required this.links,
     this.onTitleTap,
+    this.content,
   });
 }
 
@@ -71,7 +82,7 @@ TextStyle _style({
   required double lineHeight,
   FontWeight weight = FontWeight.w400,
   bool underline = false,
-  Color color = Colors.white,
+  Color color = const Color(0xFFFFFFFF),
 }) {
   return TextStyle(
     fontFamily: BootstrapItaliaFontFamily.sansSerif,
@@ -129,7 +140,8 @@ class ItFooterBrand extends StatelessWidget {
                   width: 48,
                   height: 48,
                   child: IconTheme.merge(
-                    data: const IconThemeData(color: Colors.white, size: 48),
+                    data:
+                        const IconThemeData(color: Color(0xFFFFFFFF), size: 48),
                     child: logo!,
                   ),
                 ),
@@ -245,7 +257,9 @@ class _Column extends StatelessWidget {
                         lineHeight: 32,
                         weight: FontWeight.w600,
                         underline: true,
-                        color: hovered ? _footerLinkHoverColor : Colors.white,
+                        color: hovered
+                            ? _footerLinkHoverColor
+                            : const Color(0xFFFFFFFF),
                       ),
                     ),
                   ),
@@ -253,6 +267,19 @@ class _Column extends StatelessWidget {
               ),
             ),
           ),
+          if (section.content != null)
+            Padding(
+              // `.it-footer-main p { margin-bottom: 16px }` — the paragraph
+              // clears the link list beneath it.
+              padding: const EdgeInsets.only(bottom: 16),
+              child: DefaultTextStyle(
+                // `.it-footer-main { color: #fff }` with the body's 1rem/1.5
+                // paragraph scale; caller content inherits it rather than
+                // having to restate white on a dark blue band.
+                style: _style(size: 16, lineHeight: 24),
+                child: section.content!,
+              ),
+            ),
           // §2.4.4 / §2.1.1: every footer link needs the link role, its own
           // accessible name and keyboard reachability.
           for (final link in section.links)
@@ -274,7 +301,9 @@ class _Column extends StatelessWidget {
                           size: 16,
                           lineHeight: 32,
                           underline: true,
-                          color: hovered ? _footerLinkHoverColor : Colors.white,
+                          color: hovered
+                              ? _footerLinkHoverColor
+                              : const Color(0xFFFFFFFF),
                         ),
                       ),
                     ),
@@ -312,41 +341,129 @@ class ItFooterSmallPrints extends StatelessWidget {
             child: Padding(
               // `ul.it-footer-small-prints-list { padding: 1.5rem 1rem }`
               padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-              child: Row(
-                mainAxisSize: MainAxisSize.max,
-                children: [
-                  for (var i = 0; i < links.length; i++) ...[
-                    if (i > 0) const SizedBox(width: 40),
-                    Semantics(
-                      link: true,
-                      label: links[i].label,
-                      child: ItHoverBuilder(
-                        cursor: SystemMouseCursors.click,
-                        builder: (context, hovered) => ItActivatable(
-                          onPressed: links[i].onTap,
-                          child: ExcludeSemantics(
-                            child: Text(
-                              links[i].label,
-                              style: _style(
-                                size: 16,
-                                lineHeight: 28,
-                                underline: true,
-                                color: hovered
-                                    ? _footerLinkHoverColor
-                                    : Colors.white,
+              // `ul.it-footer-small-prints-list` is
+              // `d-flex flex-column flex-md-row`: a column on a narrow screen,
+              // a row from `md` up, and even then a flex row whose items shrink
+              // rather than overflow. A [Row] does neither — it lays every link
+              // out at natural width and reports an overflow for the surplus,
+              // which is what the docs' own five links do, the last of them
+              // being "Dichiarazione di accessibilità (link esterno su sito
+              // AgID)". A [Wrap] is the closest honest equivalent: it keeps the
+              // single-line layout while the links fit, and moves the surplus
+              // onto another line instead of off the band.
+              // Full width, explicitly. A `Wrap` shrink-wraps under the loose
+              // constraints the enclosing container passes down, so the `Align`
+              // above then centres it — where the `Row` this replaced filled
+              // the band and started at the left edge, as the reference does.
+              // That alone took `nav_footer_smallprints` to 87.6%.
+              child: SizedBox(
+                width: double.infinity,
+                child: Wrap(
+                  spacing: 40,
+                  runSpacing: 8,
+                  children: [
+                    for (var i = 0; i < links.length; i++) ...[
+                      Semantics(
+                        link: true,
+                        label: links[i].label,
+                        child: ItHoverBuilder(
+                          cursor: SystemMouseCursors.click,
+                          builder: (context, hovered) => ItActivatable(
+                            onPressed: links[i].onTap,
+                            child: ExcludeSemantics(
+                              child: Text(
+                                links[i].label,
+                                style: _style(
+                                  size: 16,
+                                  lineHeight: 28,
+                                  underline: true,
+                                  color: hovered
+                                      ? _footerLinkHoverColor
+                                      : const Color(0xFFFFFFFF),
+                                ),
                               ),
                             ),
                           ),
                         ),
                       ),
-                    ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
           ),
         ),
       ),
+    );
+  }
+}
+
+/// The contacts band's social column: `<h4>Seguici su</h4>` over a row of
+/// icon links.
+///
+/// `.it-footer-main h4 { font-size: 1rem; font-weight: 600; line-height: 32px;
+///   text-transform: uppercase; margin-bottom: 8px }` — the same heading the
+/// link columns use, so it is rendered from the same metrics rather than a
+/// second set that could drift.
+class _SocialColumn extends StatelessWidget {
+  final ItFooter footer;
+
+  const _SocialColumn({required this.footer});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Semantics(
+            header: true,
+            headingLevel: 4,
+            child: Text(
+              (footer.socialsLabel ?? ItLocalizations.of(context).followUs)
+                  .toUpperCase(),
+              style: _style(size: 16, lineHeight: 32, weight: FontWeight.w600),
+            ),
+          ),
+        ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // `<ul class="list-inline social"> … <a class="p-2 text-white">`:
+            // the glyph carries no text, so `social.label` — which the kit
+            // supplies as a `.visually-hidden` span — is the only accessible
+            // name this control will ever have (§2.4.4). The 8px `p-2` inset
+            // makes the target 40x40 around a 24px glyph, clearing §2.5.8.
+            for (final social in footer.socialLinks)
+              Semantics(
+                label: social.label,
+                link: true,
+                child: ItHoverBuilder(
+                  cursor: SystemMouseCursors.click,
+                  builder: (context, hovered) => ItActivatable(
+                    onPressed: social.onTap,
+                    child: ExcludeSemantics(
+                      child: Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: Icon(
+                          social.icon,
+                          size: 24,
+                          // The socials are anchors, so `.it-footer a:hover`
+                          // applies to their glyph too.
+                          color: hovered
+                              ? _footerLinkHoverColor
+                              : const Color(0xFFFFFFFF),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ],
     );
   }
 }
@@ -384,12 +501,26 @@ class ItFooter extends StatelessWidget {
   /// Link sections.
   final List<ItFooterSection> sections;
 
+  /// Columns for the footer's contacts band.
+  ///
+  /// Bootstrap Italia closes the footer with a second `<section>` —
+  /// `class="py-4 border-white border-top"` — holding the administration's
+  /// contact details and the social links. It is a band, not just another row:
+  /// a 1px white rule across the top and 24px of padding separate it from the
+  /// link columns above.
+  ///
+  /// [socialLinks] joins this band as its last column when it is non-empty,
+  /// under a `Seguici su` heading, which is where the kit puts them. With no
+  /// contact columns there is no band to join, so they keep the inline row
+  /// beneath the link grid that this component has always rendered.
+  final List<ItFooterSection> contactSections;
+
   /// Social media links.
   final List<ItSocialLink> socialLinks;
 
   /// Label rendered before the social icons.
   ///
-  /// Defaults to [ItLocalizations.followUs] — `'Seguici su'` with no delegate
+  /// Defaults to `'Seguici su'`, with no
   /// installed. Shares the key with [ItCenterHeader.socialsLabel]: the same
   /// phrase on the same page, so one string.
   final String? socialsLabel;
@@ -400,6 +531,16 @@ class ItFooter extends StatelessWidget {
   /// Background color for the main block. Defaults to `#004D99`.
   final Color? backgroundColor;
 
+  /// An accessible name for the `contentinfo` landmark this footer publishes.
+  ///
+  /// Null by default, which is right for a real page: there is one footer, and
+  /// naming a landmark that has no sibling only adds an announcement. Two on
+  /// one page — which is what the docs' *"footer completo"* and *"footer solo
+  /// contatti"* are, side by side — have to be told apart, and Flutter asserts
+  /// on it: *"the contentInfo landmark role should have a unique label as it is
+  /// used more than once"*.
+  final String? semanticsLabel;
+
   /// Creates a Bootstrap Italia footer.
   const ItFooter({
     super.key,
@@ -407,10 +548,12 @@ class ItFooter extends StatelessWidget {
     required this.institutionName,
     this.description,
     this.sections = const [],
+    this.contactSections = const [],
     this.socialLinks = const [],
     this.socialsLabel,
     this.legalInfo = const [],
     this.backgroundColor,
+    this.semanticsLabel,
   });
 
   @override
@@ -422,6 +565,7 @@ class ItFooter extends StatelessWidget {
       container: true,
       explicitChildNodes: true,
       role: SemanticsRole.contentInfo,
+      label: semanticsLabel,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -446,7 +590,10 @@ class ItFooter extends StatelessWidget {
                       ),
                       if (sections.isNotEmpty)
                         ItFooterLinkColumns(sections: sections),
-                      if (socialLinks.isNotEmpty) _buildSocials(context),
+                      if (contactSections.isNotEmpty)
+                        _buildContactsBand(context)
+                      else if (socialLinks.isNotEmpty)
+                        _buildSocials(context),
                     ],
                   ),
                 ),
@@ -455,6 +602,38 @@ class ItFooter extends StatelessWidget {
           ),
           if (legalInfo.isNotEmpty) ItFooterSmallPrints(links: legalInfo),
         ],
+      ),
+    );
+  }
+
+  /// `<section class="py-4 border-white border-top">` — the contacts band.
+  ///
+  /// `.py-4 { padding-top: 24px; padding-bottom: 24px }` and
+  /// `.border-top.border-white { border-top: 1px solid #fff }`. The social
+  /// column is appended rather than being a caller-supplied section, because
+  /// its heading and its icon row are the component's, not the caller's.
+  Widget _buildContactsBand(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        border: Border(top: BorderSide(color: Color(0xFFFFFFFF))),
+      ),
+      padding: const EdgeInsets.symmetric(vertical: 24),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: _sectionPadding),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (var i = 0; i < contactSections.length; i++) ...[
+              if (i > 0) const SizedBox(width: _gutter * 2),
+              Expanded(child: _Column(section: contactSections[i])),
+            ],
+            if (socialLinks.isNotEmpty) ...[
+              if (contactSections.isNotEmpty)
+                const SizedBox(width: _gutter * 2),
+              Expanded(child: _SocialColumn(footer: this)),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -495,7 +674,9 @@ class ItFooter extends StatelessWidget {
                         size: 24,
                         // The socials are anchors, so `.it-footer a:hover`
                         // applies to their glyph too.
-                        color: hovered ? _footerLinkHoverColor : Colors.white,
+                        color: hovered
+                            ? _footerLinkHoverColor
+                            : const Color(0xFFFFFFFF),
                       ),
                     ),
                   ),

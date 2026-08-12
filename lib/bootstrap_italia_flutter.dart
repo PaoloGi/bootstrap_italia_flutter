@@ -51,6 +51,7 @@ export 'src/utilities/interaction_states.dart';
 // them accessible names, and so a conformance surface rather than a cosmetic
 // one. Optional: with no delegate installed every component renders in Italian.
 // See doc/adr/0002-localisation-delegate-with-overrides.md.
+
 export 'src/l10n/it_localizations.dart';
 
 export 'src/tokens/borders.dart';
@@ -81,6 +82,7 @@ export 'src/components/accordion/it_accordion.dart';
 export 'src/components/card/it_card.dart';
 export 'src/components/tab/it_tab_bar.dart';
 export 'src/components/tab/it_tab_view.dart';
+export 'src/components/list/it_content_list.dart';
 export 'src/components/list/it_list.dart';
 export 'src/components/callout/it_callout.dart';
 

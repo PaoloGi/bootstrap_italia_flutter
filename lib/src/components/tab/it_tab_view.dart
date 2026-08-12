@@ -29,11 +29,22 @@ class ItTabView extends StatelessWidget {
   /// The content widgets for each tab.
   final List<Widget> children;
 
-  /// Whether to animate transitions between tabs.
+  /// Whether to cross-fade between tabs — `.tab-pane.fade`.
+  ///
+  /// The kit's «Effetto "a comparsa"» is `.fade` on every pane plus `.show` on
+  /// the visible one, i.e. an opacity transition on the pane that appears.
   final bool animated;
 
   /// The animation duration.
   final Duration duration;
+
+  /// This pane's `Semantics.identifier` — the `id` a tab's `aria-controls`
+  /// points at.
+  ///
+  /// §1.3.1: the kit pairs every `role="tab"` with the `id` of its
+  /// `role="tabpanel"`, and screen readers use the pairing to jump from a tab
+  /// to its content. Pass the same string to [ItTabBar.panelId].
+  final String? identifier;
 
   /// Creates a Bootstrap Italia tab view.
   const ItTabView({
@@ -42,6 +53,7 @@ class ItTabView extends StatelessWidget {
     required this.children,
     this.animated = true,
     this.duration = const Duration(milliseconds: 200),
+    this.identifier,
   });
 
   @override
@@ -57,6 +69,7 @@ class ItTabView extends StatelessWidget {
     if (!animated) {
       return Semantics(
         container: true,
+        identifier: identifier,
         role: SemanticsRole.tabPanel,
         child: children[selectedIndex],
       );
@@ -64,6 +77,7 @@ class ItTabView extends StatelessWidget {
 
     return Semantics(
       container: true,
+      identifier: identifier,
       role: SemanticsRole.tabPanel,
       child: AnimatedSwitcher(
         duration: duration,

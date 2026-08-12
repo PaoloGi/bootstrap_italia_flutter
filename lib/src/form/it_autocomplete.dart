@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 
-import '../components/spinner/progress_spinner.dart';
 import '../l10n/it_localizations.dart';
+import '../components/spinner/progress_spinner.dart';
 import '../theme/bootstrap_italia_theme_data.dart';
 import '../theme/it_default_text_style.dart';
 import '../theme/theme_extensions.dart';
@@ -81,8 +81,7 @@ class ItAutocomplete<T extends Object> extends StatefulWidget {
 
   /// Text shown when search returns no results.
   ///
-  /// Defaults to [ItLocalizations.noResults] — `'Nessun risultato'` with no
-  /// delegate installed.
+  /// Defaults to [ItLocalizations.noResults].
   final String? noResultsText;
 
   /// Optional external text editing controller.
@@ -113,9 +112,9 @@ class ItAutocomplete<T extends Object> extends StatefulWidget {
   /// Builds the message announced when suggestions arrive (WCAG 4.1.3).
   ///
   /// Defaults to [ItLocalizations.searchResults], which selects a plural form
-  /// rather than interpolating one template — the old default said
-  /// "1 risultato disponibile" correctly only because it special-cased 1 by
-  /// hand, and German and French inflect the noun as well.
+  /// rather than interpolating one template — "1 risultato disponibile" is not
+  /// a special case of "{n} risultati disponibili", and German and French
+  /// inflect the noun as well.
   final String Function(int count)? resultsAnnouncement;
 
   /// Creates a Bootstrap Italia autocomplete.

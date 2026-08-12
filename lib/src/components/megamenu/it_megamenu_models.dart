@@ -92,6 +92,30 @@ class ItMegamenuSection {
   /// Optional footer CTA (e.g. "Esplora tutti").
   final ItMegamenuCta? footerCta;
 
+  /// Related links laid out in a row beneath the columns.
+  ///
+  /// Bootstrap Italia's *"call to action in basso"*:
+  /// `.it-footer-link-wrapper { margin: 24px 0 0 0; padding-top: 24px;
+  ///   border-top: 1px solid hsl(210,4%,78%) }` with
+  /// `a.it-footer-link { margin-right: 16px }`.
+  ///
+  /// Distinct from [footerCta], which is the single right-aligned *"Esplora
+  /// tutti i contenuti"* link. These are peers of each other, laid out from
+  /// the left, and the docs warn about exactly that: two CTAs reading
+  /// *"Esplora tutti"* in one menu are indistinguishable in a screen reader's
+  /// link list, so give each one the name of what it opens.
+  final List<ItMegamenuCta> footerCtas;
+
+  /// Related links stacked in a column to the right of the link columns.
+  ///
+  /// Bootstrap Italia's *"call to action a destra"*:
+  /// `.it-footer-link-wrapper-vertical { margin: 0; padding-left: 24px;
+  ///   border-top: none; border-left: 1px solid #d9dadb; height: 100% }`.
+  ///
+  /// The same links as [footerCtas], turned through ninety degrees; the docs
+  /// present them as one section with two layouts.
+  final List<ItMegamenuCta> sideCtas;
+
   /// Whether this section is currently active.
   final bool active;
 
@@ -104,6 +128,8 @@ class ItMegamenuSection {
     this.image,
     this.headerCta,
     this.footerCta,
+    this.footerCtas = const [],
+    this.sideCtas = const [],
     this.active = false,
   });
 }

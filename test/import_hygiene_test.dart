@@ -36,27 +36,24 @@ const Map<String, String> _allowed = {
           'coherent ambient theme. Importing Material here is its purpose.',
   // `it_modal.dart` is no longer here. It held the only genuine *behavioural*
   // Material dependency in the package — `MaterialLocalizations`, for the
-  // barrier and dialog names — and that was a hidden ancestor requirement, not
-  // a feature: `MaterialLocalizations.of` asserts. ADR 0002 replaced it with
-  // `ItLocalizations`, which cannot assert and answers in Italian with no
-  // delegate installed. `showGeneralDialog` was never the problem; it lives in
-  // `flutter/widgets.dart`.
+  // barrier and dialog names — and that was a hidden ancestor requirement
+  // rather than a feature: `MaterialLocalizations.of` asserts. ADR 0002
+  // replaced it with `ItLocalizations`, which cannot assert and answers in
+  // Italian with no delegate installed. `showGeneralDialog` was never the
+  // problem; it lives in `flutter/widgets.dart`.
 
-  // ── `Colors` only ────────────────────────────────────────────────────────
-  // These reference `Colors.white` and nothing else from Material. That is a
-  // Material import bought for a compile-time constant. `--bs-white` is a real
-  // declared token and the scheme already exposes `white`, so each of these
-  // should resolve from the scheme or state why it is paper rather than a
-  // token. Tracked as a follow-up; listed individually so the count cannot
-  // quietly grow.
-  'it_accordion.dart': 'Colors.white only — pending the --bs-white pass.',
-  'it_back_to_top.dart': 'Colors.white only — pending the --bs-white pass.',
-  'it_breadcrumb.dart': 'Colors.white only — pending the --bs-white pass.',
-  'it_card.dart': 'Colors.white only — pending the --bs-white pass.',
-  'it_footer.dart': 'Colors.white only — pending the --bs-white pass.',
-  'it_nav_header.dart': 'Colors.white only — pending the --bs-white pass.',
-  'it_slim_header.dart': 'Colors.white only — pending the --bs-white pass.',
-  'it_tab_bar.dart': 'Colors.white only — pending the --bs-white pass.',
+  // The eight `Colors.white` holdouts are gone. Each was a Material import
+  // bought for one compile-time constant, and the question was whether white
+  // should follow the theme. It should not, here: the bands those whites sit on
+  // are literals, not tokens — the footer is `#004D99`, the slim header
+  // `#0059B3`, the dark breadcrumb `hsl(210,25%,35.2%)`. Routing the foreground
+  // through `colors.white` while the band stayed fixed would have been the
+  // inverse defect, a themed colour on an unthemed surface.
+  //
+  // Where the band IS themed the whites already follow it: `ItNavHeader` and
+  // `ItCenterHeader` sit on `colors.primary`, so their labels resolve
+  // `colors.white` — retinting a band without its foreground is how a themed
+  // header loses its contrast.
 };
 
 void main() {

@@ -43,7 +43,9 @@ Then, for anything visual or interactive:
 # quietly become permissive makes every number after it meaningless.
 tool/visual_parity/.venv/bin/python tool/visual_parity/diff/metric_selftest.py
 
+tool/visual_parity/capture_hashes.sh > /tmp/before.txt
 flutter test tool/visual_parity/capture     # capture the Flutter side
+tool/visual_parity/capture_hashes.sh | diff /tmp/before.txt -  # did anything move?
 node tool/visual_parity/playwright/capture.mjs   # capture the reference
 tool/visual_parity/.venv/bin/python tool/visual_parity/diff/report.py --threshold 95
 ```

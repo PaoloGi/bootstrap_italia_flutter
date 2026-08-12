@@ -10,6 +10,7 @@ import 'pages/components/spinner_page.dart';
 import 'pages/components/chip_page.dart';
 import 'pages/components/card_page.dart';
 import 'pages/components/accordion_page.dart';
+import 'pages/components/collapse_page.dart';
 import 'pages/components/tab_page.dart';
 import 'pages/components/list_page.dart';
 import 'pages/components/callout_page.dart';
@@ -23,6 +24,7 @@ import 'pages/navigation/header_page.dart';
 import 'pages/navigation/footer_page.dart';
 import 'pages/navigation/breadcrumb_page.dart';
 import 'pages/navigation/megamenu_page.dart';
+import 'pages/navigation/back_to_top_page.dart';
 import 'pages/overlays/modal_page.dart';
 import 'pages/overlays/dropdown_page.dart';
 import 'pages/overlays/notification_page.dart';
@@ -115,12 +117,17 @@ final List<CatalogSection> catalogSections = [
       builder: (_) => const AccordionPage(),
     ),
     CatalogRoute(
+      title: 'Collapse',
+      icon: Icons.unfold_more,
+      builder: (_) => const CollapsePage(),
+    ),
+    CatalogRoute(
       title: 'Tab',
       icon: Icons.tab,
       builder: (_) => const TabPage(),
     ),
     CatalogRoute(
-      title: 'List',
+      title: 'Liste',
       icon: Icons.list,
       builder: (_) => const ListPage(),
     ),
@@ -182,6 +189,11 @@ final List<CatalogSection> catalogSections = [
       title: 'Megamenu',
       icon: Icons.menu_open,
       builder: (_) => const MegamenuPage(),
+    ),
+    CatalogRoute(
+      title: 'Torna su',
+      icon: Icons.arrow_upward,
+      builder: (_) => const BackToTopPage(),
     ),
   ]),
   CatalogSection(title: 'Overlay', routes: [

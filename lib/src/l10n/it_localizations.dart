@@ -75,6 +75,7 @@ class ItLocalizations {
     required this.backToTop,
     required this.close,
     required this.remove,
+    required this.removeItem,
     required this.closeModal,
     required this.dismissModalBarrier,
     required this.dialog,
@@ -119,6 +120,18 @@ class ItLocalizations {
   /// The dismiss control on [ItChip] — it removes the chip rather than closing
   /// a surface, so it is a different word from [close]. Italian: `'Rimuovi'`.
   final String remove;
+
+  /// [ItChip]'s dismiss control, naming what it removes.
+  ///
+  /// A template with `{label}`, not a concatenation: German puts the verb last
+  /// (`"Lazio entfernen"`) and joining two strings in code would hard-code
+  /// Italian word order into every other language.
+  ///
+  /// Why it is not simply [remove]: a filter bar with five chips gives five
+  /// buttons all called "Rimuovi", which are indistinguishable in a screen
+  /// reader's element list — a user picking between them is guessing. Named
+  /// after its chip, each one says what it does.
+  final String removeItem;
 
   /// The close button in [ItModal]'s header. Italian:
   /// `'Chiudi finestra modale'`.
@@ -251,6 +264,9 @@ class ItLocalizations {
       (count == 1 ? notificationCountOne : notificationCountOther)
           .replaceAll('{count}', displayed);
 
+  /// [ItChip]'s dismiss name for the chip called [label].
+  String removeNamed(String label) => removeItem.replaceAll('{label}', label);
+
   /// The strings for [locale], or [italian] when it is not one this package
   /// bundles.
   ///
@@ -271,7 +287,8 @@ class ItLocalizations {
     Locale('fr'),
   ];
 
-  static const Map<String, ItLocalizations> _bundled = <String, ItLocalizations>{
+  static const Map<String, ItLocalizations> _bundled =
+      <String, ItLocalizations>{
     'it': italian,
     'de': german,
     'fr': french,
@@ -318,6 +335,7 @@ class ItLocalizations {
     String? backToTop,
     String? close,
     String? remove,
+    String? removeItem,
     String? closeModal,
     String? dismissModalBarrier,
     String? dialog,
@@ -345,6 +363,7 @@ class ItLocalizations {
         backToTop: backToTop ?? this.backToTop,
         close: close ?? this.close,
         remove: remove ?? this.remove,
+        removeItem: removeItem ?? this.removeItem,
         closeModal: closeModal ?? this.closeModal,
         dismissModalBarrier: dismissModalBarrier ?? this.dismissModalBarrier,
         dialog: dialog ?? this.dialog,
@@ -393,6 +412,7 @@ class ItLocalizations {
     // `MaterialLocalizations.closeButtonLabel` (material_it.arb).
     close: 'Chiudi',
     remove: 'Rimuovi',
+    removeItem: 'Rimuovi {label}',
     closeModal: 'Chiudi finestra modale',
     // `modalBarrierDismissLabel` (material_it.arb).
     dismissModalBarrier: 'Ignora',
@@ -429,6 +449,7 @@ class ItLocalizations {
     close: 'Schließen',
     // Not `Löschen`: the chip is removed from a list, not deleted from a store.
     remove: 'Entfernen',
+    removeItem: '{label} entfernen',
     // `dialogLabel` is `Dialogfeld`; the verb is the same one Flutter uses for
     // `closeButtonLabel`.
     closeModal: 'Dialogfeld schließen',
@@ -471,6 +492,7 @@ class ItLocalizations {
     close: 'Fermer',
     // Not `Effacer` (clear) — the chip leaves the list.
     remove: 'Supprimer',
+    removeItem: 'Supprimer {label}',
     closeModal: 'Fermer la boîte de dialogue',
     // `modalBarrierDismissLabel` (material_fr.arb).
     dismissModalBarrier: 'Ignorer',

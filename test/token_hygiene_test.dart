@@ -64,6 +64,13 @@ const Map<String, String> _allowed = {
           'so the grey rather than the brand accent — see '
           'theming_contract_test.dart, which asserts this one does not move.',
 
+  'it_chip.dart:0x5D7083':
+      'The dismiss glyph: `.chip button .icon { fill: hsl(210,17%,44%) }`, one '
+          'step lighter than the label\'s `hsl(210,33%,28%)`. Byte-identical to '
+          '--bs-secondary, but a close button is chrome: an administration '
+          'retinting secondary to purple does not want purple close buttons. '
+          'Same reasoning as the card date and the resting field border.',
+
   'bootstrap_italia_theme_data.dart:0x1A1A1A':
       'The default value of the `bodyColor` token itself, in the scheme that '
           'defines it. This is the definition, not a bypass of it.',

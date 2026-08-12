@@ -18,9 +18,9 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
+import '../../l10n/it_localizations.dart';
 import '../../a11y/it_activatable.dart';
 import '../../a11y/it_icon_action.dart';
-import '../../l10n/it_localizations.dart';
 import '../../theme/it_default_text_style.dart';
 import '../../theme/theme_extensions.dart';
 import '../../tokens/spacing.dart';
@@ -115,11 +115,21 @@ class MegamenuMobileOverlay extends StatefulWidget {
   /// Whether more than one section may be expanded at a time.
   final bool allowMultipleOpen;
 
+  /// The `.theme-dark-mobile` panel — see [ItMegamenu.darkMobile].
+  ///
+  /// Applies to the panel's own chrome only: its fill, the close glyph, the
+  /// section tiles and their active rule. The expanded body below each tile
+  /// keeps `.it-vertical { background: hsl(210,62%,97%) }` in both themes,
+  /// because `.theme-dark-mobile` states no override for it — so the links
+  /// inside stay on a light ground and keep their `#06c`.
+  final bool dark;
+
   /// Creates the mobile navigation panel.
   const MegamenuMobileOverlay({
     super.key,
     required this.sections,
     required this.allowMultipleOpen,
+    this.dark = false,
   });
 
   @override
@@ -145,6 +155,13 @@ class _MegamenuMobileOverlayState extends State<MegamenuMobileOverlay> {
   @override
   Widget build(BuildContext context) {
     final colors = resolveColorScheme(context);
+    // `.navbar .navbar-collapsable .menu-wrapper { background: #fff }`, which
+    // `.theme-dark-mobile` overrides with `{ background: #06c }`; the panel's
+    // own foreground follows it, per
+    // `… .close-div .close-menu { color: #fff }` and
+    // `… li > button.nav-link { color: #fff }`.
+    final panelBg = widget.dark ? colors.primary : colors.white;
+    final panelFg = widget.dark ? colors.white : colors.bodyColor;
 
     // §2.1.2: Esc must close the overlay, not just the barrier tap.
     return CallbackShortcuts(
@@ -166,7 +183,7 @@ class _MegamenuMobileOverlayState extends State<MegamenuMobileOverlay> {
           // text theme, which is why every Text below sets its own metrics.
           child: ItDefaultTextStyle(
             child: ColoredBox(
-              color: colors.white,
+              color: panelBg,
               child: SafeArea(
                 child: Column(
                   children: [
@@ -184,13 +201,14 @@ class _MegamenuMobileOverlayState extends State<MegamenuMobileOverlay> {
                         // button role and the name itself, so the surrounding
                         // Semantics is no longer needed.
                         //
-                        // Was `'Chiudi il menu'` while the header toggles said
-                        // `'Chiudi menu'`: the same action, announced two ways
-                        // depending on which component drew it. One key now
-                        // (ADR 0002).
+                        // One key for both this and the header toggles. They
+                        // once said `'Chiudi il menu'` and `'Chiudi menu'` —
+                        // the same action announced two ways depending on which
+                        // component drew it, which is the sort of thing a
+                        // single string table makes impossible (ADR 0002).
                         child: ItIconAction(
                           icon: BootstrapItaliaIcons.it_close,
-                          color: colors.bodyColor,
+                          color: panelFg,
                           label: ItLocalizations.of(context).closeMenu,
                           onPressed: () => Navigator.pop(context),
                         ),
@@ -206,6 +224,7 @@ class _MegamenuMobileOverlayState extends State<MegamenuMobileOverlay> {
                             (i) => _MobileSectionTile(
                               section: widget.sections[i],
                               isExpanded: _expandedIndices.contains(i),
+                              dark: widget.dark,
                               onToggle: () => _toggle(i),
                               onLinkTap: () => Navigator.pop(context),
                             ),
@@ -229,12 +248,14 @@ class _MegamenuMobileOverlayState extends State<MegamenuMobileOverlay> {
 class _MobileSectionTile extends StatelessWidget {
   final ItMegamenuSection section;
   final bool isExpanded;
+  final bool dark;
   final VoidCallback onToggle;
   final VoidCallback onLinkTap;
 
   const _MobileSectionTile({
     required this.section,
     required this.isExpanded,
+    required this.dark,
     required this.onToggle,
     required this.onLinkTap,
   });
@@ -242,6 +263,12 @@ class _MobileSectionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = resolveColorScheme(context);
+    // `.theme-dark-mobile … li a.nav-link { color: #fff }` and
+    // `… a.nav-link.active { border-left-color: #fff }` — the tile's label,
+    // glyphs and active rule are one declaration in the stylesheet, so they
+    // are one value here.
+    final tileFg = dark ? colors.white : colors.bodyColor;
+    final activeRule = dark ? colors.white : colors.primary;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -269,14 +296,14 @@ class _MobileSectionTile extends StatelessWidget {
                 decoration: section.active
                     ? BoxDecoration(
                         border: Border(
-                          left: BorderSide(color: colors.primary, width: 3),
+                          left: BorderSide(color: activeRule, width: 3),
                         ),
                       )
                     : null,
                 child: Row(
                   children: [
                     if (section.icon != null) ...[
-                      Icon(section.icon, size: 20, color: colors.bodyColor),
+                      Icon(section.icon, size: 20, color: tileFg),
                       const SizedBox(width: BootstrapItaliaSpacing.space2),
                     ],
                     Expanded(
@@ -287,7 +314,7 @@ class _MobileSectionTile extends StatelessWidget {
                           fontWeight: section.active
                               ? FontWeight.w700
                               : FontWeight.w600,
-                          color: colors.bodyColor,
+                          color: tileFg,
                         ),
                       ),
                     ),
@@ -296,7 +323,7 @@ class _MobileSectionTile extends StatelessWidget {
                       duration: const Duration(milliseconds: 200),
                       child: Icon(
                         BootstrapItaliaIcons.it_expand,
-                        color: colors.bodyColor,
+                        color: tileFg,
                       ),
                     ),
                   ],
@@ -369,6 +396,20 @@ class _MobileSectionTile extends StatelessWidget {
                       color: colors.primary,
                       isBold: true,
                     ),
+                  ),
+
+                // The bottom and right CTA groups both flatten to the same
+                // stack here: `.it-footer-link-wrapper` and its `-vertical`
+                // twin differ only in how the desktop panel arranges them, and
+                // there is one column to arrange them in on mobile. They keep
+                // `#06c` because the body they sit on keeps its light fill in
+                // both themes.
+                for (final cta in [...section.footerCtas, ...section.sideCtas])
+                  Padding(
+                    padding: const EdgeInsets.only(
+                      top: BootstrapItaliaSpacing.space2,
+                    ),
+                    child: _CtaLink(cta: cta, color: colors.primary),
                   ),
               ],
             ),

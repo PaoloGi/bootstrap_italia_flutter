@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter/semantics.dart';
 
-import '../../a11y/it_activatable.dart';
 import '../../l10n/it_localizations.dart';
+import '../../a11y/it_activatable.dart';
 import '../../theme/theme_extensions.dart';
 import '../../tokens/typography.dart';
 
@@ -94,11 +94,11 @@ class ItBreadcrumb extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final linkColor = dark ? Colors.white : _linkColor;
-    final activeColor = dark ? Colors.white : _activeColor;
+    final linkColor = dark ? const Color(0xFFFFFFFF) : _linkColor;
+    final activeColor = dark ? const Color(0xFFFFFFFF) : _activeColor;
     // `span.separator { color: hsl(210,17%,44%) }` is the secondary token.
     final separatorColor =
-        dark ? Colors.white : resolveColorScheme(context).secondary;
+        dark ? const Color(0xFFFFFFFF) : resolveColorScheme(context).secondary;
     final iconColor = dark ? _darkIconColor : null;
 
     final children = <Widget>[];

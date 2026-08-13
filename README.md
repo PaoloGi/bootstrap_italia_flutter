@@ -54,6 +54,29 @@ screenshot-based check would have given false assurance.
 Targets WCAG **2.2** AA, since the scheduled EN 301 549 update moves the web
 reference from 2.1 to 2.2.
 
+## The example app
+
+`example/` is a catalogue that mirrors the [Bootstrap Italia
+documentation](https://italia.github.io/bootstrap-italia/docs/) page by page.
+Each component's page follows its documentation page section by section, using
+the same Italian headings, with the explanation adapted to this API and the Dart
+that produced the example beside it.
+
+That is deliberate: it makes the app a map into the documentation rather than a
+gallery, so a developer reading the docs can find the same example here. Where
+a section has no meaning in Flutter — hover, JavaScript initialisation — or the
+documentation itself advises against the pattern, the page says so and why in a
+closing *«Sezioni della documentazione non riprodotte»* section, rather than
+leaving a reader to wonder whether it was missed.
+
+```
+cd example && flutter run          # or: flutter build web --release
+```
+
+Components the package does not implement at all — progress bars, donut
+indicators, avatar, carousel, steppers, timeline, rating, pagination — are
+recorded as *not implemented*, kept distinct from sections that were skipped.
+
 ## Localisation
 
 The package speaks about 25 strings on your behalf, and nearly all of them are

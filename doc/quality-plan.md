@@ -567,6 +567,42 @@ on rather than what it is.
 
 ---
 
+## Documentation parity (August 2026)
+
+Every example page now mirrors its Bootstrap Italia documentation page section
+by section, and where a component could not express a section the feature was
+added rather than the section skipped. 592 → 893 tests, 155 public API additions
+and zero removals.
+
+The method is the point: reproducing the documentation's *own* content, rather
+than tidy specimens of our choosing, exercised paths no test had. `.it-list` was
+missing entirely. `ItSelect(searchable: true)` threw. Adding a close control
+silently removed a tab's tap action. Seven latent overflow bugs surfaced, every
+one a flex child on an unbounded main axis. Card titles had no heading role, so
+a page of cards was flat text to anyone navigating by headings.
+
+**The lesson worth keeping** is not in that list. "No parity capture moved" was
+verified with `git status tool/visual_parity/flutter_captures`, and that
+directory is in `.gitignore` — the command always printed nothing and could
+never fail. It was in every agent brief. Behind it parity fell to 65/74 with no
+red test: five badge captures to 35–40%, two header captures to 67% and 76%.
+
+Both causes were real differences between CSS and Flutter layout, not
+carelessness — `em` sizing measured in the wrong ambient context, and `Flexible`
+dividing space *equally* where `flex-shrink` shrinks *proportionally to
+content*. The guard is now `capture_hashes.sh`, which can fail.
+
+Three deferred decisions were then settled by measurement rather than argument,
+because the reference images come from the kit and can arbitrate: the list title
+stays 1rem, dividers stay on, and the spinner arc moved to `secondary` — the one
+case where no capture *could* arbitrate, since the only spinner capture is the
+inactive ring, so the CSS was the whole of the evidence.
+
+Divergences from the kit are consolidated in `doc/conformance.md`, with the
+evidence attached at each point of use in the code.
+
+---
+
 ## Phase 6 — The part automation cannot cover
 
 **Real assistive-technology testing** with VoiceOver, TalkBack and NVDA. The

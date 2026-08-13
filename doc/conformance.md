@@ -27,6 +27,7 @@ Nothing here claims official status: this is an unofficial community port. See
 | Visual fidelity at rest | SSIM + flat-tile colour diff vs the upstream Storybook, 72 keys across 5 component groups | **71/72 ≥ 95%** |
 | The similarity metric itself | `diff/metric_selftest.py` — proves it fails wrong colours (+4/channel), 4px padding, 10% size and wrong-component, while tolerating engine noise | **Passing, gates CI** |
 | Design-token values | Read directly from `bootstrap-italia.min.css` | Verified per component |
+| Documented variants | Each example page mirrors its docs page section by section; where a component could not express a section, the feature was added | Verified for the 25 components this package implements |
 | Colour contrast (WCAG 1.4.3 / 1.4.11) | `test/a11y/contrast_audit_test.dart`, deterministic over tokens | **All checked pairs pass AA** |
 | Interaction-state colour | Real browser input against both implementations, sampled per state | **All components** |
 | Screen-reader semantics | Contracts on Flutter's own semantics tree (role, name, state, actions), in `test/a11y/` | Covered for every component |
@@ -80,6 +81,59 @@ These are open. Each is a real gap, not a formality.
    order. Everything mechanical has been moved into automated tests so the
    manual pass is spent on the four questions only a person can answer.
 
+## Known divergences from the kit
+
+Each of these was found by reproducing the documentation's own examples, and
+each is a deliberate decision with the evidence attached at the point of use in
+the code. They are listed here because a divergence nobody can find is
+indistinguishable from a bug.
+
+### Where the kit and its own documentation disagree
+
+| | |
+|---|---|
+| `.leverRight` | The Toggles page's *Inline* example uses it; v2.18.0's compiled CSS declares **zero** `.leverRight` rules, and `.lever` already floats right. Not implemented. |
+| `.form-control-plaintext` | The prose says it removes the underline. `border-width: 0 0` (specificity 0,1,0) loses to `input[type=text] { border-bottom: 1px solid }` (0,1,1), so on an `<input>` it does not — on a `<textarea>` (0,0,1) it does. Implemented as the kit *renders*, both branches. |
+| `.callout-big-text` | Sets `font-size: 1.125rem`, which is already the value of `.callout p`. No effect, so not exposed as a parameter. |
+| `.alert-secondary` | The docs list five variants; the stylesheet declares no such rule. Kept as a pixel-identical `info` without a glyph, since removing it would break callers. |
+| `.chip-disabled` | Declared *before* `.chip-primary` at equal specificity, so a browser paints a disabled coloured chip as an ordinary one. **Deliberately not reproduced**: an inoperable control that looks operable is a defect, not a style. |
+| `.btn-sm` | v2.18.0 redeclares it to the default button's own padding and size. The docs show four size headings; only three renderings exist. |
+| `.text-secondary` | `#30475F`, which is **not** `--bs-secondary` (`#5D7083`), despite the name. |
+
+### Where the reference story and the documentation disagree
+
+The visual-parity references are captured from the design-react-kit Storybook,
+which is not always the same specimen as the documentation page.
+
+- **`tab_icon_text`** renders *without* `.nav-tabs-icon-text`, so the captured
+  baseline has no gap while the docs always apply the class.
+  `ItTabLayout.standard` keeps the captured behaviour; `iconAndText` is the
+  documented one.
+- **List rows** are 1rem in the reference and `.list-item-title` is 1.125rem.
+  Measured: forcing 18px moved all three list captures *away* from the
+  reference (100% → ~96.8%). The 18px belongs to the
+  `.list-item-title-icon-wrapper` shape, which `large: true` covers.
+- **List dividers** are present in the reference; the docs' base navigation list
+  has none. Measured: turning them off dropped a capture to 88.66%.
+
+Where the two disagree, the **reference wins for the default** — it is what
+parity is scored against — and the documented variant is exposed as an option.
+
+### Accepted, and not yet resolved
+
+- **`.form-check` labels are 18px above 576px** (`@media (min-width: 576px)`);
+  ours are always 16px. This is the container-vs-viewport breakpoint divergence
+  recorded in the ADR, and changing it would move four parity captures.
+- **The dark breadcrumb's icon** uses `.icon-white` in the docs and an
+  aquamarine in `.breadcrumb.dark .breadcrumb-item i`. Two competing
+  declarations in one kit; we paint the latter.
+- **Footer column headings are always underlined**, because the kit's link
+  columns are anchors and that is the parity-verified rendering — but the
+  contacts band's heading is not an anchor, so it reads as a link there.
+- **`aria-labelledby` on a tab panel is not reproduced.** Flutter's `Semantics`
+  has no `labelledBy`, and faking it with a `label` would make AT read the tab's
+  name before the panel's content. `aria-controls` (tab → panel) *is*.
+
 ## Known environmental issue
 
 Some widget tests fail locally with:
@@ -99,6 +153,17 @@ A clean-code/API review and an architecture assessment produced a ranked backlog
 — remaining P0 defects, a public-API consistency pass that is cheap now and
 expensive after adoption, and the standing guards that stop each class of defect
 returning. See [quality-plan.md](quality-plan.md).
+
+## A verification that was not verifying anything
+
+Worth recording, because the failure mode is general. "No parity capture moved"
+was checked with `git status tool/visual_parity/flutter_captures` — a directory
+that is in `.gitignore`, so the command always printed nothing and could never
+fail. Behind it, parity fell from 73/74 to 65/74 without a single red test.
+
+Use `tool/visual_parity/capture_hashes.sh`, which compares content hashes, and
+score with `diff/report.py`: a moved rendering is not automatically wrong, but
+only the score says whether it moved toward the reference or away from it.
 
 ## Reproducing the evidence
 

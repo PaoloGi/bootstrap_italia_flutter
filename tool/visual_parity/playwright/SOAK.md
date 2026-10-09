@@ -38,6 +38,7 @@ Checks, per viewport (390 / 768 / 1440, plus 390 at 200% text):
 | overlays | each is asserted absent, opened, asserted present, dismissed with Escape, asserted gone |
 | keyboard | 40 tabs must reach 5+ distinct targets, and a modal must hold focus across 15 |
 | Dart errors | `SOAK-ERROR` lines from the page's own `FlutterError.onError` |
+| third-party fonts | no request to `fonts.gstatic.com` — CanvasKit downloads Roboto for its default face unless the app declares a family named exactly `Roboto` (see `example/pubspec.yaml`) |
 
 Two of those started out unable to fail. The overlay block clicked and pressed
 Escape and asserted **nothing** — a missed click and a dead Escape passed

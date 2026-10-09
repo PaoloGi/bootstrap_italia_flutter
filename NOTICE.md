@@ -37,6 +37,14 @@ Apache text that sat beside it documented a licence no font in this package is
 under. The copyright lines above were read back out of the binaries rather than
 from a web page, so they describe these files.
 
+The `example/` app additionally bundles **Roboto regular** (`example/fonts/`),
+Copyright 2011 Google Inc., under the Apache License 2.0. No widget in the
+package or the example uses it: it is there because Flutter Web's CanvasKit
+renderer downloads Roboto from `fonts.gstatic.com` unless the app declares a
+family named `Roboto`, which would make the example's offline claim false. The
+licence text travels beside it in
+[example/fonts/licenses/](example/fonts/licenses/).
+
 The OFL requires its licence text and the copyright notices to accompany
 redistributed font binaries; [fonts/licenses/](fonts/licenses/) carries both,
 and `pubspec.yaml` includes the directory in the published archive.
@@ -45,9 +53,9 @@ and `pubspec.yaml` includes the directory in the published archive.
 
 **This is an unofficial, community port.** The `_flutter` suffix is deliberate:
 it marks this as a derivative work rather than the design system itself, and
-leaves the official `bootstrap_italia` name unclaimed on pub.dev. It is not published, endorsed or
-maintained by Developers Italia or AgID. "Bootstrap Italia" and the Italian
-Republic's visual identity belong to their respective owners; this package
-reuses the design specification under BSD-3-Clause but carries no official
-status. See [doc/conformance.md](doc/conformance.md) for what has and has not
+leaves the official `bootstrap_italia` name unclaimed on pub.dev. It is not
+produced, endorsed or maintained by Developers Italia or AgID. "Bootstrap
+Italia" and the Italian Republic's visual identity belong to their respective
+owners; this package reuses the design specification under BSD-3-Clause but
+carries no official status. See [doc/conformance.md](doc/conformance.md) for what has and has not
 been verified.

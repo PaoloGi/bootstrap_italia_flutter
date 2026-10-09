@@ -470,7 +470,7 @@ class _SocialColumn extends StatelessWidget {
 
 /// A Bootstrap Italia footer.
 ///
-/// A standard PA-compliant footer with a branding block, columns of links,
+/// A standard Bootstrap Italia footer with a branding block, columns of links,
 /// optional social links and a bottom legal bar.
 ///
 /// ```dart

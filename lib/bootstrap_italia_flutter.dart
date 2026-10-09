@@ -1,6 +1,6 @@
 /// Bootstrap Italia design system for Flutter.
 ///
-/// Provides PA-compliant UI components, design tokens, and theming for
+/// Provides Bootstrap Italia UI components, design tokens, and theming for
 /// Italian government applications built with Flutter.
 ///
 /// ## Getting started

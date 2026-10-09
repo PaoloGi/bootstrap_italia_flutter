@@ -24,6 +24,26 @@ dependencies:
 flutter:
   uses-material-design: true
 
+  # CanvasKit — Flutter's web renderer — downloads Roboto regular from
+  # fonts.gstatic.com at startup unless the app declares a family named exactly
+  # `Roboto`, because Roboto is its built-in default face. That request would
+  # break the "offline, no third-party requests" promise the README makes. The
+  # package cannot make this declaration for its consumers: bundled families
+  # are namespaced as `packages/bootstrap_italia_flutter/Roboto`, and the
+  # engine matches the bare string.
+  #
+  # See fonts/licenses/README.md for the licence, and
+  # tool/visual_parity/playwright/soak.mjs for the check that fails if a
+  # request to fonts.gstatic.com comes back.
+  fonts:
+    - family: Roboto
+      fonts:
+        - asset: fonts/Roboto-Regular.ttf
+  # Licence texts must ship with the binaries in every build of the app, not
+  # only in the repository.
+  assets:
+    - fonts/licenses/
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -65,6 +65,17 @@ async function run() {
     const consoleErrors = [];
     const pageErrors = [];
     const soakErrors = [];
+    // CanvasKit fetches Roboto regular from fonts.gstatic.com whenever the
+    // app's font manifest has no family named exactly `Roboto`, even though
+    // no package widget uses Roboto. The app looks identical either way, so
+    // nothing else in this harness would notice. example/pubspec.yaml is the
+    // declaration that suppresses it.
+    const thirdPartyFontRequests = [];
+    page.on('request', (r) => {
+      if (r.url().startsWith('https://fonts.gstatic.com/')) {
+        thirdPartyFontRequests.push(r.url());
+      }
+    });
     page.on('console', (m) => {
       const t = m.text();
       if (t.startsWith('SOAK-ERROR')) soakErrors.push(t);
@@ -263,13 +274,20 @@ async function run() {
       await page.waitForTimeout(120);
     }
 
-    // ── 7. anything logged ─────────────────────────────────────────
+    // ── 7. nothing logged, and no call to a font CDN ───────────────
     for (const e of soakErrors) {
       note('FAIL', `${vp.name}/dart`, e.replace('SOAK-ERROR :: ', '').slice(0, 260));
     }
     for (const e of pageErrors) note('FAIL', `${vp.name}/exception`, e.slice(0, 200));
     for (const e of consoleErrors.slice(0, 10)) {
       note('WARN', `${vp.name}/console`, e.slice(0, 200));
+    }
+    if (thirdPartyFontRequests.length > 0) {
+      note('FAIL', `${vp.name}/third-party-fonts`,
+        `${thirdPartyFontRequests.length} request(s) to fonts.gstatic.com, ` +
+        `first: ${thirdPartyFontRequests[0].slice(0, 120)}`);
+    } else {
+      note('INFO', `${vp.name}/third-party-fonts`, 'none to fonts.gstatic.com');
     }
 
     mkdirSync(path.join(__dirname, '../soak_shots'), { recursive: true });

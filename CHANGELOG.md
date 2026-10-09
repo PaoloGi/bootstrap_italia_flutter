@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.2 — 2026-10-09
+
+### Documentation
+
+- **The screenshots no longer name a real comune.** The phone screen was
+  captioned "Comune di Ancona", which reads as Ancona using this package — an
+  endorsement no municipality has given, on a package whose README opens by
+  saying it is unofficial. It says "Comune di Test" now.
+
+  A release for a caption, because the pub.dev gallery is served from the
+  published archive rather than from the repository: the README's images are
+  fetched live from GitHub and had already corrected themselves, while the
+  gallery above them kept the old name until this version.
+
 ## 0.1.1 — 2026-10-09
 
 ### Fixed

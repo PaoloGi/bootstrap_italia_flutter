@@ -203,7 +203,7 @@ Install the published package:
 
 ```yaml
 dependencies:
-  bootstrap_italia_flutter: ^0.1.1
+  bootstrap_italia_flutter: ^0.1.2
 ```
 
 For an unreleased revision, depend on it by path or git:

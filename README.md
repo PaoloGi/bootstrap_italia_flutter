@@ -3,16 +3,16 @@
 An **unofficial** Flutter port of [Bootstrap Italia](https://github.com/italia/bootstrap-italia)
 v2.18.0, the design system for Italian public administration.
 
+[![pub package](https://img.shields.io/pub/v/bootstrap_italia_flutter.svg)](https://pub.dev/packages/bootstrap_italia_flutter)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Flutter Platform](https://img.shields.io/badge/platform-flutter-blue.svg)](https://flutter.dev)
 
-> **Not official, and not published.** This package is not produced, endorsed or
-> maintained by [Developers Italia](https://developers.italia.it) or AgID. It is
-> a community port offered as a possible contribution. `publish_to: none` is set,
-> so it is not on pub.dev — and the package is deliberately named
-> `bootstrap_italia_flutter`, leaving the official `bootstrap_italia` name there
-> unclaimed. The suffix marks it as a derivative work rather than the design
-> system itself.
+> **Not official.** This package is not produced, endorsed or maintained by
+> [Developers Italia](https://developers.italia.it) or AgID. It is a community
+> port, published on pub.dev as a possible contribution, and it is deliberately
+> named `bootstrap_italia_flutter`, leaving the official `bootstrap_italia` name
+> there unclaimed. The suffix marks it as a derivative work rather than the
+> design system itself.
 >
 > **It does not yet carry an accessibility conformance claim.** Accessibility is a
 > legal requirement for Italian PA services (Legge 4/2004 and EU Directive
@@ -21,14 +21,33 @@ v2.18.0, the design system for Italian public administration.
 > been done. Read [`doc/conformance.md`](https://github.com/PaoloGi/bootstrap_italia_flutter/blob/main/doc/conformance.md) before using this in
 > a public service; it states plainly what is and is not verified.
 
+## What it looks like
+
+Rendered by the package itself at a phone's width, by
+[`tool/screenshots/readme_shots_test.dart`](https://github.com/PaoloGi/bootstrap_italia_flutter/blob/main/tool/screenshots/readme_shots_test.dart)
+— so these are the real widgets at the real metrics, not mockups, and they are
+regenerated rather than redrawn.
+
+| A screen | Forms |
+| --- | --- |
+| <img src="https://raw.githubusercontent.com/PaoloGi/bootstrap_italia_flutter/main/screenshots/navigation.png" width="320" alt="Phone screen with the centre header, a breadcrumb, a card and the bottom navigation bar"> | <img src="https://raw.githubusercontent.com/PaoloGi/bootstrap_italia_flutter/main/screenshots/form.png" width="320" alt="Form with a filled text field, a select, a field showing a validation error, a checkbox and a toggle"> |
+
+| Autocomplete | Mobile megamenu |
+| --- | --- |
+| <img src="https://raw.githubusercontent.com/PaoloGi/bootstrap_italia_flutter/main/screenshots/autocomplete.png" width="320" alt="Autocomplete with its suggestion list open, the typed prefix emphasised in each result"> | <img src="https://raw.githubusercontent.com/PaoloGi/bootstrap_italia_flutter/main/screenshots/megamenu.png" width="320" alt="Mobile navigation panel with one section expanded over its links"> |
+
+| Buttons | Feedback |
+| --- | --- |
+| <img src="https://raw.githubusercontent.com/PaoloGi/bootstrap_italia_flutter/main/screenshots/buttons.png" width="320" alt="Block primary button, outline button with an icon, a small secondary and disabled pair, and a button in its loading state"> | <img src="https://raw.githubusercontent.com/PaoloGi/bootstrap_italia_flutter/main/screenshots/feedback.png" width="320" alt="Success alert, warning callout, badges, a dismissible chip and a spinner"> |
+
 ## Features
 
 - Components matching Bootstrap Italia v2.18.0, with every colour, size, padding
   and border read from its compiled CSS rather than eyeballed
-- 56 exported widgets (buttons, alerts, badges, cards, forms, modals,
+- 60 exported widgets (buttons, alerts, badges, cards, forms, modals,
   dropdowns, notifications, carousels, headers, footers, bottom navigation,
-  offcanvas panels, and more) — `grep -c 'extends State' on the barrel's
-  exports if you want to check that number rather than trust it
+  offcanvas panels, and more). `tool/status.sh` counts them from the barrel,
+  so the number can be checked rather than trusted
 - Theme system with a customisable `BootstrapItaliaColorScheme`
 - Responsive utilities (`ItResponsiveBuilder`, `ItContainer`, breakpoint extensions)
 - Design tokens (colours, typography, spacing, shadows, borders)
@@ -85,8 +104,8 @@ cd example && flutter run          # or: flutter build web --release
 ```
 
 Components the package does not implement at all — progress bars, donut
-indicators, avatar, carousel, steppers, timeline, rating, pagination — are
-recorded as *not implemented*, kept distinct from sections that were skipped.
+indicators, avatar, steppers, timeline, rating, pagination — are recorded as
+*not implemented*, kept distinct from sections that were skipped.
 
 ## Localisation
 
@@ -144,16 +163,25 @@ Italian PA service a legal one.
 Declaring the meta is not enough — the engine overwrites it. `example/web/index.html`
 carries the `MutationObserver` that puts it back; copy it into any web build.
 
+A second engine default breaks the "no third-party requests" promise above:
+**CanvasKit downloads Roboto regular from `fonts.gstatic.com` at startup**,
+whether or not the app uses it, because Roboto is its built-in default face. The
+package cannot block this for its consumers — the font family an app declares
+is its own — so `example/pubspec.yaml` bundles a family named exactly `Roboto`,
+and `tool/visual_parity/playwright/soak.mjs` fails if a request to
+`fonts.gstatic.com` happens anyway. Copy that declaration into any app that
+must not call out to a third party.
+
 The components are also run **on a device** by
-[`example/integration_test/device_soak_test.dart`](example/integration_test/device_soak_test.dart),
+[`example/integration_test/device_soak_test.dart`](https://github.com/PaoloGi/bootstrap_italia_flutter/blob/main/example/integration_test/device_soak_test.dart),
 which asserts what only hardware can settle — that the package's fonts are
 actually loaded, that nothing is drawn inside the system's bottom inset, and
 that the whole set survives 200% text at the device's own width.
 
 The components themselves are checked in a real browser by
-[`tool/visual_parity/playwright/soak.mjs`](tool/visual_parity/playwright/SOAK.md),
+[`tool/visual_parity/playwright/soak.mjs`](https://github.com/PaoloGi/bootstrap_italia_flutter/blob/main/tool/visual_parity/playwright/SOAK.md),
 which puts every widget on one page at three viewports plus 200% text and runs
-axe over the result. It runs in CI. Its first pass found two defects the 971
+axe over the result. It runs in CI. Its first pass found two defects the
 widget tests could not see, because they only appear once components share a
 document.
 
@@ -171,7 +199,14 @@ A count that cannot drift is worth more than one that is precise today.
 
 ## Getting Started
 
-This package is not on pub.dev. Depend on it by path or git:
+Install the published package:
+
+```yaml
+dependencies:
+  bootstrap_italia_flutter: ^0.1.1
+```
+
+For an unreleased revision, depend on it by path or git:
 
 ```yaml
 dependencies:
@@ -183,6 +218,9 @@ Then wrap your app with the Bootstrap Italia theme:
 
 ```dart
 import 'package:bootstrap_italia_flutter/bootstrap_italia_flutter.dart';
+// The glyphs are their own package, and a direct dependency of this one, so
+// an app can import them without adding it to its own pubspec.
+import 'package:bootstrap_italia_icons/bootstrap_italia_icons.dart';
 
 void main() {
   final theme = BootstrapItaliaThemeData.standard();
@@ -214,11 +252,16 @@ void main() {
 
 ### Navigation
 
-`ItHeader`, `ItSlimHeader`, `ItCenterHeader`, `ItNavHeader`, `ItFooter`, `ItBreadcrumb`, `ItBackToTop`
+`ItHeader`, `ItSlimHeader`, `ItCenterHeader`, `ItNavHeader`, `ItMegamenu`,
+`ItFooter`, `ItBreadcrumb`, `ItBackToTop`, `ItBottomNav`, `ItSkiplinks`
 
 ### Overlays
 
-`ItModal`, `ItDropdown`, `ItNotification`
+`ItModal`, `ItDropdown`, `ItNotification`, `ItOffcanvas`, `ItSidebar`
+
+### Layout and media
+
+`ItContainer`, `ItResponsiveBuilder`, `ItDivider`, `ItCarousel`
 
 ## Usage Examples
 
@@ -234,7 +277,7 @@ ItButton(
 ItButton(
   variant: ItButtonVariant.danger,
   outline: true,
-  icon: Icons.delete,
+  icon: BootstrapItaliaIcons.it_delete,
   onPressed: () {},
   child: Text('Elimina'),
 )
@@ -251,16 +294,16 @@ ItButton(
 ```dart
 ItAlert(
   variant: ItAlertVariant.success,
-  icon: Icons.check_circle,
+  icon: BootstrapItaliaIcons.it_check_circle,
   title: 'Operazione completata',
-  body: Text('Il documento e stato salvato con successo.'),
+  body: Text('Il documento è stato salvato con successo.'),
 )
 
 ItAlert(
   variant: ItAlertVariant.danger,
-  icon: Icons.error,
+  icon: BootstrapItaliaIcons.it_error,
   dismissible: true,
-  body: Text('Si e verificato un errore.'),
+  body: Text('Si è verificato un errore.'),
 )
 ```
 
@@ -270,7 +313,7 @@ ItAlert(
 ItInput(
   label: 'Email',
   hint: 'Inserisci la tua email',
-  icon: Icons.email,
+  icon: BootstrapItaliaIcons.it_mail,
   validationState: ItValidationState.success,
   helperText: 'Email valida',
   onChanged: (value) {},
@@ -283,7 +326,7 @@ ItInput(
 ItModal.show(
   context: context,
   title: 'Conferma operazione',
-  icon: Icons.warning,
+  icon: BootstrapItaliaIcons.it_warning,
   body: Text('Sei sicuro di voler procedere?'),
   actions: [
     ItButton(
@@ -329,7 +372,7 @@ BootstrapItaliaTheme(
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). It documents the verification harness and
+See [CONTRIBUTING.md](https://github.com/PaoloGi/bootstrap_italia_flutter/blob/main/CONTRIBUTING.md). It documents the verification harness and
 a set of rules that each exist because this package shipped the corresponding bug.
 
 ## License

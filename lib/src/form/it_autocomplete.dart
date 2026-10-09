@@ -817,8 +817,17 @@ class _HighlightedText extends StatelessWidget {
       return Text(text, style: TextStyle(fontSize: fontSize, color: textColor));
     }
 
-    return RichText(
-      text: TextSpan(
+    // `Text.rich`, not `RichText`. RichText is the low-level widget and does
+    // NOT read [DefaultTextStyle]: the panel wraps itself in
+    // [ItDefaultTextStyle] precisely because an overlay entry has no Material
+    // to inherit a family from, and RichText walked straight past it. Every
+    // suggestion that matched the query — which is every suggestion, since
+    // `highlightMatch` defaults to true — rendered in the platform font while
+    // the field above it rendered in Titillium. On a test binding the same
+    // path draws filled boxes, which is how this was spotted: the README
+    // screenshot of an open autocomplete came out redacted.
+    return Text.rich(
+      TextSpan(
         style: TextStyle(
           fontSize: fontSize,
           color: textColor,

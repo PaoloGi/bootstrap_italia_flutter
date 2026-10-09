@@ -1,5 +1,38 @@
 # Changelog
 
+## 0.1.1 — 2026-10-09
+
+### Fixed
+
+- **An autocomplete's suggestions rendered in the platform font.** The panel is
+  an `OverlayEntry`, so it has no Material and no page above it to inherit a
+  family from, and it wraps itself in `ItDefaultTextStyle` for exactly that
+  reason — but a highlighted row was a `RichText`, which does not read
+  `DefaultTextStyle`. Every row matching the query, which is every row since
+  `highlightMatch` defaults to true, came out in San Francisco or Roboto under
+  a field in Titillium. It is a `Text.rich` now, and
+  `test/autocomplete_overlay_font_test.dart` fails if it goes back.
+
+  Found by rendering the README screenshot of an open autocomplete: on a test
+  binding "no font family" draws filled boxes, so the suggestions came back
+  redacted.
+
+### Added
+
+- **Screenshots**, rendered by the package at a phone's width and shown on
+  pub.dev as well as in the README. `tool/screenshots/readme_shots_test.dart`
+  regenerates them, so they cannot drift from the widgets they show.
+
+### Documentation
+
+- The README's own inaccuracies, found by rereading it against the code: the
+  widget count said 56 where the barrel exports 60; the carousel was listed as
+  not implemented two sections after being listed as implemented; a quoted test
+  count had drifted; the examples used Material's `Icons.*` in a package whose
+  premise is not depending on Material; two Italian strings had lost their
+  accents; and the links to files the package deliberately does not ship were
+  relative, so they resolved to nothing on pub.dev.
+
 ## 0.1.0 — 2026-10-02
 
 First release. Everything below is what the package contains, written as it was

@@ -1,6 +1,6 @@
 name: bootstrap_italia_flutter
-description: Bootstrap Italia design system for Flutter — PA-compliant UI components for Italian government apps.
-version: 0.1.0
+description: Unofficial Flutter port of Bootstrap Italia, the design system for Italian public administration.
+version: 0.1.1
 
 # An unofficial community port, offered as a possible contribution to
 # Developers Italia rather than as a product competing with the official design
@@ -20,6 +20,37 @@ version: 0.1.0
 repository: https://github.com/PaoloGi/bootstrap_italia_flutter
 homepage: https://github.com/PaoloGi/bootstrap_italia_flutter
 issue_tracker: https://github.com/PaoloGi/bootstrap_italia_flutter/issues
+
+# Shown as a gallery on the package's pub.dev page. Rendered by
+# tool/screenshots/readme_shots_test.dart at a phone's width, which is where
+# this package is used; the descriptions are what a screen reader announces in
+# place of each image, so they describe the screen rather than naming the file.
+screenshots:
+  - description: >-
+      A phone screen built from the kit: the centre header over a breadcrumb, a
+      service card, and the bottom navigation bar with an unread badge.
+    path: screenshots/navigation.png
+  - description: >-
+      A form at phone width — a filled text field with its floating label, a
+      select, a field showing a validation error and its message, a checkbox
+      and a toggle.
+    path: screenshots/form.png
+  - description: >-
+      An autocomplete with its suggestion list open, the typed prefix
+      emphasised in each result.
+    path: screenshots/autocomplete.png
+  - description: >-
+      The mobile navigation panel the megamenu opens, with one section
+      expanded over its links and two collapsed below it.
+    path: screenshots/megamenu.png
+  - description: >-
+      Buttons: a block primary, a block outline with an icon, a small
+      secondary beside a disabled one, and a button in its loading state.
+    path: screenshots/buttons.png
+  - description: >-
+      Feedback components: a success alert, a warning callout, badges, a
+      dismissible chip and a spinner.
+    path: screenshots/feedback.png
 
 environment:
   sdk: ">=3.4.0 <4.0.0"

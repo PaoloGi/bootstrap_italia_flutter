@@ -325,7 +325,10 @@ void main() {
         child: Column(
           children: [
             const ItCenterHeader(
-              title: 'Comune di Ancona',
+              // A placeholder name on purpose: a screenshot captioned with a
+              // real comune reads as that comune using the package, which no
+              // municipality has agreed to.
+              title: 'Comune di Test',
               subtitle: 'Servizi al cittadino',
               showSearch: true,
             ),

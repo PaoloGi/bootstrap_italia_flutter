@@ -2,12 +2,15 @@ name: bootstrap_italia_flutter
 description: Bootstrap Italia design system for Flutter — PA-compliant UI components for Italian government apps.
 version: 0.1.0
 
-# Not published. This is an unofficial community port offered as a possible
-# contribution to Developers Italia, not a product competing with the official
-# design system. `publish_to: none` makes an accidental `dart pub publish`
-# impossible, which also means the `bootstrap_italia` name on pub.dev — the
-# official design system's name — stays unclaimed.
-publish_to: none
+# An unofficial community port, offered as a possible contribution to
+# Developers Italia rather than as a product competing with the official design
+# system. The `_flutter` suffix is the whole of the claim: `bootstrap_italia`
+# on pub.dev — the design system's own name — stays unclaimed, and NOTICE.md
+# says so in full.
+#
+# `publish_to: none` stood here until the package was ready to go out, which
+# also made an accidental `dart pub publish` impossible. It is gone because
+# publishing is now deliberate.
 
 # These three were omitted for as long as there was no repository to name, and
 # before that pointed at github.com/nicoursi/... , which 404s and is not this

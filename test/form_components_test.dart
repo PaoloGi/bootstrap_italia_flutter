@@ -18,7 +18,7 @@ void main() {
   group('ItInput', () {
     testWidgets('renders with label', (tester) async {
       await tester.pumpWidget(_wrap(
-        const ItInput(label: 'Nome'),
+        const ItInput(groupMargin: false, label: 'Nome'),
       ));
 
       expect(find.text('Nome'), findsOneWidget);
@@ -28,6 +28,7 @@ void main() {
       String? result;
       await tester.pumpWidget(_wrap(
         ItInput(
+          groupMargin: false,
           label: 'Email',
           onChanged: (v) => result = v,
         ),
@@ -40,6 +41,7 @@ void main() {
     testWidgets('shows helper text', (tester) async {
       await tester.pumpWidget(_wrap(
         const ItInput(
+          groupMargin: false,
           label: 'CF',
           helperText: 'Codice fiscale di 16 caratteri',
         ),
@@ -51,6 +53,7 @@ void main() {
     testWidgets('shows error text', (tester) async {
       await tester.pumpWidget(_wrap(
         const ItInput(
+          groupMargin: false,
           label: 'Email',
           errorText: 'Email non valida',
         ),
@@ -61,7 +64,7 @@ void main() {
 
     testWidgets('shows prefix icon', (tester) async {
       await tester.pumpWidget(_wrap(
-        const ItInput(label: 'Cerca', icon: Icons.search),
+        const ItInput(groupMargin: false, label: 'Cerca', icon: Icons.search),
       ));
 
       expect(find.byIcon(Icons.search), findsOneWidget);
@@ -70,6 +73,7 @@ void main() {
     testWidgets('password toggle works', (tester) async {
       await tester.pumpWidget(_wrap(
         const ItInput(
+          groupMargin: false,
           label: 'Password',
           obscureText: true,
           showPasswordToggle: true,
@@ -93,7 +97,7 @@ void main() {
 
     testWidgets('disabled state works', (tester) async {
       await tester.pumpWidget(_wrap(
-        const ItInput(label: 'Disabled', enabled: false),
+        const ItInput(groupMargin: false, label: 'Disabled', enabled: false),
       ));
 
       final textField = tester.widget<TextField>(find.byType(TextField));
@@ -103,6 +107,7 @@ void main() {
     testWidgets('validation state shows icon', (tester) async {
       await tester.pumpWidget(_wrap(
         const ItInput(
+          groupMargin: false,
           label: 'Valid',
           validationState: ItValidationState.success,
         ),
@@ -322,12 +327,14 @@ void main() {
   group('ItSelect', () {
     testWidgets('renders with label', (tester) async {
       await tester.pumpWidget(_wrap(
-        const ItSelect<String>(
+        ItSelect<String>(
+          groupMargin: false,
           label: 'Provincia',
           items: [
             ItSelectItem(value: 'RM', label: 'Roma'),
             ItSelectItem(value: 'MI', label: 'Milano'),
           ],
+          onChanged: (_) {},
         ),
       ));
 
@@ -336,13 +343,15 @@ void main() {
 
     testWidgets('shows selected value', (tester) async {
       await tester.pumpWidget(_wrap(
-        const ItSelect<String>(
+        ItSelect<String>(
+          groupMargin: false,
           label: 'Provincia',
           items: [
             ItSelectItem(value: 'RM', label: 'Roma'),
             ItSelectItem(value: 'MI', label: 'Milano'),
           ],
           value: 'RM',
+          onChanged: (_) {},
         ),
       ));
 
@@ -351,12 +360,14 @@ void main() {
 
     testWidgets('opens dropdown on tap', (tester) async {
       await tester.pumpWidget(_wrap(
-        const ItSelect<String>(
+        ItSelect<String>(
+          groupMargin: false,
           label: 'Provincia',
           items: [
             ItSelectItem(value: 'RM', label: 'Roma'),
             ItSelectItem(value: 'MI', label: 'Milano'),
           ],
+          onChanged: (_) {},
         ),
       ));
 
@@ -370,12 +381,14 @@ void main() {
 
     testWidgets('disabled does not open', (tester) async {
       await tester.pumpWidget(_wrap(
-        const ItSelect<String>(
+        ItSelect<String>(
+          groupMargin: false,
           label: 'Disabled',
           items: [
             ItSelectItem(value: 'RM', label: 'Roma'),
           ],
           enabled: false,
+          onChanged: (_) {},
         ),
       ));
 
@@ -391,6 +404,7 @@ void main() {
     testWidgets('renders with label', (tester) async {
       await tester.pumpWidget(_wrap(
         ItAutocomplete<String>(
+          groupMargin: false,
           label: 'Città',
           onSearch: (_) async => [],
           displayStringForOption: (s) => s,
@@ -403,6 +417,7 @@ void main() {
     testWidgets('renders TextField', (tester) async {
       await tester.pumpWidget(_wrap(
         ItAutocomplete<String>(
+          groupMargin: false,
           label: 'Search',
           onSearch: (_) async => [],
           displayStringForOption: (s) => s,
@@ -415,6 +430,7 @@ void main() {
     testWidgets('renders icon outside TextField in Row', (tester) async {
       await tester.pumpWidget(_wrap(
         ItAutocomplete<String>(
+          groupMargin: false,
           label: 'Search',
           icon: Icons.search,
           onSearch: (_) async => [],
@@ -431,6 +447,7 @@ void main() {
     testWidgets('uses underline border not outline', (tester) async {
       await tester.pumpWidget(_wrap(
         ItAutocomplete<String>(
+          groupMargin: false,
           label: 'Test',
           onSearch: (_) async => [],
           displayStringForOption: (s) => s,
@@ -452,6 +469,7 @@ void main() {
     testWidgets('disabled state shows gray fill', (tester) async {
       await tester.pumpWidget(_wrap(
         ItAutocomplete<String>(
+          groupMargin: false,
           label: 'Test',
           enabled: false,
           onSearch: (_) async => [],
@@ -473,6 +491,7 @@ void main() {
     testWidgets('large variant uses larger font', (tester) async {
       await tester.pumpWidget(_wrap(
         ItAutocomplete<String>(
+          groupMargin: false,
           label: 'Grande',
           large: true,
           onSearch: (_) async => [],
@@ -487,6 +506,7 @@ void main() {
     testWidgets('shows suggestions after search', (tester) async {
       await tester.pumpWidget(_wrap(
         ItAutocomplete<String>(
+          groupMargin: false,
           label: 'City',
           onSearch: (_) async => ['Roma', 'Milano'],
           displayStringForOption: (s) => s,
@@ -507,6 +527,7 @@ void main() {
     testWidgets('shows no results message', (tester) async {
       await tester.pumpWidget(_wrap(
         ItAutocomplete<String>(
+          groupMargin: false,
           label: 'City',
           onSearch: (_) async => [],
           displayStringForOption: (s) => s,
@@ -527,6 +548,7 @@ void main() {
       String? selected;
       await tester.pumpWidget(_wrap(
         ItAutocomplete<String>(
+          groupMargin: false,
           label: 'City',
           onSearch: (_) async => ['Roma', 'Milano'],
           displayStringForOption: (s) => s,

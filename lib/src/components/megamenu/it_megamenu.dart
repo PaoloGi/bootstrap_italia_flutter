@@ -197,6 +197,13 @@ class _ItMegamenuState extends State<ItMegamenu> {
             container: true,
             explicitChildNodes: true,
             role: SemanticsRole.navigation,
+            // Deliberately NOT defaulted to `navigationMenu`: the megamenu's
+            // own toggle already carries that name, so defaulting the landmark
+            // to it produced two nodes called "Menu di navigazione" — the very
+            // collision this was meant to prevent. A page realistically has
+            // one megamenu; the collision actually observed was between an
+            // unlabelled ItNavHeader and a breadcrumb, and that is fixed at
+            // the nav header.
             label: widget.semanticsLabel,
             // §2.4.3 Focus Order. The panel is a sibling *after* the whole
             // bar, because that is what stacks it below on screen — but in the

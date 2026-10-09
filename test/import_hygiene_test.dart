@@ -30,6 +30,10 @@ const Map<String, String> _allowed = {
       'editor rather than reimplementing IME, selection and autofill.',
   'it_autocomplete.dart': 'TextField + InputDecoration, as it_input.',
   'it_select.dart': 'TextField + InputDecoration, as it_input.',
+  'it_date_field.dart': 'showDatePicker/showTimePicker/TimeOfDay — the OS\'s '
+      'own pickers. Upstream\'s datepicker is `<input type="date">`, which '
+      'opens whatever the platform shows, and on Android that IS Material\'s '
+      'dialog; iOS and macOS get Cupertino\'s wheel instead.',
   'bootstrap_italia_theme_data.dart':
       'ThemeData/TextTheme/ColorScheme — this file IS the bridge to Material, '
           'so that an app embedding these components in a MaterialApp gets a '

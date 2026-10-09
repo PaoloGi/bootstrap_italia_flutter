@@ -83,6 +83,12 @@ class ItListItem extends ItListEntry {
   final Widget? leading;
 
   /// Optional trailing widget (icon, badge, etc.) — `.icon-right`.
+  ///
+  /// It sits inside the link, as it does in the kit's markup, so whatever it
+  /// says about itself joins the row's name: a decorative chevron adds nothing,
+  /// while an [ItBadge] carrying a `semanticLabel` adds "3 messaggi da
+  /// leggere". A bare number here is announced as a bare number — give it a
+  /// label, or the row ends in a stray digit.
   final Widget? trailing;
 
   /// Whether this item is in an active/selected state.
@@ -526,6 +532,15 @@ class _ItListTile extends StatelessWidget {
 
   Widget _build(BuildContext context, bool hovered) {
     final colors = resolveColorScheme(context);
+    // Needed before the content is built: a row that becomes a link names
+    // itself from `title` and `subtitle`, so those two texts are excluded
+    // where they sit rather than by excluding the whole row — see the Semantics
+    // at the bottom of this method.
+    final onPressed = onTapOverride ?? item.onTap;
+    final interactive = onPressed != null;
+    // Hides a text node that the row's own Semantics already names.
+    Widget named(Widget text) =>
+        interactive ? ExcludeSemantics(child: text) : text;
     // `a span { color: #06c }` and `a:hover span { color: #06c }` are both the
     // primary token; `a.active span` is rgb(0, 38.25, 76.5) = 0.375 x primary,
     // so it is derived rather than declared. `disabled` is hsl(210,12%,44%),
@@ -578,7 +593,7 @@ class _ItListTile extends StatelessWidget {
           const SizedBox(width: _ListTokens.leadingGap),
         ],
         Expanded(
-          child: Text(
+          child: named(Text(
             item.title,
             // `.link-list-wrapper ul li a { font-size: 1rem }` with
             // `span { line-height: normal }`, and `a.medium { font-weight: 600 }`.
@@ -593,7 +608,7 @@ class _ItListTile extends StatelessWidget {
                   hovered ? TextDecoration.underline : TextDecoration.none,
               decorationColor: titleColor,
             ),
-          ),
+          )),
         ),
         if (trailing != null) ...[
           const SizedBox(width: _ListTokens.trailingGap),
@@ -616,7 +631,7 @@ class _ItListTile extends StatelessWidget {
                 child: Align(alignment: Alignment.centerLeft, child: titleRow),
               ),
               const SizedBox(height: _ListTokens.titleGap),
-              Text(
+              named(Text(
                 item.subtitle!,
                 // `.link-list-wrapper ul li a p { font-size: .875rem;
                 //   line-height: initial; color: hsl(210,33%,28%) }`
@@ -630,7 +645,7 @@ class _ItListTile extends StatelessWidget {
                   // the description paragraph.
                   color: _ListTokens.subtitleColor,
                 ),
-              ),
+              )),
               const SizedBox(height: _ListTokens.subtitleGap),
             ],
           );
@@ -656,17 +671,21 @@ class _ItListTile extends StatelessWidget {
       'unlabelled button (WCAG 2.1 SC 4.1.2 Name, Role, Value).',
     );
 
-    final onPressed = onTapOverride ?? item.onTap;
-    if (onPressed == null) return padded;
+    if (!interactive) return padded;
 
     // §2.4.3 / §4.1.2: title and description are two text nodes inside one
     // link. Merge them so AT announces a single link with one name, and expose
     // the active and disabled states that are otherwise conveyed by colour
     // alone (§1.3.1, §1.4.1).
     //
-    // ItActivatable stays *outside* the ExcludeSemantics: it is what supplies
-    // the tap action and focusability. Only the inner text is excluded, so the
-    // merged node carries exactly one name instead of repeating it.
+    // ItActivatable stays *outside* the exclusion: it is what supplies the tap
+    // action and focusability. The exclusion is on the title and the subtitle
+    // themselves (see `named`), so the merged node carries one name
+    // instead of repeating it — and whatever `leading` or `trailing` says about
+    // itself still reaches the merge. In the kit's markup those sit *inside*
+    // the `<a>`, so a `.badge` of unread messages is part of the link's name;
+    // excluding the whole row dropped it, and the count a screen reader needs
+    // most was the one it never heard.
     //
     // §2.4.7: it also paints the row's focus ring. `.link-list-wrapper ul li a`
     // keeps a transparent background in every state — hover and press are the
@@ -689,7 +708,7 @@ class _ItListTile extends StatelessWidget {
             : '${item.title}. ${item.subtitle}',
         child: ItActivatable(
           onPressed: item.disabled ? null : onPressed,
-          child: ExcludeSemantics(child: padded),
+          child: padded,
         ),
       ),
     );

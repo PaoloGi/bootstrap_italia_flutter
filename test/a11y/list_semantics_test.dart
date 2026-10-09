@@ -351,4 +351,61 @@ void main() {
       handle.dispose();
     });
   });
+
+  group('ItListItem — what the trailing widget says', () {
+    // A `.link-list` item's badge sits *inside* the `<a>`, so it is part of the
+    // link's name. The row named itself from `title` and then excluded its
+    // whole subtree, which took the badge with it: a menu entry reading
+    // "Messaggi" with a red "2" beside it announced as "Messaggi", and the one
+    // thing the badge was there to say was the one thing not said.
+    testWidgets('a badge that names itself joins the row name', (tester) async {
+      final handle = tester.ensureSemantics();
+      await tester.pumpWidget(_host(
+        ItList(items: [
+          ItListItem(
+            title: 'Messaggi',
+            trailing: const ItBadge(
+              variant: ItBadgeVariant.danger,
+              pill: true,
+              semanticLabel: '2 messaggi da leggere',
+              child: Text('2'),
+            ),
+            onTap: () {},
+          ),
+        ]),
+      ));
+
+      final links = _findAll(tester, (d) => d.hasFlag(SemanticsFlag.isLink));
+      expect(links, hasLength(1), reason: 'still one target, not two');
+      final label = links.single.getSemanticsData().label;
+      expect(label, contains('Messaggi'));
+      expect(label, contains('2 messaggi da leggere'),
+          reason: 'the badge is inside the link, so its name is part of the '
+              "link's name (§1.3.1, §4.1.2)");
+      expect(label.split('Messaggi').length - 1, 1,
+          reason: 'the title must be named once, not repeated by the text '
+              'node the row already speaks for');
+      handle.dispose();
+    });
+
+    testWidgets('a decorative trailing icon adds nothing', (tester) async {
+      final handle = tester.ensureSemantics();
+      await tester.pumpWidget(_host(
+        ItList(items: [
+          ItListItem(
+            title: 'Impostazioni',
+            subtitle: 'Notifiche e privacy',
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {},
+          ),
+        ]),
+      ));
+
+      final link = _find(tester, (d) => d.hasFlag(SemanticsFlag.isLink))!;
+      expect(link.getSemanticsData().label, 'Impostazioni. Notifiche e privacy',
+          reason: 'a chevron says nothing about itself, so the name is the '
+              'row\'s text and nothing else');
+      handle.dispose();
+    });
+  });
 }

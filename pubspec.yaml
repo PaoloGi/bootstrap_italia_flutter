@@ -9,10 +9,14 @@ version: 0.1.0
 # official design system's name — stays unclaimed.
 publish_to: none
 
-# homepage/repository/issue_tracker deliberately omitted: there is no public
-# repository yet. They previously pointed at github.com/nicoursi/... , which
-# 404s and is not this project — publishing that would have sent users' bug
-# reports to an unrelated account.
+# These three were omitted for as long as there was no repository to name, and
+# before that pointed at github.com/nicoursi/... , which 404s and is not this
+# project — publishing that would have sent users' bug reports to an unrelated
+# account. The repository now exists, so they say where the code is and where a
+# conformance question should arrive.
+repository: https://github.com/PaoloGi/bootstrap_italia_flutter
+homepage: https://github.com/PaoloGi/bootstrap_italia_flutter
+issue_tracker: https://github.com/PaoloGi/bootstrap_italia_flutter/issues
 
 environment:
   sdk: ">=3.4.0 <4.0.0"
@@ -29,7 +33,8 @@ dev_dependencies:
   flutter_lints: ^5.0.0
 
 flutter:
-  # Font licences must ship with the binaries (OFL 1.1 / Apache-2.0).
+  # Font licences must ship with the binaries (SIL OFL 1.1, all three
+  # families — see fonts/licenses/README.md).
   assets:
     - fonts/licenses/
   fonts:

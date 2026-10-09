@@ -180,6 +180,72 @@ void main() {
     });
   });
 
+  // English ships as a constant but is NOT registered. The distinction is the
+  // whole design: `MaterialApp.supportedLocales` defaults to `[Locale('en',
+  // 'US')]`, so registering `en` would switch every unconfigured Italian app to
+  // English accessible names without anyone asking. These tests pin both halves
+  // — that it is available, and that it stays out of automatic resolution.
+  group('English is available but never auto-resolved', () {
+    test('forLocale(en) still falls back to Italian', () {
+      expect(ItLocalizations.forLocale(const Locale('en')).localeName, 'it',
+          reason: 'registering en would hand English names to the commonest '
+              'misconfiguration there is — see ADR 0002');
+      expect(ItLocalizations.supportedLocales.map((l) => l.languageCode),
+          isNot(contains('en')));
+    });
+
+    test('the English strings are complete and distinct', () {
+      const en = ItLocalizations.english;
+      expect(en.localeName, 'en');
+      expect(en.close, 'Close');
+      expect(en.dismissModalBarrier, 'Dismiss');
+      expect(en.radioUnselected, 'Not selected');
+      expect(en.removeItem, contains('{label}'),
+          reason: 'the placeholder must survive translation or the chip loses '
+              'the name of what it removes');
+      expect(en.notificationCountOther, contains('{count}'));
+    });
+
+    testWidgets('an app can opt in with one line', (tester) async {
+      late BuildContext ctx;
+      await tester.pumpWidget(MaterialApp(
+        locale: const Locale('en'),
+        supportedLocales: const [Locale('en')],
+        localizationsDelegates: [
+          ItLocalizationsDelegate(
+            resolve: (l) =>
+                l.languageCode == 'en' ? ItLocalizations.english : null,
+          ),
+        ],
+        home: Builder(builder: (context) {
+          ctx = context;
+          return const SizedBox.shrink();
+        }),
+      ));
+
+      expect(ItLocalizations.of(ctx).localeName, 'en');
+      expect(ItLocalizations.of(ctx).closeModal, 'Close dialog');
+    });
+
+    // Deliberately at the delegate rather than through a MaterialApp: declaring
+    // `supportedLocales: [it, en]` without `GlobalMaterialLocalizations` makes
+    // Flutter warn that Material itself cannot supply `it`, which is the
+    // "adding a locale is two changes, not one" trap the example app documents.
+    // The thing under test is the resolve hook, so test the hook.
+    test('opting in to English leaves every other locale alone', () async {
+      final delegate = ItLocalizationsDelegate(
+        resolve: (l) => l.languageCode == 'en' ? ItLocalizations.english : null,
+      );
+
+      expect((await delegate.load(const Locale('en'))).localeName, 'en');
+      expect((await delegate.load(const Locale('it'))).localeName, 'it');
+      expect((await delegate.load(const Locale('de'))).localeName, 'de');
+      expect((await delegate.load(const Locale('fr'))).localeName, 'fr');
+      expect((await delegate.load(const Locale('sl'))).localeName, 'it',
+          reason: 'an unbundled locale must still fall back to Italian');
+    });
+  });
+
   group('every localised string is reachable', () {
     // Drives the real components under a German delegate. A string that goes
     // back to a literal fails here and nowhere else — `flutter analyze` is
@@ -454,6 +520,7 @@ void main() {
       await tester.pumpWidget(_localised(
         locale: const Locale('de'),
         const ItInput(
+          groupMargin: false,
           label: 'Passwort',
           obscureText: true,
           showPasswordToggle: true,
@@ -471,10 +538,12 @@ void main() {
         (tester) async {
       await tester.pumpWidget(_localised(
         locale: const Locale('de'),
-        const ItSelect<String>(
+        ItSelect<String>(
+          groupMargin: false,
           label: 'Provinz',
           searchable: true,
           items: [ItSelectItem(value: 'bz', label: 'Bozen')],
+          onChanged: (_) {},
         ),
       ));
 
@@ -491,6 +560,7 @@ void main() {
       await tester.pumpWidget(_localised(
         locale: const Locale('de'),
         ItAutocomplete<String>(
+          groupMargin: false,
           label: 'Gemeinde',
           onSearch: (_) async => const <String>[],
           displayStringForOption: (s) => s,
@@ -679,8 +749,10 @@ void main() {
       // `[Locale('en','US')]`, so bundling English would make an unconfigured
       // Italian app resolve to English accessible names — the exact outcome
       // "Italian is the default" exists to prevent. Applications that want
-      // English opt in through `ItLocalizationsDelegate.resolve`, having
-      // decided to. Delete this test only alongside that reasoning.
+      // English opt in through `ItLocalizationsDelegate.resolve`, passing
+      // `ItLocalizations.english` — which ships, but is not registered here.
+      // Available and auto-resolved are different things, and this test is the
+      // line between them. Delete it only alongside that reasoning.
       expect(ItLocalizations.forLocale(const Locale('en')).localeName, 'it');
     });
 

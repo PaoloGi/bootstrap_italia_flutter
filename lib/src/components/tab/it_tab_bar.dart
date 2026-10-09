@@ -451,14 +451,20 @@ class _ItTabBarState extends State<ItTabBar> {
         // instead — see `_padding`, where the placements whose indicator is
         // thinner than the 3px the base rule reserves give the difference back
         // as padding, exactly as `align-items: stretch` would.
-        : Row(
-            mainAxisSize:
-                widget.fullWidth ? MainAxisSize.max : MainAxisSize.min,
-            children: widget.fullWidth
-                // `.nav-tabs.auto .nav-item { flex: 1 }` — equal shares.
-                ? [for (final tab in tabs) Expanded(child: tab)]
-                : tabs,
-          );
+        : widget.fullWidth
+            // `.nav-tabs.auto .nav-item { flex: 1 }` — equal shares. Unlike
+            // the scrolling bar this one is not inside a scroll view, so it
+            // can state `align-items: stretch` for real: a label that wraps
+            // onto two lines ("Attivo") makes its tab taller than its
+            // neighbours, and without the stretch their indicators stopped
+            // short of the bar's rule.
+            ? IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [for (final tab in tabs) Expanded(child: tab)],
+                ),
+              )
+            : Row(mainAxisSize: MainAxisSize.min, children: tabs);
 
     // §1.3.1 / §4.1.2: the container carries the `tabBar` role so AT announces
     // "tab 2 of 4" instead of four unrelated buttons.
@@ -718,11 +724,26 @@ class _TabButton extends StatelessWidget {
         descendantsAreTraversable: inTabOrder,
         child: _maybeStack(
           context,
-          ItActivatable(
-            onPressed: onTap,
-            focusNode: focusNode,
-            onDark: dark,
-            child: ExcludeSemantics(
+          // The whole activatable is excluded, not just the painted box
+          // inside it. ItActivatable publishes its own focusable, tappable
+          // node, and the tab above already carries the role, the name, the
+          // selected state and the tap action — so the tab ended up
+          // containing a second interactive node with no name at all.
+          //
+          // A real browser is what showed it: axe reported `nested-interactive`
+          // and `aria-command-name` against `role="tab"` on the Flutter Web
+          // build, and the semantics tree confirmed
+          // `role=tab label="Prima"` → `role=none label="" focusable tap=true`.
+          //
+          // Focus traversal is unaffected — it does not run through the
+          // semantics tree — and the close control, when present, is a sibling
+          // in the stack rather than a descendant here, so it keeps its own
+          // node.
+          ExcludeSemantics(
+            child: ItActivatable(
+              onPressed: onTap,
+              focusNode: focusNode,
+              onDark: dark,
               child: Container(
                 // A Container (unlike DecoratedBox) reserves layout space for
                 // the border, which is what gives `.nav-link` its indicator.
@@ -800,11 +821,18 @@ class _TabButton extends StatelessWidget {
     } else {
       bottomMakeUp = 0;
     }
+    // An icon-only horizontal tab carries its horizontal padding as flexible
+    // spacers in `_content` instead, so it can yield when the bar is narrow.
+    final spacers = _iconOnly && !_isVertical && item.onClose == null;
     return EdgeInsetsDirectional.fromSTEB(
-      horizontal,
+      spacers ? 0 : horizontal,
       _TabTokens.paddingY,
       // `.nav-tabs-editable .nav-link { padding-right: 2.888em }`
-      item.onClose != null ? _TabTokens.editablePaddingRight : horizontal,
+      item.onClose != null
+          ? _TabTokens.editablePaddingRight
+          : spacers
+              ? 0
+              : horizontal,
       _TabTokens.paddingY + bottomMakeUp,
     );
   }
@@ -873,10 +901,23 @@ class _TabButton extends StatelessWidget {
     // `.nav-tabs .nav-link { display: flex; align-items: center;
     //   justify-content: center }`
     if (_iconOnly) {
+      // In the kit a flex item never shrinks below its content, so tabs that
+      // do not fit overflow and scroll. There is no scroller under a fullWidth
+      // bar, and four 48px icons with 1.778em of padding either side need more
+      // than a phone offers — the Row painted overflow stripes. The padding is
+      // the only part that can give, so it is a pair of spacers that yield
+      // down to the icon's own width and no further.
+      final pad = layout == ItTabLayout.iconOnlyLarge
+          ? _TabTokens.paddingXLarge
+          : _TabTokens.paddingX;
       return Row(
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
-        children: [icon!],
+        children: [
+          Flexible(child: SizedBox(width: pad)),
+          icon!,
+          Flexible(child: SizedBox(width: pad)),
+        ],
       );
     }
     return Row(

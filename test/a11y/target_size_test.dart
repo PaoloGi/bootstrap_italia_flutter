@@ -140,9 +140,9 @@ void main() {
 
     testWidgets('ItRadio tap target reaches 24px', (tester) async {
       await tester.pumpWidget(_host(
-        ItRadio(value: false, label: 'Uno', onChanged: (_) {}),
+        ItRadio<int>(value: 1, groupValue: 0, label: 'Uno', onChanged: (_) {}),
       ));
-      final s = _hitTargetOf(tester, find.byType(ItRadio));
+      final s = _hitTargetOf(tester, find.byType(ItRadio<int>));
       expect(s.height, greaterThanOrEqualTo(kMinTarget),
           reason: 'radio hit target is ${s.height}px; 2.5.8 requires >= 24.');
     });
@@ -215,10 +215,11 @@ void main() {
 
     testWidgets('an unlabelled ItRadio is tappable across its whole box',
         (tester) async {
-      await tester.pumpWidget(_host(ItRadio(value: false, onChanged: (_) {})));
+      await tester.pumpWidget(
+          _host(ItRadio<int>(value: 1, groupValue: 0, onChanged: (_) {})));
       _expectSolid24Target(
         tester,
-        find.byType(ItRadio),
+        find.byType(ItRadio<int>),
         'ItRadio with no label',
       );
     });
@@ -239,6 +240,7 @@ void main() {
         SizedBox(
           width: 320,
           child: ItSelect<String>(
+            groupMargin: false,
             label: 'Provincia',
             items: const [ItSelectItem(value: 'RM', label: 'Roma')],
             onChanged: (_) {},
@@ -258,6 +260,7 @@ void main() {
         const SizedBox(
           width: 320,
           child: ItInput(
+            groupMargin: false,
             label: 'Password',
             obscureText: true,
             showPasswordToggle: true,

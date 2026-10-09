@@ -1,5 +1,4 @@
-// Guards for doc/quality-plan.md Phase 2 — the public shape of the six form
-// controls.
+// Guards for the public shape of the six form controls.
 //
 // Everything here exists because the defect it pins was invisible: a polarity
 // flip that disables a whole form still renders, a callback that is never
@@ -131,21 +130,23 @@ void main() {
     testWidgets('ItRadio', (tester) async {
       var changes = 0;
       await tester.pumpWidget(_host(
-        ItRadio(label: 'Uno', value: false, onChanged: (_) => changes++),
+        ItRadio<int>(
+            label: 'Uno', value: 1, groupValue: 0, onChanged: (_) => changes++),
       ));
-      await tester.tap(find.byType(ItRadio));
+      await tester.tap(find.byType(ItRadio<int>));
       await tester.pump();
       expect(changes, 1);
 
       await tester.pumpWidget(_host(
-        ItRadio(
+        ItRadio<int>(
           label: 'Uno',
-          value: false,
+          value: 1,
+          groupValue: 0,
           enabled: false,
           onChanged: (_) => changes++,
         ),
       ));
-      await tester.tap(find.byType(ItRadio), warnIfMissed: false);
+      await tester.tap(find.byType(ItRadio<int>), warnIfMissed: false);
       await tester.pump();
       expect(changes, 1);
     });
@@ -175,6 +176,7 @@ void main() {
     testWidgets('ItSelect', (tester) async {
       await tester.pumpWidget(_host(
         ItSelect<String>(
+          groupMargin: false,
           label: 'Provincia',
           items: const [ItSelectItem(value: 'RM', label: 'Roma')],
           onChanged: (_) {},
@@ -187,6 +189,7 @@ void main() {
 
       await tester.pumpWidget(_host(
         ItSelect<String>(
+          groupMargin: false,
           label: 'Provincia',
           items: const [ItSelectItem(value: 'RM', label: 'Roma')],
           enabled: false,
@@ -203,13 +206,18 @@ void main() {
       final node = FocusNode();
       addTearDown(node.dispose);
 
-      await tester.pumpWidget(_host(ItInput(label: 'Nome', focusNode: node)));
+      await tester.pumpWidget(
+          _host(ItInput(groupMargin: false, label: 'Nome', focusNode: node)));
       await tester.tap(find.byType(ItInput));
       await tester.pump();
       expect(node.hasFocus, isTrue);
 
       await tester.pumpWidget(
-        _host(ItInput(label: 'Nome', enabled: false, focusNode: node)),
+        _host(ItInput(
+            groupMargin: false,
+            label: 'Nome',
+            enabled: false,
+            focusNode: node)),
       );
       await tester.tap(find.byType(ItInput), warnIfMissed: false);
       await tester.pump();
@@ -223,6 +231,7 @@ void main() {
 
       await tester.pumpWidget(_host(
         ItAutocomplete<String>(
+          groupMargin: false,
           label: 'Comune',
           focusNode: node,
           onSearch: (q) async => const <String>[],
@@ -235,6 +244,7 @@ void main() {
 
       await tester.pumpWidget(_host(
         ItAutocomplete<String>(
+          groupMargin: false,
           label: 'Comune',
           enabled: false,
           focusNode: node,
@@ -258,16 +268,19 @@ void main() {
       final enabled = <String, Widget>{
         'ItCheckbox':
             ItCheckbox(label: 'Accetto', value: false, onChanged: (_) {}),
-        'ItRadio': ItRadio(label: 'Uno', value: false, onChanged: (_) {}),
+        'ItRadio': ItRadio<int>(
+            label: 'Uno', value: 1, groupValue: 0, onChanged: (_) {}),
         'ItToggle':
             ItToggle(label: 'Notifiche', value: false, onChanged: (_) {}),
         'ItSelect': ItSelect<String>(
+          groupMargin: false,
           label: 'Provincia',
           items: const [ItSelectItem(value: 'RM', label: 'Roma')],
           onChanged: (_) {},
         ),
-        'ItInput': const ItInput(label: 'Nome'),
+        'ItInput': const ItInput(groupMargin: false, label: 'Nome'),
         'ItAutocomplete': ItAutocomplete<String>(
+          groupMargin: false,
           label: 'Comune',
           onSearch: (q) async => const <String>[],
           displayStringForOption: (s) => s,
@@ -276,21 +289,28 @@ void main() {
       final disabled = <String, Widget>{
         'ItCheckbox': ItCheckbox(
             label: 'Accetto', value: false, enabled: false, onChanged: (_) {}),
-        'ItRadio': ItRadio(
-            label: 'Uno', value: false, enabled: false, onChanged: (_) {}),
+        'ItRadio': ItRadio<int>(
+            label: 'Uno',
+            value: 1,
+            groupValue: 0,
+            enabled: false,
+            onChanged: (_) {}),
         'ItToggle': ItToggle(
             label: 'Notifiche',
             value: false,
             enabled: false,
             onChanged: (_) {}),
         'ItSelect': ItSelect<String>(
+          groupMargin: false,
           label: 'Provincia',
           items: const [ItSelectItem(value: 'RM', label: 'Roma')],
           enabled: false,
           onChanged: (_) {},
         ),
-        'ItInput': const ItInput(label: 'Nome', enabled: false),
+        'ItInput':
+            const ItInput(groupMargin: false, label: 'Nome', enabled: false),
         'ItAutocomplete': ItAutocomplete<String>(
+          groupMargin: false,
           label: 'Comune',
           enabled: false,
           onSearch: (q) async => const <String>[],
@@ -311,20 +331,23 @@ void main() {
   });
 
   // ══════════════════════════════════════════════════════════════════
-  // 2.2 — the three check controls agree
+  // 2.2 — the two boolean controls agree, and the radio says what it is
   //
-  // `ItRadio` used to take `selected:` + `onTap: VoidCallback`, so it was the
-  // one control of the three that could not be driven by the same code as its
-  // siblings. The proof that they now agree is a single generic driver that
-  // builds all three from one `(value, onChanged)` pair: if any of them
-  // diverges again, this stops compiling.
+  // `ItCheckbox` and `ItToggle` answer a yes/no question, so one
+  // `(value, onChanged)` pair drives both: if either diverges, the generic
+  // driver below stops compiling.
+  //
+  // `ItRadio` is deliberately NOT in that driver any more. It used to be, at
+  // the cost of a `ValueChanged<bool>` that always emitted `true` — a
+  // parameter that was the same on every call, leaving the caller to work out
+  // *which* radio had been chosen from which closure had fired. It now takes
+  // `value` and `groupValue` like Flutter's own `Radio`, and emits the value
+  // that was chosen. Symmetry for its own sake cost more than it paid.
   // ══════════════════════════════════════════════════════════════════
-  group('2.2 — value/onChanged is the same shape on all three controls', () {
+  group('2.2 — value/onChanged is the same shape on both boolean controls', () {
     final builders = <String, Widget Function(bool, ValueChanged<bool>)>{
       'ItCheckbox': (value, onChanged) =>
           ItCheckbox(label: 'Uno', value: value, onChanged: onChanged),
-      'ItRadio': (value, onChanged) =>
-          ItRadio(label: 'Uno', value: value, onChanged: onChanged),
       'ItToggle': (value, onChanged) =>
           ItToggle(label: 'Uno', value: value, onChanged: onChanged),
     };
@@ -372,18 +395,61 @@ void main() {
       expect(received, isTrue);
     });
 
-    testWidgets('ItRadio emits true and never deselects itself',
-        (tester) async {
-      final emitted = <bool>[];
+    testWidgets('ItRadio emits the value it stands for', (tester) async {
+      final emitted = <String>[];
       await tester.pumpWidget(_host(
-        ItRadio(label: 'Uno', value: true, onChanged: emitted.add),
+        ItRadio<String>(
+          label: 'Uno',
+          value: 'uno',
+          groupValue: 'due',
+          onChanged: emitted.add,
+        ),
       ));
-      await tester.tap(find.byType(ItRadio));
+      await tester.tap(find.byType(ItRadio<String>));
       await tester.pump();
-      expect(emitted, [true],
-          reason: 'activating a checked radio must not turn it off — HTML '
-              'fires no change at all, and emitting false would let a group '
+      expect(emitted, ['uno'],
+          reason: 'the callback used to emit `true` on every radio, so the '
+              'caller had to reconstruct the selection from which closure it '
+              'had wired where');
+    });
+
+    testWidgets(
+        'an already-selected radio still emits its own value, not a '
+        'deselection', (tester) async {
+      final emitted = <String>[];
+      await tester.pumpWidget(_host(
+        ItRadio<String>(
+          label: 'Uno',
+          value: 'uno',
+          groupValue: 'uno',
+          onChanged: emitted.add,
+        ),
+      ));
+      await tester.tap(find.byType(ItRadio<String>));
+      await tester.pump();
+      expect(emitted, ['uno'],
+          reason: 'activating a checked radio must not clear the group — HTML '
+              'fires no change at all, and emitting null would let a group '
               'reach a state with nothing selected');
+    });
+
+    testWidgets('selection is value == groupValue', (tester) async {
+      await tester.pumpWidget(_host(
+        Column(children: [
+          ItRadio<String>(
+              value: 'a', groupValue: 'a', label: 'A', onChanged: (_) {}),
+          ItRadio<String>(
+              value: 'b', groupValue: 'a', label: 'B', onChanged: (_) {}),
+        ]),
+      ));
+      final handle = tester.ensureSemantics();
+      expect(
+          tester.getSemantics(find.text('A')).hasFlag(SemanticsFlag.isChecked),
+          isTrue);
+      expect(
+          tester.getSemantics(find.text('B')).hasFlag(SemanticsFlag.isChecked),
+          isFalse);
+      handle.dispose();
     });
 
     testWidgets('ItRadioGroup still drives its options', (tester) async {
@@ -405,29 +471,32 @@ void main() {
       await tester.tap(find.text('Femmina'));
       await tester.pump();
       expect(value, 'F',
-          reason: 'the group translates a radio\'s bool onChanged back into '
-              'its own T; if that wiring breaks the group goes inert');
+          reason: 'the group hands each option its own value and passes back '
+              'whichever one answers; if that wiring breaks the group goes '
+              'inert');
     });
   });
 
   // ══════════════════════════════════════════════════════════════════
-  // 2.3 — ItSelect's coupled parameters
+  // 2.3 — the select cannot silently drop its callback
   //
   // `ItSelect(multiple: true, onChanged: …)` compiled, ran, and silently never
   // fired: the multi path only ever called `onMultiChanged`. That exact call
-  // is now a compile error — `multiple` is not a parameter and the two
-  // constructors expose one callback each — which no runtime test can assert.
-  // What these tests pin is the half that CAN regress: that each constructor
-  // routes its `onChanged:` to the code path its selection actually uses.
+  // is now a compile error — `multiple` is not a parameter, and single and
+  // multiple are two widgets with one selection and one callback each — which
+  // no runtime test can assert. What these tests pin is the half that CAN
+  // regress: that each widget routes its `onChanged:` to the code path its
+  // selection actually uses.
   // ══════════════════════════════════════════════════════════════════
-  group('2.3 — ItSelect cannot silently drop its callback', () {
+  group('2.3 — the select cannot silently drop its callback', () {
     testWidgets('multi-select fires onChanged when an option is tapped',
         (tester) async {
       var selection = <String>{};
       var calls = 0;
       await tester.pumpWidget(_host(
         StatefulBuilder(
-          builder: (context, setState) => ItSelect<String>.multiple(
+          builder: (context, setState) => ItMultiSelect<String>(
+            groupMargin: false,
             label: 'Province',
             items: const [
               ItSelectItem(value: 'RM', label: 'Roma'),
@@ -442,7 +511,7 @@ void main() {
         ),
       ));
 
-      await tester.tap(find.byType(ItSelect<String>));
+      await tester.tap(find.byType(ItMultiSelect<String>));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Roma').last);
       await tester.pumpAndSettle();
@@ -467,6 +536,7 @@ void main() {
       String? chosen;
       await tester.pumpWidget(_host(
         ItSelect<String>(
+          groupMargin: false,
           label: 'Provincia',
           items: const [
             ItSelectItem(value: 'RM', label: 'Roma'),
@@ -486,25 +556,31 @@ void main() {
           reason: 'a single-select closes once a choice is made');
     });
 
-    test('each constructor exposes exactly the callback it uses', () {
+    test('each widget holds exactly one selection and one callback', () {
+      // This used to read the routing fields — `multiple`, `values`,
+      // `onValuesChanged` — off the single class, because both shapes shared
+      // one field list and the test had to prove an argument had landed in the
+      // right slot. Those fields are private now: `ItSelect` has `value` and a
+      // `ValueChanged<T?>`, `ItMultiSelect` has `values` and a
+      // `ValueChanged<Set<T>>`, and neither can be handed the other's. What is
+      // left to check is that each type says what it holds — the two tests
+      // above check that what it holds actually arrives.
       const items = <ItSelectItem<String>>[
         ItSelectItem(value: 'RM', label: 'Roma'),
       ];
 
-      final single = ItSelect<String>(items: items, onChanged: (_) {});
-      expect(single.multiple, isFalse);
-      expect(single.onChanged, isNotNull);
-      expect(single.onValuesChanged, isNull);
-      expect(single.values, isNull);
+      final single = ItSelect<String>(
+          groupMargin: false, items: items, value: 'RM', onChanged: (_) {});
+      expect(single.value, 'RM');
+      expect(single.onChanged, isA<ValueChanged<String?>>());
 
-      final multi = ItSelect<String>.multiple(items: items, onChanged: (_) {});
-      expect(multi.multiple, isTrue);
-      expect(multi.onValuesChanged, isNotNull,
-          reason: '`.multiple`\'s onChanged: argument must land on the '
-              'set-valued field, which is the one _selectItem calls. Routing '
-              'it anywhere else reproduces the original silent no-op.');
-      expect(multi.onChanged, isNull);
-      expect(multi.value, isNull);
+      final multi = ItMultiSelect<String>(
+          groupMargin: false,
+          items: items,
+          values: const {'RM'},
+          onChanged: (_) {});
+      expect(multi.values, {'RM'});
+      expect(multi.onChanged, isA<ValueChanged<Set<String>>>());
     });
   });
 
@@ -515,6 +591,7 @@ void main() {
     testWidgets('the enlarged variant scales the field', (tester) async {
       await tester.pumpWidget(_host(
         ItAutocomplete<String>(
+          groupMargin: false,
           label: 'Comune',
           large: true,
           onSearch: (q) async => const <String>[],
@@ -534,6 +611,7 @@ void main() {
         (tester) async {
       await tester.pumpWidget(_host(
         ItAutocomplete<String>(
+          groupMargin: false,
           label: 'Comune',
           onSearch: (q) async => const <String>[],
           displayStringForOption: (s) => s,
@@ -564,9 +642,10 @@ void main() {
           errorText: errorText,
           onChanged: (_) {},
         );
-    Widget radio({String? helperText, String? errorText}) => ItRadio(
+    Widget radio({String? helperText, String? errorText}) => ItRadio<int>(
           label: 'Uno',
-          value: false,
+          value: 1,
+          groupValue: 0,
           helperText: helperText,
           errorText: errorText,
           onChanged: (_) {},
@@ -579,6 +658,7 @@ void main() {
           onChanged: (_) {},
         );
     Widget select({String? helperText, String? errorText}) => ItSelect<String>(
+          groupMargin: false,
           label: 'Provincia',
           items: const [ItSelectItem(value: 'RM', label: 'Roma')],
           helperText: helperText,
@@ -586,12 +666,14 @@ void main() {
           onChanged: (_) {},
         );
     Widget input({String? helperText, String? errorText}) => ItInput(
+          groupMargin: false,
           label: 'Nome',
           helperText: helperText,
           errorText: errorText,
         );
     Widget autocomplete({String? helperText, String? errorText}) =>
         ItAutocomplete<String>(
+          groupMargin: false,
           label: 'Comune',
           helperText: helperText,
           errorText: errorText,
@@ -758,9 +840,10 @@ void main() {
             value: false,
             focusNode: nodes['ItCheckbox'],
             onChanged: (_) {}),
-        'ItRadio': ItRadio(
+        'ItRadio': ItRadio<int>(
             label: 'Uno',
-            value: false,
+            value: 1,
+            groupValue: 0,
             focusNode: nodes['ItRadio'],
             onChanged: (_) {}),
         'ItToggle': ItToggle(
@@ -769,13 +852,16 @@ void main() {
             focusNode: nodes['ItToggle'],
             onChanged: (_) {}),
         'ItSelect': ItSelect<String>(
+          groupMargin: false,
           label: 'Provincia',
           items: const [ItSelectItem(value: 'RM', label: 'Roma')],
           focusNode: nodes['ItSelect'],
           onChanged: (_) {},
         ),
-        'ItInput': ItInput(label: 'Nome', focusNode: nodes['ItInput']),
+        'ItInput': ItInput(
+            groupMargin: false, label: 'Nome', focusNode: nodes['ItInput']),
         'ItAutocomplete': ItAutocomplete<String>(
+          groupMargin: false,
           label: 'Comune',
           focusNode: nodes['ItAutocomplete'],
           onSearch: (q) async => const <String>[],
@@ -799,6 +885,7 @@ void main() {
 
       await tester.pumpWidget(_host(
         ItSelect<String>(
+          groupMargin: false,
           label: 'Provincia',
           items: const [ItSelectItem(value: 'RM', label: 'Roma')],
           focusNode: node,

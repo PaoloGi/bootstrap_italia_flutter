@@ -27,11 +27,19 @@ administration deployments.
 | --- | --- | --- | --- |
 | Titillium Web | 1.002 | Accademia di Belle Arti di Urbino and students of the MA course in Visual Design | [SIL OFL 1.1](fonts/licenses/OFL-1.1.txt) |
 | Lora | 3.008 | The Lora Project Authors ([cyrealtype/Lora-Cyrillic](https://github.com/cyrealtype/Lora-Cyrillic)) | [SIL OFL 1.1](fonts/licenses/OFL-1.1.txt) |
-| Roboto Mono | 3.001 | The Roboto Mono Project Authors ([googlefonts/robotomono](https://github.com/googlefonts/robotomono)) | [Apache-2.0](fonts/licenses/Apache-2.0.txt) |
+| Roboto Mono | 3.001 | The Roboto Mono Project Authors ([googlefonts/robotomono](https://github.com/googlefonts/robotomono)) | [SIL OFL 1.1](fonts/licenses/OFL-1.1.txt) |
 
-Both the SIL Open Font Licence and Apache-2.0 require their licence text to
-accompany redistributed font binaries; `fonts/licenses/` satisfies that, and
-`pubspec.yaml` includes it in the published archive.
+All three are under the SIL Open Font Licence. Roboto Mono is listed here as
+Apache-2.0 in earlier versions of this file, because its first release was —
+but the binary bundled in `fonts/` is not: its own `name` table says "This Font
+Software is licensed under the SIL Open Font License, Version 1.1", and the
+Apache text that sat beside it documented a licence no font in this package is
+under. The copyright lines above were read back out of the binaries rather than
+from a web page, so they describe these files.
+
+The OFL requires its licence text and the copyright notices to accompany
+redistributed font binaries; [fonts/licenses/](fonts/licenses/) carries both,
+and `pubspec.yaml` includes the directory in the published archive.
 
 ## Naming and endorsement
 

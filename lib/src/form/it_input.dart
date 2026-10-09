@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 
 import '../l10n/it_localizations.dart';
 import '../a11y/it_focus_ring.dart';
+import '../a11y/keyboard_focus_mode.dart';
 import '../theme/bootstrap_italia_theme_data.dart';
 import '../theme/theme_extensions.dart';
 import 'it_field_support.dart';
@@ -81,6 +82,13 @@ class ItInput extends StatefulWidget {
   /// sits outside the input area.
   final IconData? icon;
 
+  /// Called when the field is tapped.
+  ///
+  /// With [readOnly] this is how a field that opens something is built —
+  /// a picker, say: the field keeps its own focus and keyboard behaviour,
+  /// and the tap does the opening. Mirrors `TextField.onTap`.
+  final VoidCallback? onTap;
+
   /// Trailing action widget placed to the right of the field.
   ///
   /// Follows Bootstrap Italia's `.input-group-append` pattern. Typically an
@@ -105,6 +113,29 @@ class ItInput extends StatefulWidget {
 
   /// Called when the text changes.
   final ValueChanged<String>? onChanged;
+
+  /// Validates the field as part of an enclosing [Form], exactly as
+  /// `TextFormField.validator` does.
+  ///
+  /// This exists because its absence was a **silent** failure. `ItInput` is not
+  /// a [FormField], so replacing a `TextFormField` with it used to compile
+  /// cleanly and quietly stop `Form.of(context).validate()` from ever calling
+  /// the validator — the form simply submitted. That was found three times in
+  /// one afternoon in a single real application, and nothing in the analyser,
+  /// the build or the tests said a word.
+  ///
+  /// Supplying this (or [onSaved]) makes the field a real form participant: it
+  /// registers with the [Form], answers `validate()` and `save()`, and shows
+  /// the returned message through its own [errorText] slot, which is tied to
+  /// the control for assistive technology.
+  final FormFieldValidator<String>? validator;
+
+  /// Called by `Form.save()`, as `TextFormField.onSaved` is.
+  final FormFieldSetter<String>? onSaved;
+
+  /// When the field re-validates. Defaults to [AutovalidateMode.disabled],
+  /// matching `TextFormField`.
+  final AutovalidateMode? autovalidateMode;
 
   /// Called when editing is complete.
   final VoidCallback? onEditingComplete;
@@ -191,6 +222,19 @@ class ItInput extends StatefulWidget {
   /// cursor, on the field and on its label alike.
   final bool plaintext;
 
+  /// Whether to reserve `.form-group { margin-bottom: 3rem }` below the field.
+  ///
+  /// On by default, and it is not decoration: the NEXT field's floating label
+  /// is drawn 33.15px above its own box, unclipped, and this 48px is the space
+  /// it rises into. Turn it off and stacked fields overlap — reported twice
+  /// from a real form.
+  ///
+  /// Worth turning off for a field that is the last thing in its container, or
+  /// when the surrounding layout supplies its own spacing. Note that the
+  /// margin is part of this widget's box, so its centre is below the control
+  /// while it is on.
+  final bool groupMargin;
+
   /// Creates a Bootstrap Italia text input.
   const ItInput({
     super.key,
@@ -198,6 +242,7 @@ class ItInput extends StatefulWidget {
     this.hint,
     this.icon,
     this.trailingAction,
+    this.onTap,
     this.helperText,
     this.errorText,
     this.obscureText = false,
@@ -207,6 +252,7 @@ class ItInput extends StatefulWidget {
     this.onEditingComplete,
     this.onSubmitted,
     this.enabled = true,
+    this.groupMargin = true,
     this.readOnly = false,
     this.validationState,
     this.keyboardType,
@@ -221,13 +267,16 @@ class ItInput extends StatefulWidget {
     this.hidePasswordLabel,
     this.size = ItInputSize.medium,
     this.plaintext = false,
+    this.validator,
+    this.onSaved,
+    this.autovalidateMode,
   });
 
   @override
   State<ItInput> createState() => _ItInputState();
 }
 
-class _ItInputState extends State<ItInput> {
+class _ItInputState extends State<ItInput> with KeyboardFocusMode<ItInput> {
   late bool _obscured;
   late FocusNode _focusNode;
   late TextEditingController _controller;
@@ -282,6 +331,8 @@ class _ItInputState extends State<ItInput> {
   }
 
   void _onFocusChange() {
+    // Classified once, as it arrives — see KeyboardFocusMode.
+    if (_focusNode.hasFocus && !_isFocused) classifyFocus();
     setState(() => _isFocused = _focusNode.hasFocus);
   }
 
@@ -299,8 +350,23 @@ class _ItInputState extends State<ItInput> {
     super.dispose();
   }
 
+  /// The message the enclosing [Form] produced on the last validate(), if the
+  /// field is participating in one.
+  String? _formError;
+
+  /// The enclosing [FormField]'s state, when this field is participating in a
+  /// [Form]. Held so the text callbacks can report changes back to it without
+  /// threading it through every private build method.
+  FormFieldState<String>? _formState;
+
+  /// An explicit [ItInput.errorText] wins: a caller stating the error outright
+  /// is more specific than a validator that has not run yet.
+  String? get _errorText => widget.errorText ?? _formError;
+
+  bool get _isFormField => widget.validator != null || widget.onSaved != null;
+
   ItValidationState? get _effectiveValidation =>
-      ItFieldValidation.effective(widget.errorText, widget.validationState);
+      ItFieldValidation.effective(_errorText, widget.validationState);
 
   void _togglePasswordVisibility() => setState(() => _obscured = !_obscured);
 
@@ -373,6 +439,33 @@ class _ItInputState extends State<ItInput> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_isFormField) return _buildInput(context);
+
+    // A real [FormField], so the enclosing [Form] can reach this control.
+    // `initialValue` is the controller's text rather than null: the field is
+    // controller-driven, and a FormField that disagrees with the controller
+    // reports the wrong value to `save()`.
+    return FormField<String>(
+      initialValue: _controller.text,
+      autovalidateMode: widget.autovalidateMode,
+      validator: widget.validator == null
+          ? null
+          // The controller is the source of truth, not the FormField's own
+          // copy — they diverge the moment a caller sets `controller.text`
+          // directly, which application code does constantly.
+          : (_) => widget.validator!(_controller.text),
+      onSaved: widget.onSaved == null
+          ? null
+          : (_) => widget.onSaved!(_controller.text),
+      builder: (state) {
+        _formState = state;
+        _formError = state.errorText;
+        return _buildInput(context);
+      },
+    );
+  }
+
+  Widget _buildInput(BuildContext context) {
     assert(
       !_isTextarea || (widget.icon == null && widget.trailingAction == null),
       'ItInput was given an icon or a trailing action on a multi-line field.\n'
@@ -387,26 +480,26 @@ class _ItInputState extends State<ItInput> {
 
     // input[type=text] { border-bottom: 1px solid hsl(210,17%,44%) }
     // .form-control.is-invalid { border-color: rgb(204,51,76.5) }
-    final borderColor = validation == null
-        ? ItFormMetrics.borderColor
-        : _validationColor(colors);
+    // — and while focused, Italia's `!important` focus rules over both: see
+    // [ItFormMetrics.focusBorderColor].
+    final showsFocus = _isFocused && widget.enabled;
+    final borderColor = showsFocus
+        ? ItFormMetrics.focusBorderColor(colors, keyboard: keyboardFocusMode)
+        : validation == null
+            ? ItFormMetrics.borderColor
+            : _validationColor(colors);
 
     final floating = _labelIsFloating;
     final hasIcon = widget.icon != null;
 
-    final control = DecoratedBox(
-      // .form-control:focus { box-shadow: 0 0 0 .25rem rgba(0,102,204,.25) }
-      // — rgba() of the primary token, so it comes from the scheme.
-      decoration: BoxDecoration(
-        boxShadow: _isFocused && widget.enabled
-            ? [
-                BoxShadow(
-                  color: ItFormMetrics.focusRingColor(colors),
-                  spreadRadius: 4,
-                )
-              ]
-            : null,
-      ),
+    // `.form-control:focus` declares a 25% primary ring, and the port painted
+    // it — but it never shows upstream: Italia overrides it with `!important`
+    // for both ways focus can arrive. Keyboard focus gets the kit-wide black
+    // ring; a tap or a click gets none, only the darker border above. Measured
+    // on design-react-kit in Chromium: box-shadow `none` for mouse and touch,
+    // `#fff 0 0 0 2px, #000 0 0 0 5px` for Tab.
+    final control = ItFocusRing(
+      visible: showsFocus && keyboardFocusMode,
       child: _isTextarea
           ? _buildTextarea(colors, validation, borderColor, floating)
           : SizedBox(
@@ -440,7 +533,7 @@ class _ItInputState extends State<ItInput> {
                   // field's own label, so on its own it gives the input no
                   // accessible name — axe reported a critical "Form elements
                   // must have labels". It is excluded here and re-attached to
-                  // the field itself in [_buildField], which is the association
+                  // the field itself in [_buildInput], which is the association
                   // AT needs.
                   if (widget.label != null)
                     Positioned(
@@ -471,8 +564,12 @@ class _ItInputState extends State<ItInput> {
     // otherwise a screen-reader user meets them as loose text after the field,
     // with nothing tying them to it.
     return ItFieldSupport(
+      // `.form-group { margin-bottom: 3rem }` — the space the NEXT
+      // field's floating label rises into. Without it that label is
+      // painted straight through this control.
+      groupMargin: widget.groupMargin,
       helperText: widget.helperText,
-      errorText: widget.errorText,
+      errorText: _errorText,
       child: control,
     );
   }
@@ -623,13 +720,19 @@ class _ItInputState extends State<ItInput> {
     final field = TextField(
       controller: _controller,
       focusNode: _focusNode,
-      onChanged: widget.onChanged,
+      onChanged: (value) {
+        // Keep the FormField in step, or `autovalidateMode` never re-runs and
+        // a message that has been fixed stays on screen.
+        _formState?.didChange(value);
+        widget.onChanged?.call(value);
+      },
       onEditingComplete: widget.onEditingComplete,
       onSubmitted: widget.onSubmitted,
       enabled: widget.enabled,
       // `.form-control-plaintext` is only ever paired with `readonly` in the
       // kit's markup — see [ItInput.plaintext].
       readOnly: widget.readOnly || widget.plaintext,
+      onTap: widget.onTap,
       obscureText: _obscured,
       keyboardType: widget.keyboardType,
       maxLines: widget.maxLines,
@@ -646,6 +749,17 @@ class _ItInputState extends State<ItInput> {
       decoration: InputDecoration(
         isCollapsed: true,
         border: InputBorder.none,
+        // Every state pinned, not only `border`. `border` is merely the
+        // fallback: InputDecoration merges the ambient theme's state-specific
+        // borders in first, so `toThemeData()`'s `focusedBorder` — a 2px
+        // primary underline meant for plain Material fields — was drawn inside
+        // this control on focus, as a second, thicker line above the kit's own
+        // `border-bottom`. Upstream's focus rule only recolours that one border.
+        enabledBorder: InputBorder.none,
+        focusedBorder: InputBorder.none,
+        disabledBorder: InputBorder.none,
+        errorBorder: InputBorder.none,
+        focusedErrorBorder: InputBorder.none,
         counterText: '',
         contentPadding: EdgeInsets.zero,
         // input[type=text]::placeholder { color: hsl(210,17%,44%) }
@@ -670,7 +784,7 @@ class _ItInputState extends State<ItInput> {
     final labelled = MergeSemantics(
       child: Semantics(
         label: widget.semanticLabel ?? widget.label,
-        hint: ItFieldValidation.hint(widget.errorText, widget.helperText),
+        hint: ItFieldValidation.hint(_errorText, widget.helperText),
         isRequired: widget.required,
         validationResult: ItFieldValidation.result(validation),
         child: field,

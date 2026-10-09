@@ -195,7 +195,9 @@ class _Labelled extends StatelessWidget {
           // The 80px extra-large spinner is the tallest cell; a fixed box keeps
           // the captions on one baseline instead of stepping down with the
           // diameter.
-          SizedBox(height: 88, child: Align(alignment: Alignment.centerLeft, child: child)),
+          SizedBox(
+              height: 88,
+              child: Align(alignment: Alignment.centerLeft, child: child)),
         ],
       ),
     );

@@ -26,6 +26,7 @@
 //   2.4.6 Headings and Labels     — controls are labelled
 import 'package:bootstrap_italia_flutter/bootstrap_italia_flutter.dart';
 import 'package:bootstrap_italia_flutter/src/a11y/it_focus_ring.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -174,7 +175,62 @@ bool _isAncestor(Element ancestor, Element descendant) {
   return found;
 }
 
+/// A tab must be ONE node, not a named tab wrapping an unnamed button.
+void _tabHasNoNestedControl() {
+  testWidgets('§4.1.2 a tab contains no second, unnamed control',
+      (tester) async {
+    // Found by running the package in a real browser: axe reported
+    // `nested-interactive` and `aria-command-name` against `role="tab"` on the
+    // Flutter Web build. The cause was ItActivatable publishing its own
+    // focusable, tappable node inside the tab's Semantics, which already
+    // carries the role, the name, the selected state and the tap action — so
+    // AT met an unnamed button inside every tab.
+    //
+    // No widget test saw it because every assertion was about the tab node's
+    // own properties, which were correct. The defect was the node BELOW it.
+    final handle = tester.ensureSemantics();
+    await tester.pumpWidget(BootstrapItaliaTheme(
+      data: BootstrapItaliaThemeData.standard(),
+      child: MaterialApp(
+        home: Scaffold(
+          body: ItTabBar(
+            selectedIndex: 0,
+            onChanged: (_) {},
+            tabs: const [
+              ItTabItem(label: 'Prima'),
+              ItTabItem(label: 'Seconda'),
+            ],
+          ),
+        ),
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    final offenders = <String>[];
+    void walk(SemanticsNode n, {bool insideTab = false}) {
+      final data = n.getSemanticsData();
+      final interactive = data.hasAction(SemanticsAction.tap) ||
+          n.hasFlag(SemanticsFlag.isFocusable);
+      if (insideTab && interactive) {
+        offenders.add('role=${n.role} label="${n.label}"');
+      }
+      n.visitChildren((c) {
+        walk(c, insideTab: insideTab || n.role == SemanticsRole.tab);
+        return true;
+      });
+    }
+
+    walk(tester.binding.pipelineOwner.semanticsOwner!.rootSemanticsNode!);
+    expect(offenders, isEmpty,
+        reason: 'a tab must be a single node — an interactive descendant is '
+            'an unnamed button to a screen reader (WCAG 4.1.2) and axe '
+            'reports it as nested-interactive');
+    handle.dispose();
+  });
+}
+
 void main() {
+  _tabHasNoNestedControl();
   group('4.1.2 Name, Role, Value', () {
     testWidgets('ItButton exposes the button role, a name and enabled state',
         (tester) async {
@@ -244,6 +300,39 @@ void main() {
       handle.dispose();
     });
 
+    // The indeterminate box is the one state a screen reader cannot infer from
+    // anything else on screen. Flutter has a distinct flag for it, and Android
+    // renders it as a third state; iOS does NOT — see the iOS section of
+    // doc/accessibility-audit.md, where this same control reports AXValue 0,
+    // indistinguishable from unchecked. That is an engine limitation rather
+    // than a defect here, and this test is what makes the distinction provable:
+    // if the Dart contract ever silently degrades to `checked: false`, the iOS
+    // observation stops being a platform note and becomes our bug.
+    testWidgets('ItCheckbox exposes the mixed state as mixed, not unchecked',
+        (tester) async {
+      final handle = tester.ensureSemantics();
+      await tester.pumpWidget(_host(
+        ItCheckbox(
+          label: 'Tutti',
+          value: false,
+          indeterminate: true,
+          onChanged: (_) {},
+        ),
+      ));
+
+      final node =
+          _find(tester, (d) => d.hasFlag(SemanticsFlag.isCheckStateMixed));
+      expect(node, isNotNull,
+          reason: 'an indeterminate checkbox must set isCheckStateMixed; '
+              'reporting it as merely unchecked tells the user the opposite '
+              'of the truth about the group beneath it');
+
+      final data = node!.getSemanticsData();
+      expect(data.hasFlag(SemanticsFlag.isChecked), isFalse,
+          reason: 'mixed and checked are mutually exclusive');
+      handle.dispose();
+    });
+
     testWidgets('ItToggle exposes toggled state', (tester) async {
       final handle = tester.ensureSemantics();
       await tester.pumpWidget(_host(
@@ -271,7 +360,7 @@ void main() {
         (tester) async {
       final handle = tester.ensureSemantics();
       await tester.pumpWidget(_host(
-        ItRadio(value: true, label: 'Uno', onChanged: (_) {}),
+        ItRadio<int>(value: 1, groupValue: 1, label: 'Uno', onChanged: (_) {}),
       ));
 
       final node = _find(
@@ -284,11 +373,109 @@ void main() {
       handle.dispose();
     });
 
+    // §4.1.2 on Apple platforms. `checked` does not reach VoiceOver at all for a
+    // radio: the iOS embedder routes a mutually-exclusive node away from the
+    // `UISwitch`-backed object and then returns nil for its value outright
+    // ("iOS does not announce values of native radio buttons"). The chosen
+    // option rides on `UIAccessibilityTraitSelected`, which only `selected:`
+    // sets — so on a simulator the tree looked complete while conveying nothing
+    // about which option was on. See the iOS section of
+    // doc/accessibility-audit.md.
+    //
+    // These two tests pin the platform split. Android must NOT get the flag:
+    // its bridge maps it to `setSelected` and fires a `TYPE_VIEW_SELECTED`
+    // announcement on top of the checked state it already carries.
+    group('ItRadio selection across platforms', () {
+      testWidgets('iOS marks the chosen option selected', (tester) async {
+        final handle = tester.ensureSemantics();
+        await tester.pumpWidget(_host(
+          ItRadio<int>(
+              value: 1, groupValue: 1, label: 'Uno', onChanged: (_) {}),
+        ));
+
+        final node = _find(tester, (d) => d.hasFlag(SemanticsFlag.isSelected));
+        expect(node, isNotNull,
+            reason: 'without isSelected nothing distinguishes the chosen radio '
+                'on iOS — checked reaches nothing there');
+        expect(node!.getSemanticsData().label, contains('Uno'));
+        handle.dispose();
+      }, variant: TargetPlatformVariant.only(TargetPlatform.iOS));
+
+      testWidgets('iOS says so on the ones that are not chosen',
+          (tester) async {
+        final handle = tester.ensureSemantics();
+        await tester.pumpWidget(_host(
+          ItRadio<int>(
+              value: 1, groupValue: 0, label: 'Due', onChanged: (_) {}),
+        ));
+
+        final node = _find(
+          tester,
+          (d) => d.hasFlag(SemanticsFlag.isInMutuallyExclusiveGroup),
+        );
+        expect(node!.getSemanticsData().hint, contains('Non selezionato'),
+            reason: 'the trait marks only the chosen option, so an unselected '
+                'radio is announced exactly as one whose state is missing');
+        expect(
+            node.getSemanticsData().hasFlag(SemanticsFlag.isSelected), isFalse);
+        handle.dispose();
+      }, variant: TargetPlatformVariant.only(TargetPlatform.iOS));
+
+      testWidgets('Android is left alone — it already carries checked',
+          (tester) async {
+        final handle = tester.ensureSemantics();
+        await tester.pumpWidget(_host(
+          ItRadio<int>(
+              value: 1, groupValue: 1, label: 'Uno', onChanged: (_) {}),
+        ));
+
+        final node = _find(
+          tester,
+          (d) => d.hasFlag(SemanticsFlag.isInMutuallyExclusiveGroup),
+        );
+        final data = node!.getSemanticsData();
+        expect(data.hasFlag(SemanticsFlag.isChecked), isTrue);
+        expect(data.hasFlag(SemanticsFlag.isSelected), isFalse,
+            reason: 'Android maps isSelected to setSelected AND fires '
+                'TYPE_VIEW_SELECTED, so adding it here states the checked '
+                'state a second time');
+        expect(data.hint, isNot(contains('Non selezionato')));
+        handle.dispose();
+      }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+
+      testWidgets('the unselected hint does not swallow a validation message',
+          (tester) async {
+        final handle = tester.ensureSemantics();
+        await tester.pumpWidget(_host(
+          ItRadio<int>(
+            value: 1,
+            groupValue: 0,
+            label: 'Due',
+            errorText: 'Selezione obbligatoria',
+            onChanged: (_) {},
+          ),
+        ));
+
+        final node = _find(
+          tester,
+          (d) => d.hasFlag(SemanticsFlag.isInMutuallyExclusiveGroup),
+        );
+        final hint = node!.getSemanticsData().hint;
+        expect(hint, contains('Non selezionato'));
+        expect(hint, contains('Selezione obbligatoria'),
+            reason: 'both can be true at once and neither may replace the '
+                'other');
+        handle.dispose();
+      }, variant: TargetPlatformVariant.only(TargetPlatform.iOS));
+    });
+
     testWidgets('ItInput exposes the text-field role and its label',
         (tester) async {
       final handle = tester.ensureSemantics();
       await tester.pumpWidget(_host(
-        const SizedBox(width: 320, child: ItInput(label: 'Codice fiscale')),
+        const SizedBox(
+            width: 320,
+            child: ItInput(groupMargin: false, label: 'Codice fiscale')),
       ));
 
       final node = _find(tester, (d) => d.hasFlag(SemanticsFlag.isTextField));
@@ -311,6 +498,7 @@ void main() {
         SizedBox(
           width: 320,
           child: ItSelect<String>(
+            groupMargin: false,
             label: 'Provincia',
             value: 'RM',
             items: const [
@@ -346,6 +534,62 @@ void main() {
       handle.dispose();
     });
 
+    testWidgets('ItMultiSelect reads back every choice and marks its rows',
+        (tester) async {
+      final handle = tester.ensureSemantics();
+      await tester.pumpWidget(_host(
+        SizedBox(
+          width: 320,
+          child: ItMultiSelect<String>(
+            groupMargin: false,
+            label: 'Province',
+            values: const {'RM', 'MI'},
+            items: const [
+              ItSelectItem(value: 'RM', label: 'Roma'),
+              ItSelectItem(value: 'MI', label: 'Milano'),
+              ItSelectItem(value: 'NA', label: 'Napoli'),
+            ],
+            onChanged: (_) {},
+          ),
+        ),
+      ));
+
+      final closed =
+          _find(tester, (d) => d.hasFlag(SemanticsFlag.hasExpandedState))!;
+      final data = closed.getSemanticsData();
+      expect(data.label, contains('Province'));
+      expect(data.value, contains('Roma'));
+      expect(data.value, contains('Milano'),
+          reason: 'a multi-select that reads back only one of two choices '
+              'leaves a screen-reader user unable to tell what is selected '
+              '(WCAG 4.1.2)');
+      expect(data.hasFlag(SemanticsFlag.isEnabled), isTrue);
+
+      // Open it: each row says whether it is one of the choices. `selected`,
+      // not `checked` — these are options in a list, which is `aria-selected`
+      // in the markup, and the rows are not checkboxes.
+      await tester.tap(find.byType(ItMultiSelect<String>));
+      await tester.pumpAndSettle();
+
+      final roma = _find(tester, (d) => d.label.contains('Roma'));
+      final napoli = _find(tester, (d) => d.label.contains('Napoli'));
+      expect(roma, isNotNull);
+      expect(roma!.getSemanticsData().hasFlag(SemanticsFlag.isSelected), isTrue,
+          reason: 'a chosen row that does not say so leaves the list readable '
+              'only by colour (WCAG 1.4.1, 4.1.2)');
+      expect(napoli, isNotNull);
+      expect(napoli!.getSemanticsData().hasFlag(SemanticsFlag.isSelected),
+          isFalse);
+      expect(
+          roma
+              .getSemanticsData()
+              .hasFlag(SemanticsFlag.isInMutuallyExclusiveGroup),
+          isFalse,
+          reason: 'choosing one row does not clear the others here — saying '
+              'otherwise would tell AT this behaves like a radio group');
+      handle.dispose();
+    });
+
     testWidgets('ItSelect reports the expanded state once the list is open',
         (tester) async {
       final handle = tester.ensureSemantics();
@@ -353,6 +597,7 @@ void main() {
         SizedBox(
           width: 320,
           child: ItSelect<String>(
+            groupMargin: false,
             label: 'Provincia',
             items: const [ItSelectItem(value: 'RM', label: 'Roma')],
             onChanged: (_) {},
@@ -385,6 +630,7 @@ void main() {
         SizedBox(
           width: 320,
           child: ItAutocomplete<String>(
+            groupMargin: false,
             label: 'Comune di residenza',
             onSearch: (q) async => const ['Roma'],
             displayStringForOption: (s) => s,
@@ -2028,6 +2274,7 @@ void main() {
         const SizedBox(
           width: 320,
           child: ItInput(
+            groupMargin: false,
             label: 'Codice fiscale',
             errorText: 'Il codice fiscale non è valido',
           ),
@@ -2059,6 +2306,7 @@ void main() {
         const SizedBox(
           width: 320,
           child: ItInput(
+            groupMargin: false,
             label: 'Codice fiscale',
             errorText: 'Il codice fiscale non è valido',
           ),
@@ -2085,6 +2333,7 @@ void main() {
         const SizedBox(
           width: 320,
           child: ItInput(
+            groupMargin: false,
             label: 'Codice fiscale',
             helperText: 'Come riportato sulla tessera sanitaria',
           ),
@@ -2108,6 +2357,7 @@ void main() {
         SizedBox(
           width: 320,
           child: ItSelect<String>(
+            groupMargin: false,
             label: 'Provincia',
             errorText: 'Scegli una provincia',
             items: const [ItSelectItem(value: 'RM', label: 'Roma')],
@@ -2129,7 +2379,8 @@ void main() {
       await tester.pumpWidget(_host(
         const SizedBox(
           width: 320,
-          child: ItInput(label: 'Codice fiscale', required: true),
+          child: ItInput(
+              groupMargin: false, label: 'Codice fiscale', required: true),
         ),
       ));
 
@@ -2146,13 +2397,98 @@ void main() {
         (tester) async {
       final handle = tester.ensureSemantics();
       await tester.pumpWidget(_host(
-        const SizedBox(width: 320, child: ItInput(label: 'Note')),
+        const SizedBox(
+            width: 320, child: ItInput(groupMargin: false, label: 'Note')),
       ));
 
       final node = _find(tester, (d) => d.hasFlag(SemanticsFlag.isTextField));
       expect(
           node!.getSemanticsData().hasFlag(SemanticsFlag.isRequired), isFalse,
           reason: 'over-reporting required is as misleading as omitting it');
+      handle.dispose();
+    });
+
+    testWidgets('a group announces one error, not one per option',
+        (tester) async {
+      final handle = tester.ensureSemantics();
+      await tester.pumpWidget(_host(
+        SizedBox(
+          width: 320,
+          child: ItRadioGroup<String>(
+            label: 'Fase',
+            value: null,
+            errorText: 'Scegli una fase',
+            options: const [
+              ItRadioOption(value: 'a', label: 'Attenzione'),
+              ItRadioOption(value: 'p', label: 'Preallarme'),
+              ItRadioOption(value: 'l', label: 'Allarme'),
+            ],
+            onChanged: (_) {},
+          ),
+        ),
+      ));
+
+      final invalid = _findAll(
+        tester,
+        (d) => d.validationResult == SemanticsValidationResult.invalid,
+      );
+      expect(invalid, hasLength(1),
+          reason: 'the tint reaches every option, because `.is-invalid` sits '
+              'on each input — but the invalid STATE was reaching them too, so '
+              'three radios and the group announced "non valido" four times '
+              'for one message that exists once');
+      expect(invalid.single.getSemanticsData().label, contains('Fase'),
+          reason: 'the one that keeps it is the group, which is also the node '
+              'carrying the message');
+      handle.dispose();
+    });
+
+    testWidgets('a checkbox group does the same', (tester) async {
+      final handle = tester.ensureSemantics();
+      await tester.pumpWidget(_host(
+        SizedBox(
+          width: 320,
+          child: ItCheckboxGroup<String>(
+            label: 'Funzioni',
+            values: const {},
+            errorText: 'Scegli almeno una funzione',
+            options: const [
+              ItCheckboxOption(value: '1', label: 'Tecnica'),
+              ItCheckboxOption(value: '2', label: 'Sanità'),
+            ],
+            onChanged: (_) {},
+          ),
+        ),
+      ));
+
+      expect(
+        _findAll(tester,
+            (d) => d.validationResult == SemanticsValidationResult.invalid),
+        hasLength(1),
+      );
+      handle.dispose();
+    });
+
+    testWidgets('a control outside a group keeps its own invalid state',
+        (tester) async {
+      // The suppression must come from being inside a group, not from the
+      // control having stopped reporting validity at all.
+      final handle = tester.ensureSemantics();
+      await tester.pumpWidget(_host(
+        const SizedBox(
+          width: 320,
+          child: ItCheckbox(
+            value: false,
+            label: 'Accetto',
+            errorText: 'Obbligatorio',
+          ),
+        ),
+      ));
+      expect(
+        _findAll(tester,
+            (d) => d.validationResult == SemanticsValidationResult.invalid),
+        hasLength(1),
+      );
       handle.dispose();
     });
 
@@ -2165,6 +2501,7 @@ void main() {
             SizedBox(
               width: 320,
               child: ItSelect<String>(
+                groupMargin: false,
                 label: 'Provincia',
                 required: true,
                 items: const [ItSelectItem(value: 'RM', label: 'Roma')],
@@ -2241,8 +2578,9 @@ void main() {
                 onChanged: (_) {},
               ),
             ),
-            ItRadio(
-              value: true,
+            ItRadio<int>(
+              value: 1,
+              groupValue: 1,
               label: 'Uno',
               enabled: false,
               onChanged: (_) {},
@@ -2277,11 +2615,13 @@ void main() {
           children: [
             const SizedBox(
               width: 320,
-              child: ItInput(label: 'Codice fiscale', enabled: false),
+              child: ItInput(
+                  groupMargin: false, label: 'Codice fiscale', enabled: false),
             ),
             SizedBox(
               width: 320,
               child: ItSelect<String>(
+                groupMargin: false,
                 label: 'Provincia',
                 enabled: false,
                 items: const [ItSelectItem(value: 'RM', label: 'Roma')],
@@ -2370,7 +2710,8 @@ void main() {
     testWidgets('Space selects a Tab-focused ItRadio', (tester) async {
       var taps = 0;
       await tester.pumpWidget(_host(
-        ItRadio(value: false, label: 'Uno', onChanged: (_) => taps++),
+        ItRadio<int>(
+            value: 1, groupValue: 0, label: 'Uno', onChanged: (_) => taps++),
       ));
 
       await tester.sendKeyEvent(LogicalKeyboardKey.tab);
@@ -2386,7 +2727,8 @@ void main() {
         Column(
           children: [
             ItCheckbox(label: 'Accetto', value: false, onChanged: (_) {}),
-            ItRadio(value: false, label: 'Uno', onChanged: (_) {}),
+            ItRadio<int>(
+                value: 1, groupValue: 0, label: 'Uno', onChanged: (_) {}),
             SizedBox(
               width: 320,
               child: ItToggle(
@@ -2398,6 +2740,7 @@ void main() {
             SizedBox(
               width: 320,
               child: ItSelect<String>(
+                groupMargin: false,
                 label: 'Provincia',
                 items: const [ItSelectItem(value: 'RM', label: 'Roma')],
                 onChanged: (_) {},
@@ -2409,7 +2752,9 @@ void main() {
 
       final expected = <Type>[
         ItCheckbox,
-        ItRadio,
+        // Typed: `ItRadio` on its own is `ItRadio<dynamic>`, which matches
+        // nothing now that the radio carries the type of what it stands for.
+        ItRadio<int>,
         ItToggle,
         ItSelect<String>,
       ];
@@ -2473,6 +2818,7 @@ void main() {
         SizedBox(
           width: 320,
           child: ItSelect<String>(
+            groupMargin: false,
             label: 'Provincia',
             items: const [
               ItSelectItem(value: 'RM', label: 'Roma'),
@@ -2508,6 +2854,7 @@ void main() {
         SizedBox(
           width: 320,
           child: ItSelect<String>(
+            groupMargin: false,
             label: 'Provincia',
             items: const [
               ItSelectItem(value: 'RM', label: 'Roma'),
@@ -2537,8 +2884,19 @@ void main() {
     for (final entry in <String, Widget>{
       'ItCheckbox':
           ItCheckbox(label: 'Accetto', value: false, onChanged: (_) {}),
-      'ItRadio': ItRadio(value: false, label: 'Uno', onChanged: (_) {}),
+      'ItRadio': ItRadio<int>(
+          value: 1, groupValue: 0, label: 'Uno', onChanged: (_) {}),
       'ItToggle': ItToggle(label: 'Notifiche', value: false, onChanged: (_) {}),
+      // Their only indicator used to be `.form-control:focus`'s 25% ring —
+      // which Italia overrides for keyboard focus too, with this same ring.
+      // test/a11y/form_focus_rendering_test.dart checks the pixels.
+      'ItInput': const ItInput(label: 'Nome', groupMargin: false),
+      'ItAutocomplete': ItAutocomplete<String>(
+        label: 'Comune',
+        onSearch: (_) async => const <String>[],
+        displayStringForOption: (o) => o,
+        groupMargin: false,
+      ),
     }.entries) {
       testWidgets('${entry.key} paints a focus indicator on keyboard focus',
           (tester) async {

@@ -54,7 +54,29 @@ abstract final class ItFormMetrics {
   static const double activeLabelFontSize = 14;
 
   /// `transform: translateY(-85%)` of the 39px label line box.
+  ///
+  /// The label is drawn **outside** the control's own box — 33.15px above it —
+  /// which is why [groupMarginBottom] exists. Without that space reserved
+  /// below the *previous* field, this label paints straight through it.
   static const double activeLabelOffset = -0.85 * labelLineHeight;
+
+  /// `.form-group { margin-bottom: 3rem }`
+  ///
+  /// The single most load-bearing number in the form CSS, and the easiest to
+  /// mistake for decoration.
+  ///
+  /// A floating label is `position: absolute; top: 0` inside a
+  /// `position: relative` form group, and rises 33.15px on activation — clear
+  /// of the group's own box. Nothing clips it. What stops it landing on the
+  /// field above is that every group leaves 48px behind it, and 48 > 33.15.
+  ///
+  /// Reported from PC03 twice: `Specificare altro` painted through the value
+  /// of the select above it.
+  ///
+  /// It is a *margin*, so an element screenshot of `.form-group` does not
+  /// contain it — see `tool/visual_parity` for why the reference captures
+  /// cannot see this and the harness has to crop it.
+  static const double groupMarginBottom = 48;
 
   // ── .form-text (helper) and .form-feedback (validation message) ────
   //
@@ -174,8 +196,9 @@ abstract final class ItFormMetrics {
   // compiled sheet contains no `var(--bs-primary)` at all and every colour is
   // written out as a literal. Provenance is decided by identity AND role — a
   // value is a token when it is byte-identical to a declared `--bs-*` *and*
-  // sits in the role that token exists for. Only [textColor] and
-  // [focusRingColor] clear both bars, which is why they alone take a scheme.
+  // sits in the role that token exists for. Only [textColor] clears both
+  // bars, which is why it alone takes a scheme — with [focusBorderColor],
+  // which resolves to it.
   //
   // The rest are colours the stylesheet declares in their own right. Routing
   // those through the scheme would be its own defect: re-theming would not move
@@ -235,20 +258,32 @@ abstract final class ItFormMetrics {
   /// token, and [ItInput] takes it from the scheme.
   static const Color feedbackDangerColor = Color(0xFFD9364F);
 
-  /// `.form-control:focus { box-shadow: 0 0 0 .25rem rgba(0,102,204,.25) }` —
-  /// and identically on `.form-check-input:focus` and `.form-select:focus`.
+  /// The bottom border of a focused field.
   ///
-  /// **Token.** `rgb(0,102,204)` is byte-identical to `--bs-primary`
-  /// (`hsl(210,100%,40%)`), and this is Bootstrap's `$input-btn-focus-color`,
-  /// derived from `$component-active-bg: $primary` — the accent role the token
-  /// exists for. Written literally it would leave a retinted app focusing every
-  /// field in Blu Italia.
+  /// `.form-control:focus` declares `border-color: hsl(210,17%,44%)` and a 25%
+  /// primary `box-shadow` ring, and neither ever paints: Italia overrides both
+  /// with `!important`, once for each way focus can arrive —
   ///
-  /// `withAlpha(0x40)` rather than a 0.25 double: `0x40 / 255 = 0.2510` is the
-  /// 8-bit alpha this value has always carried, so the ring stays byte-identical
-  /// under the standard palette.
-  static Color focusRingColor(BootstrapItaliaColorScheme colors) =>
-      colors.primary.withAlpha(0x40);
+  /// ```
+  /// :focus:not([data-focus-mouse=true]) { border-color: #000 !important;
+  ///   box-shadow: 0 0 0 2px #fff, 0 0 0 5px #000 !important }
+  /// [data-focus-mouse=true]:not(.btn)   { border-color: inherit !important;
+  ///   box-shadow: none !important }
+  /// ```
+  ///
+  /// — and `track-focus.js`, which design-react-kit loads, sets the attribute
+  /// on mouse and touch focus. Measured there in Chromium: `#000` after Tab,
+  /// `rgb(26,26,26)` after a click or a tap. `inherit` resolves to the text
+  /// colour, so the pointer case is [textColor] and follows the scheme; the
+  /// keyboard case is a literal, like the ring `ItFocusRing` paints with it.
+  ///
+  /// Both beat `.form-control.is-invalid { border-color: … }`, which is not
+  /// `!important`: a focused invalid field shows the focus border until blur.
+  static Color focusBorderColor(
+    BootstrapItaliaColorScheme colors, {
+    required bool keyboard,
+  }) =>
+      keyboard ? const Color(0xFF000000) : textColor(colors);
 
   /// `.form-check [type=checkbox]:not(:checked)+label::after
   ///   { border-color: rgb(91.035,110.5425,130.05) }` — the resting outline of

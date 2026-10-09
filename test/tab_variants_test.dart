@@ -66,6 +66,8 @@ const _iconTabs = [
 ];
 
 void main() {
+  _narrowIconBar();
+  _fullWidthHeights();
   group('fullWidth — `.nav-tabs.auto`', () {
     testWidgets('every tab takes an equal share of the width', (t) async {
       await t.pumpWidget(_host(const ItTabBar(tabs: _tabs, fullWidth: true)));
@@ -356,8 +358,12 @@ void main() {
       )));
       expect(t.widget<Icon>(find.byIcon(BootstrapItaliaIcons.it_link)).size, 48,
           reason: '`.icon.icon-lg { width: 48px; height: 48px }`');
-      final padding =
-          _padding(t, find.byIcon(BootstrapItaliaIcons.it_link)).left;
+      // The padding is a pair of flexible spacers, so it is read as the gap
+      // between the tab's edge and the glyph.
+      final icon = find.byIcon(BootstrapItaliaIcons.it_link);
+      final tab =
+          find.ancestor(of: icon, matching: find.byType(Container)).first;
+      final padding = t.getTopLeft(icon).dx - t.getTopLeft(tab).dx;
       expect(padding, moreOrLessEquals(1.778 * 18, epsilon: 0.001),
           reason: '`.nav-tabs-icon-lg .nav-link { padding: .778rem 1.778em }` '
               'against the base 1.333em — the wider tab is what stops 48px '
@@ -532,5 +538,54 @@ void main() {
       ];
       expect(heights.toSet(), hasLength(1));
     });
+  });
+}
+
+void _fullWidthHeights() {
+  testWidgets(
+      'fullWidth tabs are all as tall as the tallest, so the '
+      'indicators share one baseline', (tester) async {
+    await tester.pumpWidget(_host(
+      ItTabBar(
+        fullWidth: true,
+        tabs: const [
+          ItTabItem(label: 'Attivo lungo lungo'),
+          ItTabItem(label: 'Link'),
+        ],
+        selectedIndex: 1,
+        onChanged: (_) {},
+      ),
+      w: 200,
+    ));
+    final a = tester.getSize(find
+        .ancestor(
+            of: find.text('Attivo lungo lungo'),
+            matching: find.byType(Container))
+        .first);
+    final b = tester.getSize(find
+        .ancestor(of: find.text('Link'), matching: find.byType(Container))
+        .first);
+    expect(a.height, greaterThan(60));
+    expect(b.height, a.height);
+  });
+}
+
+void _narrowIconBar() {
+  testWidgets(
+      'a narrow fullWidth icon-only bar gives padding back rather '
+      'than overflowing', (tester) async {
+    await tester.pumpWidget(_host(
+      ItTabBar(
+        layout: ItTabLayout.iconOnlyLarge,
+        fullWidth: true,
+        tabs: [
+          for (var i = 0; i < 4; i++) ItTabItem(label: 'T$i', icon: Icons.star),
+        ],
+        selectedIndex: 0,
+        onChanged: (_) {},
+      ),
+      w: 340,
+    ));
+    expect(tester.takeException(), isNull);
   });
 }

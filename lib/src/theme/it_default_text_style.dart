@@ -45,6 +45,17 @@ class ItDefaultTextStyle extends StatelessWidget {
         // otherwise merge in; the same reasoning applies verbatim here.
         letterSpacing: 0,
         color: resolveColorScheme(context).bodyColor,
+        // `DefaultTextStyle.fallback` is not merely styleless — it carries
+        // `decoration: underline` with a yellow double rule, the framework's
+        // way of saying "this text has no Material ancestor". `merge` keeps
+        // any field the new style leaves null, so without stating this the
+        // underline survives into every pushed route and overlay entry that
+        // uses this widget: the modal, the offcanvas, the megamenu panel.
+        //
+        // It went unnoticed because the parity harness renders each component
+        // inside a `Material`, where the ambient style is Material's own and
+        // the fallback is never reached. Only rendering a real route showed it.
+        decoration: TextDecoration.none,
       ),
       child: child,
     );

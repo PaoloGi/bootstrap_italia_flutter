@@ -1,3 +1,15 @@
+// `groupMargin: false` throughout, and it is not a workaround.
+//
+// The reference is a Playwright **element screenshot** of `.form-group`, and an
+// element's bounding box excludes its own margin by definition — no reference
+// capture can ever contain `margin-bottom: 3rem`. Rendering the Flutter side
+// with the margin therefore compares a 48px-taller image against one that
+// physically cannot have it: parity fell 73/74 to 62/74, every loss an input,
+// select or autocomplete.
+//
+// The margin is covered instead by test/a11y/readonly_and_overlap_test.dart,
+// which is about the relationship BETWEEN two fields — something a
+// single-element screenshot cannot express either.
 import 'dart:convert';
 import 'dart:io';
 
@@ -26,7 +38,7 @@ void main() {
       outputPath: '$_outDir/input_default.png',
       child: const SizedBox(
         width: _fieldWidth,
-        child: ItInput(label: 'Etichetta di esempio'),
+        child: ItInput(groupMargin: false, label: 'Etichetta di esempio'),
       ),
     );
   });
@@ -43,17 +55,22 @@ void main() {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ItInput(label: 'Etichetta di esempio'),
-            SizedBox(height: 48),
-            ItInput(label: 'Etichetta di esempio', hint: 'Testo di esempio'),
+            ItInput(groupMargin: false, label: 'Etichetta di esempio'),
             SizedBox(height: 48),
             ItInput(
+                groupMargin: false,
+                label: 'Etichetta di esempio',
+                hint: 'Testo di esempio'),
+            SizedBox(height: 48),
+            ItInput(
+              groupMargin: false,
               label: 'Etichetta di esempio',
               hint: 'Testo di esempio',
               helperText: 'Ulteriore testo informativo',
             ),
             SizedBox(height: 48),
             ItInput(
+              groupMargin: false,
               label: 'Etichetta di esempio',
               hint: 'Testo di esempio',
               errorText: 'Campo non valido',
@@ -70,7 +87,10 @@ void main() {
       outputPath: '$_outDir/input_disabled.png',
       child: const SizedBox(
         width: _fieldWidth,
-        child: ItInput(label: 'Contenuto disabilitato', enabled: false),
+        child: ItInput(
+            groupMargin: false,
+            label: 'Contenuto disabilitato',
+            enabled: false),
       ),
     );
   });
@@ -82,6 +102,7 @@ void main() {
       child: const SizedBox(
         width: _fieldWidth,
         child: ItInput(
+          groupMargin: false,
           label: 'Password con label, placeholder e testo di aiuto',
           obscureText: true,
           showPasswordToggle: true,
@@ -98,6 +119,7 @@ void main() {
       child: const SizedBox(
         width: _fieldWidth,
         child: ItInput(
+          groupMargin: false,
           label: 'Username',
           errorText: 'Please choose a username.',
         ),
@@ -116,6 +138,7 @@ void main() {
       child: SizedBox(
         width: _fieldWidth,
         child: ItInput(
+          groupMargin: false,
           label: 'First name',
           controller: controller,
           validationState: ItValidationState.success,
@@ -131,6 +154,7 @@ void main() {
       child: const SizedBox(
         width: _fieldWidth,
         child: ItInput(
+          groupMargin: false,
           label: 'Campo di tipo testuale',
           icon: BootstrapItaliaIcons.it_pencil,
         ),
@@ -145,6 +169,7 @@ void main() {
       child: SizedBox(
         width: _fieldWidth,
         child: ItInput(
+          groupMargin: false,
           label: 'Con etichetta e bottone di tipo primary',
           icon: BootstrapItaliaIcons.it_pencil,
           trailingAction:
@@ -202,7 +227,8 @@ void main() {
     await captureWidget(
       tester,
       outputPath: '$_outDir/radio_checked.png',
-      child: const ItRadio(value: true, label: 'Radio di esempio 1'),
+      child: const ItRadio<int>(
+          value: 1, groupValue: 1, label: 'Radio di esempio 1'),
     );
   });
 
@@ -210,7 +236,8 @@ void main() {
     await captureWidget(
       tester,
       outputPath: '$_outDir/radio_unchecked.png',
-      child: const ItRadio(value: false, label: 'Radio di esempio 2'),
+      child: const ItRadio<int>(
+          value: 1, groupValue: 0, label: 'Radio di esempio 2'),
     );
   });
 
@@ -218,8 +245,9 @@ void main() {
     await captureWidget(
       tester,
       outputPath: '$_outDir/radio_disabled_checked.png',
-      child: const ItRadio(
-        value: true,
+      child: const ItRadio<int>(
+        value: 1,
+        groupValue: 1,
         enabled: false,
         label: 'Opzione disabilitata selezionata',
       ),
@@ -230,8 +258,9 @@ void main() {
     await captureWidget(
       tester,
       outputPath: '$_outDir/radio_disabled_unchecked.png',
-      child: const ItRadio(
-        value: false,
+      child: const ItRadio<int>(
+        value: 1,
+        groupValue: 0,
         enabled: false,
         label: 'Opzione disabilitata non selezionata',
       ),
@@ -286,6 +315,7 @@ void main() {
       child: const SizedBox(
         width: _fieldWidth,
         child: ItSelect<String>(
+          groupMargin: false,
           label: 'Etichetta di esempio',
           hint: "Scegli un'opzione",
           items: _selectItems,
@@ -301,6 +331,7 @@ void main() {
       child: const SizedBox(
         width: _fieldWidth,
         child: ItSelect<String>(
+          groupMargin: false,
           label: 'Etichetta di esempio',
           hint: "Scegli un'opzione",
           items: _selectItems,
@@ -319,6 +350,7 @@ void main() {
       child: SizedBox(
         width: _fieldWidth,
         child: ItAutocomplete<String>(
+          groupMargin: false,
           label: 'Regione',
           onSearch: (query) async => const <String>[],
           displayStringForOption: (option) => option,

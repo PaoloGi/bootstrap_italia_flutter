@@ -1,8 +1,16 @@
-Copyright (c) <dates>, <Copyright Holder> (<URL|email>),
-with Reserved Font Name <Reserved Font Name>.
-Copyright (c) <dates>, <additional Copyright Holder> (<URL|email>),
-with Reserved Font Name <additional Reserved Font Name>.
-Copyright (c) <dates>, <additional Copyright Holder> (<URL|email>).
+Copyright (c) 2009-2011 by Accademia di Belle Arti di Urbino and students of
+MA course of Visual design. Some rights reserved,
+with Reserved Font Name "Titillium".
+Copyright (c) 2011 The Lora Project Authors
+(https://github.com/cyrealtype/Lora-Cyrillic),
+with Reserved Font Name "Lora".
+Copyright (c) 2015 The Roboto Mono Project Authors
+(https://github.com/googlefonts/robotomono).
+
+These are the notices carried by the font files in this directory's parent,
+read out of each file's own `name` table (IDs 0 and 13). The three families
+bundled with this package — Titillium Web, Lora and Roboto Mono — are all
+under the licence below.
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
 This license is copied below, and is also available with a FAQ at:

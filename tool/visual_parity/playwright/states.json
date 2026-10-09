@@ -11,17 +11,17 @@
     "states": ["default", "hover", "focus"]
   },
   "checkbox_unchecked": {
-    "storyId": "documentazione-form-checkbox--esempio-interattivo",
+    "storyId": "documentazione-form-checkbox--checkbox-base",
     "selector": ".form-check",
     "states": ["default", "focus"]
   },
   "toggle_off": {
-    "storyId": "documentazione-form-toggles--esempio-interattivo",
+    "storyId": "documentazione-form-toggles--toggles",
     "selector": ".toggles",
     "states": ["default", "focus"]
   },
   "input_default": {
-    "storyId": "documentazione-form-input--esempio-interattivo",
+    "storyId": "documentazione-form-input--utilizzo-di-placeholder-e-label",
     "selector": ".form-group",
     "states": ["default", "focus"]
   }

@@ -90,7 +90,26 @@ class ItToggle extends StatefulWidget {
     this.semanticLabel,
     this.visuallyGrouped = false,
     this.focusNode,
+    this.validator,
+    this.onSaved,
+    this.autovalidateMode,
   });
+
+  /// Validates this control as part of an enclosing [Form], as
+  /// `TextFormField.validator` does.
+  ///
+  /// Without it the control is not a [FormField], so a required ItToggle inside
+  /// a `Form` compiles, looks correct, and is skipped entirely by
+  /// `validate()`. That failure is silent — no crash, no warning, no visual
+  /// difference — which is why this is a parameter and not a documentation
+  /// note.
+  final FormFieldValidator<bool>? validator;
+
+  /// Called by `Form.save()`.
+  final FormFieldSetter<bool>? onSaved;
+
+  /// When the control re-validates. Defaults to [AutovalidateMode.disabled].
+  final AutovalidateMode? autovalidateMode;
 
   @override
   State<ItToggle> createState() => _ItToggleState();
@@ -115,17 +134,59 @@ class _ItToggleState extends State<ItToggle> {
 
   void _toggle() {
     if (!_interactive) return;
+    _formState?.didChange(!widget.value);
     widget.onChanged!.call(!widget.value);
   }
 
+  /// The message the enclosing [Form] produced, when participating in one.
+  String? _formError;
+  FormFieldState<bool>? _formState;
+
+  /// An explicit `errorText` wins: a caller stating the error outright is more
+  /// specific than a validator that may not have run yet.
+  String? get _errorText => widget.errorText ?? _formError;
+
+  bool get _isFormField => widget.validator != null || widget.onSaved != null;
+
   @override
   Widget build(BuildContext context) {
+    if (!_isFormField) return _buildToggle(context);
+
+    return FormField<bool>(
+      initialValue: widget.value,
+      autovalidateMode: widget.autovalidateMode,
+      // The widget's own `value` is the truth: this is a controlled component,
+      // and the FormField's copy goes stale as soon as the caller rebuilds.
+      validator: widget.validator == null
+          ? null
+          : (_) => widget.validator!(widget.value),
+      onSaved:
+          widget.onSaved == null ? null : (_) => widget.onSaved!(widget.value),
+      builder: (state) {
+        _formState = state;
+        if (state.errorText != _formError) {
+          final previous = _formError;
+          _formError = state.errorText;
+          // WCAG 4.1.3: a message that appears after the fact takes no focus,
+          // so nothing would otherwise announce it. Deferred: this is build.
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              ItFieldValidation.announce(context, previous, _formError);
+            }
+          });
+        }
+        return _buildToggle(context);
+      },
+    );
+  }
+
+  Widget _buildToggle(BuildContext context) {
     final colors = resolveColorScheme(context);
     final value = widget.value;
     final label = widget.label;
     final enabled = widget.enabled;
     final validation =
-        ItFieldValidation.effective(widget.errorText, widget.validationState);
+        ItFieldValidation.effective(_errorText, widget.validationState);
 
     // .lever { background-color:#e6e9f2 } — unchanged when checked or disabled.
     // .lever:after { background-color:rgb(91,110.5,130) } unchecked,
@@ -148,9 +209,13 @@ class _ItToggleState extends State<ItToggle> {
     // for `:checked` and `[disabled]` and nothing else, so the kit has no
     // invalid appearance for the track or the thumb. Inventing one would put a
     // colour on screen that no rule in the stylesheet asks for.
-    final labelColor = enabled && validation != null
-        ? ItFieldValidation.color(colors, validation)
-        : colors.bodyColor;
+    //
+    // Nor does a warning tint anything: `~ .form-check-label` is declared for
+    // `.is-valid` and `.is-invalid` only.
+    final labelColor = (enabled
+            ? ItFieldValidation.checkChromeColor(colors, validation)
+            : null) ??
+        colors.bodyColor;
 
     final lever = SizedBox(
       width: _leverWidth,
@@ -239,7 +304,7 @@ class _ItToggleState extends State<ItToggle> {
         label: widget.semanticLabel ?? label,
         // WCAG 3.3.1 / 3.3.2: carried on the control rather than left as loose
         // text below it.
-        hint: ItFieldValidation.hint(widget.errorText, widget.helperText),
+        hint: ItFieldValidation.hint(_errorText, widget.helperText),
         validationResult: ItFieldValidation.result(validation),
         onTap: _interactive ? _toggle : null,
         child: FocusableActionDetector(
@@ -283,7 +348,7 @@ class _ItToggleState extends State<ItToggle> {
 
     return ItFieldSupport(
       helperText: widget.helperText,
-      errorText: widget.errorText,
+      errorText: _errorText,
       grouped: widget.visuallyGrouped,
       child: control,
     );

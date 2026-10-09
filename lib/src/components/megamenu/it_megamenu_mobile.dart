@@ -106,8 +106,9 @@ class _CtaLink extends StatelessWidget {
 ///
 /// Requires a [Navigator] ancestor: it is pushed as a route and pops itself
 /// from the close button, the Esc binding and every link tap. That is an
-/// undocumented hard ancestor requirement, tracked in `doc/quality-plan.md`
-/// Phase 4.2 alongside `it_modal.dart`'s.
+/// undocumented hard ancestor requirement, which it shares with
+/// `it_modal.dart`: without one, the first interaction throws rather than
+/// failing at build.
 class MegamenuMobileOverlay extends StatefulWidget {
   /// The sections to list, in bar order.
   final List<ItMegamenuSection> sections;

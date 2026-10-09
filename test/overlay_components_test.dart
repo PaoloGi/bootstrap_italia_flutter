@@ -409,6 +409,40 @@ void main() {
       expect(find.byType(Semantics), findsWidgets);
     });
 
+    testWidgets('onDismissed fires after the entry is removed', (tester) async {
+      // The widget has always carried this callback; `show` consumed it to
+      // remove the overlay entry and gave callers no way to learn the
+      // notification had gone. A caller replacing
+      // `ScaffoldMessenger.showSnackBar(...).closed` needs exactly that.
+      var dismissed = 0;
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => ItButton(
+              onPressed: () => ItNotification.show(
+                context: context,
+                title: 'Toast',
+                body: 'Ciao',
+                duration: const Duration(seconds: 2),
+                onDismissed: () => dismissed++,
+              ),
+              child: const Text('Show'),
+            ),
+          ),
+        ),
+      ));
+
+      await tester.tap(find.text('Show'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ciao'), findsOneWidget);
+      expect(dismissed, 0, reason: 'not while it is still on screen');
+
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pumpAndSettle();
+      expect(find.text('Ciao'), findsNothing);
+      expect(dismissed, 1, reason: 'exactly once, after the entry is removed');
+    });
+
     testWidgets('show() creates overlay entry', (tester) async {
       late OverlayEntry entry;
 

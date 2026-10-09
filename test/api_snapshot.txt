@@ -163,6 +163,7 @@
   ItAutocomplete.enabled
   ItAutocomplete.errorText
   ItAutocomplete.focusNode
+  ItAutocomplete.groupMargin
   ItAutocomplete.helperText
   ItAutocomplete.highlightMatch
   ItAutocomplete.hint
@@ -207,6 +208,24 @@
   ItBadge.semanticLabel
   ItBadge.variant
   ItBadgeVariantColor.variantColor
+  ItBottomNav.ItBottomNav
+  ItBottomNav.activeRule
+  ItBottomNav.activeRuleDuration
+  ItBottomNav.activeRuleGap
+  ItBottomNav.activeRuleWidth
+  ItBottomNav.backgroundColor
+  ItBottomNav.barHeight
+  ItBottomNav.build
+  ItBottomNav.items
+  ItBottomNav.onSelected
+  ItBottomNav.selectedIndex
+  ItBottomNav.semanticLabel
+  ItBottomNavItem.ItBottomNavItem
+  ItBottomNavItem.alert
+  ItBottomNavItem.badge
+  ItBottomNavItem.icon
+  ItBottomNavItem.label
+  ItBottomNavItem.semanticSuffix
   ItBreadcrumb.ItBreadcrumb
   ItBreadcrumb.build
   ItBreadcrumb.dark
@@ -276,6 +295,8 @@
   ItCard.title
   ItCard.titleHeadingLevel
   ItCard.titleIcon
+  ItCard.titleLeading
+  ItCard.titleVisualLevel
   ItCardBody.ItCardBody
   ItCardBody.build
   ItCardBody.child
@@ -292,6 +313,30 @@
   ItCardFooter.category
   ItCardFooter.date
   ItCardFooter.trailing
+  ItCarousel.ItCarousel
+  ItCarousel.autoPlay
+  ItCarousel.autoPlayInterval
+  ItCarousel.configFor
+  ItCarousel.createState
+  ItCarousel.dotMargin
+  ItCarousel.dotRadius
+  ItCarousel.dotSize
+  ItCarousel.height
+  ItCarousel.inactiveDot
+  ItCarousel.initialPage
+  ItCarousel.items
+  ItCarousel.onPageChanged
+  ItCarousel.paginationGap
+  ItCarousel.semanticLabel
+  ItCarousel.trackPaddingTop
+  ItCarousel.type
+  ItCarouselConfig.ItCarouselConfig
+  ItCarouselConfig.arrows
+  ItCarouselConfig.gap
+  ItCarouselConfig.loop
+  ItCarouselConfig.padLeft
+  ItCarouselConfig.padRight
+  ItCarouselConfig.perPage
   ItCenterHeader.ItCenterHeader
   ItCenterHeader.backgroundColor
   ItCenterHeader.build
@@ -307,6 +352,7 @@
   ItCenterHeader.subtitle
   ItCenterHeader.title
   ItCheckbox.ItCheckbox
+  ItCheckbox.autovalidateMode
   ItCheckbox.createState
   ItCheckbox.enabled
   ItCheckbox.errorText
@@ -316,9 +362,11 @@
   ItCheckbox.label
   ItCheckbox.labelWidget
   ItCheckbox.onChanged
+  ItCheckbox.onSaved
   ItCheckbox.required
   ItCheckbox.semanticLabel
   ItCheckbox.validationState
+  ItCheckbox.validator
   ItCheckbox.value
   ItCheckbox.visuallyGrouped
   ItCheckboxGroup.ItCheckboxGroup
@@ -388,9 +436,30 @@
   ItContentListItem.onTap
   ItContentListItem.text
   ItContentListItem.trailing
+  ItDateField.ItDateField
+  ItDateField.createState
+  ItDateField.enabled
+  ItDateField.errorText
+  ItDateField.firstDate
+  ItDateField.focusNode
+  ItDateField.groupMargin
+  ItDateField.helperText
+  ItDateField.label
+  ItDateField.lastDate
+  ItDateField.mode
+  ItDateField.onChanged
+  ItDateField.pickLabel
+  ItDateField.required
+  ItDateField.semanticLabel
+  ItDateField.value
   ItDefaultTextStyle.ItDefaultTextStyle
   ItDefaultTextStyle.build
   ItDefaultTextStyle.child
+  ItDivider.ItDivider
+  ItDivider.build
+  ItDivider.color
+  ItDivider.margin
+  ItDivider.thickness
   ItDropdown.ItDropdown
   ItDropdown.createState
   ItDropdown.dark
@@ -432,9 +501,11 @@
   ItFieldSupport.build
   ItFieldSupport.child
   ItFieldSupport.errorText
+  ItFieldSupport.groupMargin
   ItFieldSupport.grouped
   ItFieldSupport.helperText
   ItFieldValidation.announce
+  ItFieldValidation.checkChromeColor
   ItFieldValidation.color
   ItFieldValidation.debugCheckConfig
   ItFieldValidation.effective
@@ -487,6 +558,8 @@
   ItFooterSmallPrints.ItFooterSmallPrints
   ItFooterSmallPrints.build
   ItFooterSmallPrints.links
+  ItFormSpacing.floatingLabelHeadroom
+  ItFormSpacing.groupMarginBottom
   ItHeader.ItHeader
   ItHeader.build
   ItHeader.centerHeader
@@ -521,11 +594,13 @@
   ItIconSize.small
   ItIconSize.value
   ItInput.ItInput
+  ItInput.autovalidateMode
   ItInput.controller
   ItInput.createState
   ItInput.enabled
   ItInput.errorText
   ItInput.focusNode
+  ItInput.groupMargin
   ItInput.helperText
   ItInput.hidePasswordLabel
   ItInput.hint
@@ -538,7 +613,9 @@
   ItInput.obscureText
   ItInput.onChanged
   ItInput.onEditingComplete
+  ItInput.onSaved
   ItInput.onSubmitted
+  ItInput.onTap
   ItInput.plaintext
   ItInput.readOnly
   ItInput.required
@@ -549,6 +626,7 @@
   ItInput.textInputAction
   ItInput.trailingAction
   ItInput.validationState
+  ItInput.validator
   ItList.ItList
   ItList.build
   ItList.heading
@@ -583,29 +661,42 @@
   ItLocalizations.ItLocalizations
   ItLocalizations.backToTop
   ItLocalizations.breadcrumb
+  ItLocalizations.carousel
+  ItLocalizations.chooseDate
+  ItLocalizations.chooseTime
   ItLocalizations.close
   ItLocalizations.closeMenu
   ItLocalizations.closeModal
   ItLocalizations.closeNotification
+  ItLocalizations.closePanel
+  ItLocalizations.confirmPick
   ItLocalizations.copyWith
   ItLocalizations.delegate
   ItLocalizations.dialog
   ItLocalizations.dismissModalBarrier
+  ItLocalizations.english
   ItLocalizations.followUs
   ItLocalizations.forLocale
   ItLocalizations.french
   ItLocalizations.german
+  ItLocalizations.goToSlide
   ItLocalizations.hidePassword
   ItLocalizations.italian
   ItLocalizations.loading
   ItLocalizations.localeName
+  ItLocalizations.mainNavigation
   ItLocalizations.navigationMenu
+  ItLocalizations.nextSlide
   ItLocalizations.noResults
   ItLocalizations.notificationCount
   ItLocalizations.notificationCountOne
   ItLocalizations.notificationCountOther
   ItLocalizations.of
   ItLocalizations.openMenu
+  ItLocalizations.pauseCarousel
+  ItLocalizations.playCarousel
+  ItLocalizations.previousSlide
+  ItLocalizations.radioUnselected
   ItLocalizations.remove
   ItLocalizations.removeItem
   ItLocalizations.removeNamed
@@ -616,6 +707,7 @@
   ItLocalizations.searchResultsOther
   ItLocalizations.searching
   ItLocalizations.showPassword
+  ItLocalizations.slideLabel
   ItLocalizations.suggestions
   ItLocalizations.supportedLocales
   ItLocalizations.toString
@@ -653,6 +745,22 @@
   ItModalSize.maxWidth
   ItModalSize.medium
   ItModalSize.small
+  ItMultiSelect.ItMultiSelect
+  ItMultiSelect.build
+  ItMultiSelect.enabled
+  ItMultiSelect.errorText
+  ItMultiSelect.focusNode
+  ItMultiSelect.groupMargin
+  ItMultiSelect.helperText
+  ItMultiSelect.hint
+  ItMultiSelect.items
+  ItMultiSelect.label
+  ItMultiSelect.onChanged
+  ItMultiSelect.required
+  ItMultiSelect.searchable
+  ItMultiSelect.semanticLabel
+  ItMultiSelect.validationState
+  ItMultiSelect.values
   ItNavHeader.ItNavHeader
   ItNavHeader.backgroundColor
   ItNavHeader.contentInset
@@ -694,6 +802,11 @@
   ItNotificationPosition.accentOnRight
   ItNotificationPosition.borderRadius
   ItNotificationPosition.rightFix
+  ItOffcanvas.heightFraction
+  ItOffcanvas.maxWidthFraction
+  ItOffcanvas.padding
+  ItOffcanvas.titleFontSize
+  ItOffcanvas.width
   ItProgressSpinner.ItProgressSpinner
   ItProgressSpinner.animating
   ItProgressSpinner.color
@@ -712,18 +825,22 @@
   ItProgressSpinnerPainter.t
   ItProgressSpinnerPainter.trackColor
   ItRadio.ItRadio
+  ItRadio.autovalidateMode
   ItRadio.createState
   ItRadio.enabled
   ItRadio.errorText
   ItRadio.focusNode
   ItRadio.groupLength
+  ItRadio.groupValue
   ItRadio.helperText
   ItRadio.indexInGroup
   ItRadio.label
   ItRadio.onChanged
+  ItRadio.onSaved
   ItRadio.required
   ItRadio.semanticLabel
   ItRadio.validationState
+  ItRadio.validator
   ItRadio.value
   ItRadio.visuallyGrouped
   ItRadioGroup.ItRadioGroup
@@ -760,28 +877,37 @@
   ItSearchGlyph.color
   ItSearchGlyph.size
   ItSelect.ItSelect
-  ItSelect.createState
+  ItSelect.autovalidateMode
+  ItSelect.build
   ItSelect.enabled
   ItSelect.errorText
   ItSelect.focusNode
+  ItSelect.groupMargin
   ItSelect.helperText
   ItSelect.hint
   ItSelect.items
   ItSelect.label
-  ItSelect.multiple
   ItSelect.onChanged
-  ItSelect.onValuesChanged
+  ItSelect.onSaved
   ItSelect.required
   ItSelect.searchable
   ItSelect.semanticLabel
   ItSelect.validationState
+  ItSelect.validator
   ItSelect.value
-  ItSelect.values
   ItSelectItem.ItSelectItem
   ItSelectItem.enabled
   ItSelectItem.group
   ItSelectItem.label
   ItSelectItem.value
+  ItSidebar.ItSidebar
+  ItSidebar.build
+  ItSidebar.child
+  ItSidebar.dark
+  ItSidebar.lineLeft
+  ItSidebar.lineRight
+  ItSidebar.semanticLabel
+  ItSidebar.title
   ItSkiplink.ItSkiplink
   ItSkiplink.label
   ItSkiplink.onActivate
@@ -860,6 +986,7 @@
   ItTabView.identifier
   ItTabView.selectedIndex
   ItToggle.ItToggle
+  ItToggle.autovalidateMode
   ItToggle.createState
   ItToggle.enabled
   ItToggle.errorText
@@ -867,9 +994,11 @@
   ItToggle.helperText
   ItToggle.label
   ItToggle.onChanged
+  ItToggle.onSaved
   ItToggle.required
   ItToggle.semanticLabel
   ItToggle.validationState
+  ItToggle.validator
   ItToggle.value
   ItToggle.visuallyGrouped
   ItToggleGroup.ItToggleGroup
@@ -908,6 +1037,8 @@ class ItAutocomplete
 class ItBackToTop
 class ItBackToTopButton
 class ItBadge
+class ItBottomNav
+class ItBottomNavItem
 class ItBreadcrumb
 class ItBreadcrumbItem
 class ItButton
@@ -916,6 +1047,8 @@ class ItCard
 class ItCardBody
 class ItCardCategory
 class ItCardFooter
+class ItCarousel
+class ItCarouselConfig
 class ItCenterHeader
 class ItCheckbox
 class ItCheckboxGroup
@@ -927,7 +1060,9 @@ class ItContainer
 class ItContainerWidths
 class ItContentList
 class ItContentListItem
+class ItDateField
 class ItDefaultTextStyle
+class ItDivider
 class ItDropdown
 class ItDropdownDivider
 class ItDropdownEntry
@@ -945,6 +1080,7 @@ class ItFooterLink
 class ItFooterLinkColumns
 class ItFooterSection
 class ItFooterSmallPrints
+class ItFormSpacing
 class ItHeader
 class ItHoverBuilder
 class ItIcon
@@ -961,10 +1097,12 @@ class ItLocalizations
 class ItLocalizationsDelegate
 class ItMegamenu
 class ItModal
+class ItMultiSelect
 class ItNavHeader
 class ItNavItem
 class ItNotification
 class ItNotificationBadge
+class ItOffcanvas
 class ItProgressSpinner
 class ItProgressSpinnerPainter
 class ItRadio
@@ -975,6 +1113,7 @@ class ItRoundedIcon
 class ItSearchGlyph
 class ItSelect
 class ItSelectItem
+class ItSidebar
 class ItSkiplink
 class ItSkiplinks
 class ItSlimHeader
@@ -995,7 +1134,9 @@ enum ItButtonSize
 enum ItButtonVariant
 enum ItCalloutStyle
 enum ItCalloutVariant
+enum ItCarouselType
 enum ItChipVariant
+enum ItDateFieldMode
 enum ItDropdownDirection
 enum ItIconSize
 enum ItInputSize
@@ -1003,6 +1144,7 @@ enum ItModalAlignment
 enum ItModalSize
 enum ItNotificationPosition
 enum ItNotificationVariant
+enum ItOffcanvasPlacement
 enum ItSpinnerSize
 enum ItTabLayout
 enum ItTabPlacement

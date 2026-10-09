@@ -83,10 +83,11 @@ void main() {
 
     testWidgets('the radio ring moves too, keeping its 5px margin', (t) async {
       await t.pumpWidget(_host(const Column(children: [
-        ItRadio(value: false, label: 'A destra', visuallyGrouped: true),
+        ItRadio<int>(
+            value: 1, groupValue: 0, label: 'A destra', visuallyGrouped: true),
       ])));
 
-      final row = t.getRect(find.byType(ItRadio));
+      final row = t.getRect(find.byType(ItRadio<int>));
       final ring = t.getRect(find.byWidgetPredicate(
         (w) =>
             w is Container &&
@@ -275,6 +276,7 @@ void main() {
   group('ItSelect — `<optgroup>`', () {
     testWidgets('a caption is printed once per run of options', (t) async {
       await t.pumpWidget(_host(ItSelect<String>(
+        groupMargin: false,
         label: 'Etichetta',
         hint: "Scegli un'opzione",
         items: const [
@@ -301,6 +303,7 @@ void main() {
       // The list view's index counts captions; `_highlighted` must not.
       String? chosen;
       await t.pumpWidget(_host(ItSelect<String>(
+        groupMargin: false,
         label: 'Etichetta',
         hint: "Scegli un'opzione",
         items: const [
@@ -322,6 +325,7 @@ void main() {
       // options produce a scattered caption rather than being re-sorted behind
       // the caller's back.
       await t.pumpWidget(_host(ItSelect<String>(
+        groupMargin: false,
         label: 'Etichetta',
         hint: "Scegli un'opzione",
         items: const [
@@ -342,7 +346,8 @@ void main() {
     testWidgets('a multiline field gets a box, not an underline', (t) async {
       // `textarea.form-control { border:1px solid hsl(210,17%,44%) }` against
       // `input[type=text] { border:none; border-bottom:1px solid … }`.
-      await t.pumpWidget(_host(const ItInput(label: 'Note', maxLines: 3)));
+      await t.pumpWidget(
+          _host(const ItInput(groupMargin: false, label: 'Note', maxLines: 3)));
 
       expect(
         find.byWidgetPredicate(
@@ -360,12 +365,14 @@ void main() {
         (t) async {
       // `textarea { height:auto }` with `min-height:2.5rem`. Before this a
       // four-line field was drawn in a 40px box.
-      await t.pumpWidget(_host(const ItInput(label: 'Note', maxLines: 4)));
+      await t.pumpWidget(
+          _host(const ItInput(groupMargin: false, label: 'Note', maxLines: 4)));
       expect(t.getSize(find.byType(ItInput)).height, greaterThan(40));
     });
 
     testWidgets('a single-line field is unchanged', (t) async {
-      await t.pumpWidget(_host(const ItInput(label: 'Nome')));
+      await t
+          .pumpWidget(_host(const ItInput(groupMargin: false, label: 'Nome')));
       expect(t.getSize(find.byType(ItInput)).height, 40,
           reason: '`.form-control { min-height: 2.5rem }`');
     });
@@ -378,7 +385,8 @@ void main() {
         (ItInputSize.medium, 16, 40),
         (ItInputSize.large, 20, 46),
       ]) {
-        await t.pumpWidget(_host(ItInput(label: 'Nome', size: size)));
+        await t.pumpWidget(
+            _host(ItInput(groupMargin: false, label: 'Nome', size: size)));
         expect(t.getSize(find.byType(ItInput)).height, height,
             reason: 'min-height for $size');
         expect(t.widget<TextField>(find.byType(TextField)).style?.fontSize,
@@ -391,6 +399,7 @@ void main() {
       // `input[type=text] { padding:.375rem .5rem }` is (0,1,1) and outranks
       // the size class; `textarea` is (0,0,1) and loses to it.
       await t.pumpWidget(_host(const ItInput(
+        groupMargin: false,
         label: 'Nome',
         size: ItInputSize.large,
       )));
@@ -398,6 +407,7 @@ void main() {
       expect(t.getRect(find.byType(TextField)).left, 8);
 
       await t.pumpWidget(_host(const ItInput(
+        groupMargin: false,
         label: 'Note',
         maxLines: 3,
         size: ItInputSize.large,
@@ -409,21 +419,24 @@ void main() {
 
   group('ItInput — `.form-control-plaintext`', () {
     testWidgets('it forces read-only', (t) async {
-      await t.pumpWidget(_host(const ItInput(label: 'Nome', plaintext: true)));
+      await t.pumpWidget(_host(
+          const ItInput(groupMargin: false, label: 'Nome', plaintext: true)));
       expect(t.widget<TextField>(find.byType(TextField)).readOnly, isTrue);
     });
 
     testWidgets('the box collapses onto its content', (t) async {
       // `.form-control-plaintext` declares no `min-height`, which is the one
       // thing about it that survives the cascade in this build.
-      await t.pumpWidget(_host(const ItInput(label: 'Nome', plaintext: true)));
+      await t.pumpWidget(_host(
+          const ItInput(groupMargin: false, label: 'Nome', plaintext: true)));
       expect(t.getSize(find.byType(ItInput)).height, 24 + 6 + 6 + 1);
     });
 
     testWidgets('the underline survives, as it does on the kit', (t) async {
       // `input[type=text] { border-bottom:1px solid hsl(210,17%,44%) }` is
       // (0,1,1) and beats `.form-control-plaintext { border-width:0 0 }`.
-      await t.pumpWidget(_host(const ItInput(label: 'Nome', plaintext: true)));
+      await t.pumpWidget(_host(
+          const ItInput(groupMargin: false, label: 'Nome', plaintext: true)));
       expect(
         find.byWidgetPredicate(
           (w) => w is ColoredBox && w.color == const Color(0xFF5D7083),
@@ -500,16 +513,107 @@ void main() {
     testWidgets('an icon on a multiline field is rejected', (t) async {
       final msg = await _assertionFrom(
         t,
-        const ItInput(label: 'Note', maxLines: 3, icon: Icons.edit),
+        const ItInput(
+            groupMargin: false, label: 'Note', maxLines: 3, icon: Icons.edit),
       );
       expect(msg, contains('multi-line'));
     });
 
     testWidgets('an icon on a single-line field is fine', (t) async {
       expect(
-        await _assertionFrom(t, const ItInput(label: 'Nome', icon: Icons.edit)),
+        await _assertionFrom(t,
+            const ItInput(groupMargin: false, label: 'Nome', icon: Icons.edit)),
         '',
       );
+    });
+  });
+
+  // ──────────────────────────────────────────────────────────────────
+  // A warning is a message, not a tint, on the `.form-check` family.
+  //
+  // The stylesheet declares `.form-check-input.is-valid` and `.is-invalid`
+  // and nothing else: border, checked fill, focus ring, label colour. There is
+  // no warning rule for a checkbox, a radio or a toggle anywhere in it. The
+  // amber box this used to paint was applied by analogy with the other two
+  // states, which made it the one validation colour in the package that no
+  // rule asks for — a control drawn in a colour Bootstrap Italia would not
+  // draw it in.
+  // ──────────────────────────────────────────────────────────────────
+  group('warning leaves a check control alone', () {
+    /// The border colour of the control's own box or ring.
+    Color? ringColor(WidgetTester t) {
+      final boxes = t.widgetList<Container>(find.byType(Container)).where((c) {
+        final d = c.decoration;
+        return d is BoxDecoration && d.border != null;
+      });
+      final d = boxes.first.decoration! as BoxDecoration;
+      return (d.border as Border).top.color;
+    }
+
+    testWidgets('ItCheckbox: a warning paints the box as if unset',
+        (tester) async {
+      await tester.pumpWidget(_host(const ItCheckbox(
+        value: false,
+        label: 'Accetto',
+        validationState: ItValidationState.warning,
+      )));
+      final warned = ringColor(tester);
+
+      await tester.pumpWidget(_host(const ItCheckbox(
+        value: false,
+        label: 'Accetto',
+      )));
+      expect(warned, ringColor(tester),
+          reason: 'no `.form-check-input` warning rule exists, so the box must '
+              'look exactly as it does without one');
+    });
+
+    testWidgets('ItCheckbox: danger still tints it', (tester) async {
+      await tester.pumpWidget(_host(const ItCheckbox(
+        value: false,
+        label: 'Accetto',
+        validationState: ItValidationState.danger,
+      )));
+      final invalid = ringColor(tester);
+
+      await tester.pumpWidget(_host(const ItCheckbox(
+        value: false,
+        label: 'Accetto',
+      )));
+      expect(invalid, isNot(ringColor(tester)),
+          reason: 'the test above would pass just as well if validation had '
+              'stopped reaching the box at all');
+    });
+
+    testWidgets('ItRadio: a warning paints the ring as if unset',
+        (tester) async {
+      await tester.pumpWidget(_host(const ItRadio<int>(
+        value: 1,
+        groupValue: 0,
+        label: 'Uno',
+        validationState: ItValidationState.warning,
+      )));
+      final warned = ringColor(tester);
+
+      await tester.pumpWidget(_host(const ItRadio<int>(
+        value: 1,
+        groupValue: 0,
+        label: 'Uno',
+      )));
+      expect(warned, ringColor(tester));
+    });
+
+    testWidgets('the message itself still carries the warning colour',
+        (tester) async {
+      await tester.pumpWidget(_host(const ItCheckbox(
+        value: false,
+        label: 'Accetto',
+        errorText: 'Controlla questa scelta',
+        validationState: ItValidationState.warning,
+      )));
+      expect(find.text('Controlla questa scelta'), findsOneWidget,
+          reason: '`.warning-feedback` is the one warning rule the form family '
+              'has, and it styles the message');
     });
   });
 }

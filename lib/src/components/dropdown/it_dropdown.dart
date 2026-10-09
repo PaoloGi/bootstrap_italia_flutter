@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart' show kTouchSlop;
 import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart';
 
@@ -737,6 +738,7 @@ class _ItDropdownState extends State<ItDropdown> {
   OverlayEntry? _overlayEntry;
   bool _isOpen = false;
   bool _triggerFocused = false;
+  Offset? _downAt;
 
   void _toggle() {
     if (_isOpen) {
@@ -788,32 +790,17 @@ class _ItDropdownState extends State<ItDropdown> {
     return KeyEventResult.ignored;
   }
 
-  Offset _computeFollowerOffset(Size triggerSize) {
-    if (widget.offset != null) return widget.offset!;
-
-    // `--bs-dropdown-spacer: 0.125rem`
-    const gap = 2.0;
-    return switch (widget.direction) {
-      ItDropdownDirection.down => Offset(0, triggerSize.height + gap),
-      ItDropdownDirection.up => const Offset(0, -gap),
-      ItDropdownDirection.right => Offset(triggerSize.width + gap, 0),
-      ItDropdownDirection.left => const Offset(-gap, 0),
-    };
-  }
-
-  Alignment _computeFollowerAnchor() {
-    return switch (widget.direction) {
-      ItDropdownDirection.down => Alignment.topLeft,
-      ItDropdownDirection.up => Alignment.bottomLeft,
-      ItDropdownDirection.right => Alignment.topLeft,
-      ItDropdownDirection.left => Alignment.topRight,
-    };
+  /// The trigger's box in the overlay's own coordinates.
+  Rect _triggerRectInOverlay() {
+    final box = context.findRenderObject()! as RenderBox;
+    final overlay =
+        Overlay.of(context).context.findRenderObject()! as RenderBox;
+    return box.localToGlobal(Offset.zero, ancestor: overlay) & box.size;
   }
 
   OverlayEntry _buildOverlay() {
     final renderBox = context.findRenderObject()! as RenderBox;
     final triggerSize = renderBox.size;
-    final followerOffset = _computeFollowerOffset(triggerSize);
 
     return OverlayEntry(
       builder: (_) {
@@ -830,11 +817,11 @@ class _ItDropdownState extends State<ItDropdown> {
                 child: const SizedBox.expand(),
               ),
             ),
-            CompositedTransformFollower(
-              link: _layerLink,
-              offset: followerOffset,
-              targetAnchor: Alignment.topLeft,
-              followerAnchor: _computeFollowerAnchor(),
+            CustomSingleChildLayout(
+              delegate: _DropdownPlacement(
+                direction: widget.direction,
+                trigger: _triggerRectInOverlay(),
+              ),
               child: ItDropdownMenu(
                 items: widget.items,
                 width: widget.fullWidth
@@ -884,8 +871,23 @@ class _ItDropdownState extends State<ItDropdown> {
                 setState(() => _triggerFocused = value);
               }
             },
-            child: GestureDetector(
-              onTap: _toggle,
+            // A Listener, not a GestureDetector: the trigger is usually an
+            // ItButton, whose own tap recogniser wins the gesture arena over
+            // an ancestor's, so a GestureDetector here never fired and the
+            // menu never opened. A Listener takes no part in the arena, so it
+            // sees the tap whatever the trigger does with it.
+            child: Listener(
+              behavior: HitTestBehavior.translucent,
+              onPointerDown: (e) => _downAt = e.position,
+              onPointerCancel: (_) => _downAt = null,
+              onPointerUp: (e) {
+                final down = _downAt;
+                _downAt = null;
+                if (down != null &&
+                    (e.position - down).distance <= kTouchSlop) {
+                  _toggle();
+                }
+              },
               child: DecoratedBox(
                 // WCAG 2.4.7 Focus Visible. The trigger is caller-supplied, so
                 // the ring is drawn here rather than assuming the child paints
@@ -905,4 +907,78 @@ class _ItDropdownState extends State<ItDropdown> {
       ),
     );
   }
+}
+
+/// Places the menu beside its trigger and keeps it on screen.
+///
+/// Bootstrap Italia positions its menus with Popper, whose `flip` modifier
+/// moves a menu to the opposite side when the requested one has no room, and
+/// whose `preventOverflow` keeps it inside the viewport. Without both, a
+/// `dropstart` menu on a trigger near the left edge opened off-screen and its
+/// entries could not be reached at all.
+class _DropdownPlacement extends SingleChildLayoutDelegate {
+  _DropdownPlacement({required this.direction, required this.trigger});
+
+  final ItDropdownDirection direction;
+  final Rect trigger;
+
+  /// `--bs-dropdown-spacer: 0.125rem`
+  static const double _gap = 2;
+
+  /// Breathing room kept between the menu and the screen edge.
+  static const double _margin = 8;
+
+  @override
+  BoxConstraints getConstraintsForChild(BoxConstraints constraints) =>
+      BoxConstraints(
+        maxWidth: constraints.maxWidth - 2 * _margin,
+        maxHeight: constraints.maxHeight - 2 * _margin,
+      );
+
+  @override
+  Offset getPositionForChild(Size size, Size child) {
+    double clampX(double x) =>
+        x.clamp(_margin, size.width - _margin - child.width).toDouble();
+    double clampY(double y) =>
+        y.clamp(_margin, size.height - _margin - child.height).toDouble();
+
+    // One axis flips when the side asked for is too tight and the opposite
+    // one is not; the other axis only clamps.
+    double along(double start, double end, double extent, double limit,
+        {required bool leading}) {
+      final before = start - _gap - extent;
+      final after = end + _gap;
+      final fitsBefore = before >= _margin;
+      final fitsAfter = after + extent <= limit - _margin;
+      if (leading) return fitsBefore || !fitsAfter ? before : after;
+      return fitsAfter || !fitsBefore ? after : before;
+    }
+
+    return switch (direction) {
+      ItDropdownDirection.down => Offset(
+          clampX(trigger.left),
+          clampY(along(trigger.top, trigger.bottom, child.height, size.height,
+              leading: false)),
+        ),
+      ItDropdownDirection.up => Offset(
+          clampX(trigger.left),
+          clampY(along(trigger.top, trigger.bottom, child.height, size.height,
+              leading: true)),
+        ),
+      ItDropdownDirection.right => Offset(
+          clampX(along(trigger.left, trigger.right, child.width, size.width,
+              leading: false)),
+          clampY(trigger.top),
+        ),
+      ItDropdownDirection.left => Offset(
+          clampX(along(trigger.left, trigger.right, child.width, size.width,
+              leading: true)),
+          clampY(trigger.top),
+        ),
+    };
+  }
+
+  @override
+  bool shouldRelayout(_DropdownPlacement old) =>
+      old.direction != direction || old.trigger != trigger;
 }

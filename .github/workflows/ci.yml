@@ -43,6 +43,13 @@ jobs:
           flutter analyze --fatal-infos
           flutter test
 
+      # A guard nobody has seen red is a guess. This plants the defect each
+      # guard exists to catch and fails the build if the guard stays green.
+      # Five checks in this project could not fail or actively lied; two hid a
+      # real regression, two invented failures that were reported as real.
+      - name: Guards must be able to fail
+        run: tool/mutation_check.sh
+
       - name: Package health
         run: |
           dart pub global activate pana
@@ -51,6 +58,71 @@ jobs:
   # Visual/interaction parity against the upstream design-react-kit Storybook.
   # Informational: upstream is a live third-party site, so this must never be
   # the reason a PR cannot merge.
+  soak:
+    # Every component on one Flutter Web page, driven by a real browser.
+    #
+    # Not redundant with `parity`: that harness renders each component ALONE,
+    # inside a Material, at desktop width. This one runs them together, at
+    # three viewports plus 200% text, and asks whether anything throws, loses
+    # its accessible name, or fails an axe rule. Its first run found a tab that
+    # contained a second unnamed control, a header that painted its desktop
+    # layout on a phone, and Flutter Web disabling pinch-zoom.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install
+        run: |
+          flutter pub get
+          npm ci --prefix tool/visual_parity/playwright
+          npx --prefix tool/visual_parity/playwright playwright install --with-deps chromium
+
+      - name: Build the soak page
+        run: |
+          cd example
+          flutter pub get
+          flutter build web -t lib/soak.dart --no-tree-shake-icons
+
+      - name: Serve and soak
+        run: |
+          (cd example/build/web && python3 -m http.server 8788 &)
+          # The server needs to be answering before Playwright navigates;
+          # polling beats a fixed sleep on a cold runner.
+          for i in $(seq 1 30); do
+            curl -sf -o /dev/null http://localhost:8788/ && break
+            sleep 1
+          done
+          node tool/visual_parity/playwright/soak.mjs --json soak-report.json
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: soak
+          path: |
+            soak-report.json
+            tool/visual_parity/soak_shots/
+
+  # There is deliberately no `device-soak` job. It needs a booted simulator or
+  # a real handset, which a Linux runner does not have, and a macOS runner with
+  # a simulator is slow enough that it would be skipped rather than fixed when
+  # it went red. Run it locally before a release and after touching layout:
+  #
+  #   cd example
+  #   flutter test integration_test/device_soak_test.dart -d <device-id>
+  #
+  # What it covers, and why CI cannot: it is a DEBUG build, so framework
+  # assertions are live — that is how the duplicate navigation-landmark defect
+  # was found, which the release web build compiles out.
+
   parity:
     runs-on: ubuntu-latest
     continue-on-error: true

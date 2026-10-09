@@ -11,6 +11,13 @@ dependencies:
   bootstrap_italia_icons: ^0.0.3
   flutter:
     sdk: flutter
+  # Material's OWN strings for it/de/fr. The package needs none of this — it
+  # ships its own table and falls back to Italian with no delegate at all — but
+  # an app that declares `supportedLocales: [it, de, fr]` is promising that
+  # every delegate can serve those locales, and Material cannot without this.
+  # It is a dependency of the example, not of the package.
+  flutter_localizations:
+    sdk: flutter
   bootstrap_italia_flutter:
     path: ../
 
@@ -19,5 +26,11 @@ flutter:
 
 dev_dependencies:
   flutter_test:
+    sdk: flutter
+  # On-device evidence for the package. `integration_test` rather than Patrol:
+  # the kit is a widget library with no native dialogs to drive, and Patrol's
+  # value is exactly those — it would cost an XCUITest target and an Android
+  # instrumentation runner to assert the same Flutter-level facts.
+  integration_test:
     sdk: flutter
   flutter_lints: ^5.0.0

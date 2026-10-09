@@ -76,6 +76,8 @@ export 'src/components/badge/it_badge.dart';
 export 'src/components/button/it_button.dart';
 export 'src/components/chip/it_chip.dart';
 export 'src/components/icon/it_icon.dart';
+export 'src/components/offcanvas/it_offcanvas.dart';
+export 'src/components/sidebar/it_sidebar.dart';
 export 'src/components/spinner/it_spinner.dart';
 export 'src/components/collapse/it_collapse.dart';
 export 'src/components/accordion/it_accordion.dart';
@@ -85,14 +87,17 @@ export 'src/components/tab/it_tab_view.dart';
 export 'src/components/list/it_content_list.dart';
 export 'src/components/list/it_list.dart';
 export 'src/components/callout/it_callout.dart';
+export 'src/components/carousel/it_carousel.dart';
 
 // ── Overlays ────────────────────────────────────────────────────
+export 'src/components/divider/it_divider.dart';
 export 'src/components/dropdown/it_dropdown.dart';
 export 'src/components/modal/it_modal.dart';
 export 'src/components/notification/it_notification.dart';
 
 // ── Navigation ───────────────────────────────────────────────────
 export 'src/components/back_to_top/it_back_to_top.dart';
+export 'src/components/bottom_nav/it_bottom_nav.dart';
 export 'src/components/breadcrumb/it_breadcrumb.dart';
 export 'src/components/footer/it_footer.dart';
 export 'src/components/header/header_glyphs.dart';
@@ -108,12 +113,14 @@ export 'src/components/social_link/it_social_link.dart';
 // ── Form ─────────────────────────────────────────────────────────
 export 'src/form/it_autocomplete.dart';
 export 'src/form/it_checkbox.dart';
+export 'src/form/it_date_field.dart';
 // The validation/helper surface every form control shares. Exported for the
 // same reason as the a11y primitives: an application building a control this
 // package does not ship still has to render `.form-text` and `.form-feedback`
 // the way the kit does, or its own fields look like a different design system.
 export 'src/form/it_field_support.dart';
 export 'src/form/it_input.dart';
+export 'src/form/it_form_spacing.dart';
 export 'src/form/it_radio.dart';
 export 'src/form/it_select.dart';
 export 'src/form/it_toggle.dart';

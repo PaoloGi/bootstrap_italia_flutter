@@ -116,6 +116,38 @@ abstract final class ItFieldValidation {
         ItValidationState.danger => colors.danger,
       };
 
+  /// The colour a `.form-check` control's own chrome takes — or none.
+  ///
+  /// `.form-check-input` declares exactly two validation states, and the
+  /// stylesheet is the whole of it:
+  ///
+  /// ```css
+  /// .form-check-input.is-valid        { border-color: rgb(0,127.5,85) }
+  /// .form-check-input.is-valid:checked{ background-color: rgb(0,127.5,85) }
+  /// .form-check-input.is-invalid      { border-color: rgb(204,51,76.5) }
+  /// .form-check-input.is-invalid:checked{ background-color: rgb(204,51,76.5) }
+  /// ```
+  ///
+  /// There is no warning rule for the box, the dot or the label. The only
+  /// warning declaration in the form family is `.warning-feedback`, which
+  /// styles the *message* — and even that is shown by
+  /// `.form-control.is-valid ~ .warning-feedback`, a `.form-control`, not a
+  /// check input. The warning tint on the box was applied here by analogy with
+  /// the other two states, which made it the one validation colour in the
+  /// package that no rule asks for: a checkbox could be drawn amber while
+  /// Bootstrap Italia would draw it untouched.
+  ///
+  /// So a warning leaves the control alone and speaks through its message.
+  /// [color] still answers for the message itself, and for [ItInput], whose
+  /// `.form-control` family is a different set of rules.
+  static Color? checkChromeColor(
+    BootstrapItaliaColorScheme colors,
+    ItValidationState? state,
+  ) =>
+      state == null || state == ItValidationState.warning
+          ? null
+          : color(colors, state);
+
   /// What the control reports to assistive technology.
   ///
   /// WCAG 3.3.1 Error Identification: the invalid state has to be on the
@@ -182,6 +214,7 @@ abstract final class ItFieldValidation {
 class ItFieldSupport extends StatelessWidget {
   /// Creates the supporting-text block for a form control.
   const ItFieldSupport({
+    this.groupMargin = false,
     super.key,
     required this.child,
     this.helperText,
@@ -197,6 +230,14 @@ class ItFieldSupport extends StatelessWidget {
 
   /// `.form-feedback` — the validation message.
   final String? errorText;
+
+  /// Whether to reserve `.form-group { margin-bottom: 3rem }` below the
+  /// control.
+  ///
+  /// True for the floating-label controls, because that 48px is what the next
+  /// field's label rises into. False for `.form-check` rows, which are not
+  /// form groups and carry their own `margin-bottom: 1rem` when [grouped].
+  final bool groupMargin;
 
   /// Whether the control is a `.form-check.form-check-group` row.
   ///
@@ -238,9 +279,9 @@ class ItFieldSupport extends StatelessWidget {
     // separator and its spacing whether or not it has any supporting text.
     if (grouped) return _buildGrouped(child, helper, error);
 
-    if (helper == null && error == null) return child;
+    if (helper == null && error == null) return _withMargin(child);
 
-    return Column(
+    return _withMargin(Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -296,6 +337,21 @@ class ItFieldSupport extends StatelessWidget {
             ),
           ),
       ],
+    ));
+  }
+
+  /// `.form-group { margin-bottom: 3rem }`.
+  ///
+  /// A *margin*, so it sits outside the group's border box. An element
+  /// screenshot of `.form-group` therefore does not contain it, which is why
+  /// the visual-parity references cannot see this and the harness crops it.
+  Widget _withMargin(Widget child) {
+    if (!groupMargin) return child;
+    return Padding(
+      padding: const EdgeInsets.only(
+        bottom: ItFormMetrics.groupMarginBottom,
+      ),
+      child: child,
     );
   }
 

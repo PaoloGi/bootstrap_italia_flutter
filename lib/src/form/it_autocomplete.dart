@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 
+import '../a11y/it_focus_ring.dart';
+import '../a11y/keyboard_focus_mode.dart';
 import '../l10n/it_localizations.dart';
 import '../components/spinner/progress_spinner.dart';
 import '../theme/bootstrap_italia_theme_data.dart';
@@ -117,6 +119,19 @@ class ItAutocomplete<T extends Object> extends StatefulWidget {
   /// inflect the noun as well.
   final String Function(int count)? resultsAnnouncement;
 
+  /// Whether to reserve `.form-group { margin-bottom: 3rem }` below the field.
+  ///
+  /// On by default, and it is not decoration: the NEXT field's floating label
+  /// is drawn 33.15px above its own box, unclipped, and this 48px is the space
+  /// it rises into. Turn it off and stacked fields overlap — reported twice
+  /// from a real form.
+  ///
+  /// Worth turning off for a field that is the last thing in its container, or
+  /// when the surrounding layout supplies its own spacing. Note that the
+  /// margin is part of this widget's box, so its centre is below the control
+  /// while it is on.
+  final bool groupMargin;
+
   /// Creates a Bootstrap Italia autocomplete.
   const ItAutocomplete({
     super.key,
@@ -131,6 +146,7 @@ class ItAutocomplete<T extends Object> extends StatefulWidget {
     this.minQueryLength = 1,
     this.icon,
     this.enabled = true,
+    this.groupMargin = true,
     this.large = false,
     this.noResultsText,
     this.controller,
@@ -147,7 +163,8 @@ class ItAutocomplete<T extends Object> extends StatefulWidget {
   State<ItAutocomplete<T>> createState() => _ItAutocompleteState<T>();
 }
 
-class _ItAutocompleteState<T extends Object> extends State<ItAutocomplete<T>> {
+class _ItAutocompleteState<T extends Object> extends State<ItAutocomplete<T>>
+    with KeyboardFocusMode<ItAutocomplete<T>> {
   late TextEditingController _controller;
   late FocusNode _focusNode;
   bool _ownsController = false;
@@ -197,6 +214,8 @@ class _ItAutocompleteState<T extends Object> extends State<ItAutocomplete<T>> {
   }
 
   void _onFocusChange() {
+    // Classified once, as it arrives — see KeyboardFocusMode.
+    if (_focusNode.hasFocus && !_isFocused) classifyFocus();
     setState(() => _isFocused = _focusNode.hasFocus);
     if (!_focusNode.hasFocus) {
       // Delay to allow tap on overlay items to register
@@ -472,6 +491,7 @@ class _ItAutocompleteState<T extends Object> extends State<ItAutocomplete<T>> {
     final floating = _labelIsFloating;
     final validation =
         ItFieldValidation.effective(widget.errorText, widget.validationState);
+    final showsFocus = _isFocused && widget.enabled;
 
     // WCAG 2.1.1 Keyboard: this used to be a `KeyboardListener` whose focus
     // node was built fresh on every rebuild and never focused, so it received
@@ -502,6 +522,13 @@ class _ItAutocompleteState<T extends Object> extends State<ItAutocomplete<T>> {
         decoration: InputDecoration(
           isCollapsed: true,
           border: InputBorder.none,
+          // Every state pinned — see ItInput: `border` alone lets the theme's
+          // `focusedBorder` draw a second underline inside the control.
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+          disabledBorder: InputBorder.none,
+          errorBorder: InputBorder.none,
+          focusedErrorBorder: InputBorder.none,
           contentPadding: EdgeInsets.zero,
           hintText: floating ? widget.hint : null,
           hintStyle: ItFormMetrics.textStyle(
@@ -535,19 +562,10 @@ class _ItAutocompleteState<T extends Object> extends State<ItAutocomplete<T>> {
       ),
     );
 
-    final control = DecoratedBox(
-      // .form-control:focus { box-shadow: 0 0 0 .25rem rgba(0,102,204,.25) }
-      // — rgba() of the primary token, so it comes from the scheme.
-      decoration: BoxDecoration(
-        boxShadow: _isFocused && widget.enabled
-            ? [
-                BoxShadow(
-                  color: ItFormMetrics.focusRingColor(colors),
-                  spreadRadius: 4,
-                ),
-              ]
-            : null,
-      ),
+    // As in ItInput: `.form-control:focus`'s 25% ring never shows upstream.
+    // Keyboard focus gets the kit-wide black ring; a tap or a click, none.
+    final control = ItFocusRing(
+      visible: showsFocus && keyboardFocusMode,
       child: SizedBox(
         height: controlHeight,
         child: Stack(
@@ -643,15 +661,21 @@ class _ItAutocompleteState<T extends Object> extends State<ItAutocomplete<T>> {
             ),
             // input[type=text] { border-bottom: 1px solid hsl(210,17%,44%) }
             // .form-control.is-invalid { border-color: rgb(204,51,76.5) }
+            // — and while focused, Italia's `!important` focus rules over both.
             Positioned(
               left: 0,
               right: 0,
               bottom: 0,
               height: ItFormMetrics.borderWidth,
               child: ColoredBox(
-                color: validation == null
-                    ? ItFormMetrics.borderColor
-                    : ItFieldValidation.color(colors, validation),
+                color: showsFocus
+                    ? ItFormMetrics.focusBorderColor(
+                        colors,
+                        keyboard: keyboardFocusMode,
+                      )
+                    : validation == null
+                        ? ItFormMetrics.borderColor
+                        : ItFieldValidation.color(colors, validation),
               ),
             ),
           ],
@@ -668,6 +692,10 @@ class _ItAutocompleteState<T extends Object> extends State<ItAutocomplete<T>> {
     // anchoring to the outer one would drop the list a helper-line's height
     // below the field it belongs to.
     return ItFieldSupport(
+      // `.form-group { margin-bottom: 3rem }` — the space the NEXT
+      // field's floating label rises into. Without it that label is
+      // painted straight through this control.
+      groupMargin: widget.groupMargin,
       helperText: widget.helperText,
       errorText: widget.errorText,
       child: CompositedTransformTarget(

@@ -49,8 +49,8 @@ void main() {
   // captured `.skiplinks` box is 868x40 with two links in the DOM. This port
   // reveals every link together once any of them has focus, so capturing two
   // here would compare 868x80 against 868x40 and score the divergence as a
-  // rendering defect. It is not one: it is a behavioural difference, recorded
-  // in doc/quality-plan.md. Captured single-link so this measures what parity
+  // rendering defect. It is not one: it is a behavioural difference, noted in
+  // it_skiplinks.dart. Captured single-link so this measures what parity
   // is for — colour, padding, typography, alignment.
   testWidgets('capture: nav_skiplinks', (tester) async {
     await captureWidget(

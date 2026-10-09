@@ -28,6 +28,8 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        // Instrumented accessibility probe — see androidTest/AccessibilityDumpTest.
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
@@ -41,4 +43,13 @@ android {
 
 flutter {
     source = "../.."
+}
+
+// Only for the on-device accessibility probe. `uiautomator`'s XML dump cannot
+// report an editable field's hintText or a node's stateDescription, so an empty
+// content-desc there proves nothing — this reads AccessibilityNodeInfo directly.
+dependencies {
+    androidTestImplementation("androidx.test:runner:1.5.2")
+    androidTestImplementation("androidx.test.ext:junit:1.1.5")
+    androidTestImplementation("androidx.test.uiautomator:uiautomator:2.3.0")
 }

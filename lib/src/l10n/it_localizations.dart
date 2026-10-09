@@ -76,12 +76,21 @@ class ItLocalizations {
     required this.close,
     required this.remove,
     required this.removeItem,
+    required this.carousel,
+    required this.previousSlide,
+    required this.nextSlide,
+    required this.goToSlide,
+    required this.playCarousel,
+    required this.pauseCarousel,
+    required this.slideLabel,
     required this.closeModal,
+    required this.closePanel,
     required this.dismissModalBarrier,
     required this.dialog,
     required this.closeNotification,
     required this.openMenu,
     required this.closeMenu,
+    required this.mainNavigation,
     required this.navigationMenu,
     required this.breadcrumb,
     required this.search,
@@ -90,10 +99,14 @@ class ItLocalizations {
     required this.searching,
     required this.suggestions,
     required this.noResults,
+    required this.chooseDate,
+    required this.chooseTime,
+    required this.confirmPick,
     required this.searchResultsOne,
     required this.searchResultsOther,
     required this.notificationCountOne,
     required this.notificationCountOther,
+    required this.radioUnselected,
     required this.showPassword,
     required this.hidePassword,
     required this.followUs,
@@ -133,9 +146,46 @@ class ItLocalizations {
   /// after its chip, each one says what it does.
   final String removeItem;
 
+  /// The carousel's own accessible name. Italian: `'Carosello'`.
+  ///
+  /// All seven of these are `design-react-kit`'s own `i18n` block for the
+  /// component, carried over verbatim rather than re-translated.
+  final String carousel;
+
+  /// Previous-slide control. Italian: `'Slide precedente'`.
+  final String previousSlide;
+
+  /// Next-slide control. Italian: `'Slide successiva'`.
+  final String nextSlide;
+
+  /// Pagination dot, with the slide number substituted for `%s`.
+  /// Italian: `'Vai alla slide %s'`.
+  final String goToSlide;
+
+  /// Starts autoplay. Italian: `'Attiva autoplay'`.
+  ///
+  /// Autoplay is off by default here, as upstream. When it is on, a control
+  /// carrying this name is **mandatory** rather than optional: moving content
+  /// that runs for more than five seconds needs a pause (WCAG 2.2.2).
+  final String playCarousel;
+
+  /// Pauses autoplay. Italian: `'Pausa autoplay'`.
+  final String pauseCarousel;
+
+  /// A slide's position, `'%s di %s'` — index then total.
+  final String slideLabel;
+
   /// The close button in [ItModal]'s header. Italian:
   /// `'Chiudi finestra modale'`.
   final String closeModal;
+
+  /// The close button in [ItOffcanvas]'s header. Italian: `'Chiudi pannello'`.
+  ///
+  /// Separate from [closeModal] because the two are different places to be: a
+  /// modal is a dialog that interrupts, a panel is a surface that slides over.
+  /// Reusing the dialog wording would tell a screen-reader user they are
+  /// leaving something they never entered.
+  final String closePanel;
 
   /// The modal's barrier, which dismisses the dialog when tapped.
   ///
@@ -167,6 +217,14 @@ class ItLocalizations {
   /// it. Consolidated here, which is a thing a table of strings makes visible
   /// and a scatter of literals does not.
   final String closeMenu;
+
+  /// Names the primary navigation landmark — [ItNavHeader]'s `<nav>`.
+  ///
+  /// Distinct from [navigationMenu] on purpose. Flutter asserts when a page
+  /// carries more than one navigation landmark without unique labels, and a
+  /// screen-reader user listing landmarks gets a row of identical entries.
+  /// Italian: `'Navigazione principale'`.
+  final String mainNavigation;
 
   /// The `navigation` landmark wrapping the mobile megamenu panel. Italian:
   /// `'Menu di navigazione'`.
@@ -212,6 +270,15 @@ class ItLocalizations {
   /// [searchResults]; they were two identical literals before.
   final String noResults;
 
+  /// Names [ItDateField]'s calendar button. Italian: `'Scegli la data'`.
+  final String chooseDate;
+
+  /// Names [ItDateField]'s clock button. Italian: `'Scegli l'ora'`.
+  final String chooseTime;
+
+  /// Confirms the wheel in the platform picker on iOS. Italian: `'Fatto'`.
+  final String confirmPick;
+
   /// The live-region announcement for exactly one result. Italian:
   /// `'1 risultato disponibile'`.
   final String searchResultsOne;
@@ -229,6 +296,19 @@ class ItLocalizations {
   final String notificationCountOther;
 
   // ── Form and chrome ──────────────────────────────────────────────
+
+  /// The hint on an **unselected** [ItRadio], on iOS and macOS only.
+  ///
+  /// Those platforms announce the *selected* option through
+  /// `UIAccessibilityTraitSelected` and say nothing at all for the others, so
+  /// without this a VoiceOver user cannot tell an unselected radio from one
+  /// whose state was simply not announced. Android needs no such hint: it
+  /// carries the checked state itself, and adding this there would say the same
+  /// thing twice.
+  ///
+  /// Matches `WidgetsLocalizations.radioButtonUnselectedLabel`, which is what
+  /// Flutter's own `RawRadio` uses. Italian: `'Non selezionato'`.
+  final String radioUnselected;
 
   /// [ItInput]'s password reveal toggle. Italian: `'Mostra la password'`.
   final String showPassword;
@@ -336,12 +416,21 @@ class ItLocalizations {
     String? close,
     String? remove,
     String? removeItem,
+    String? carousel,
+    String? previousSlide,
+    String? nextSlide,
+    String? goToSlide,
+    String? playCarousel,
+    String? pauseCarousel,
+    String? slideLabel,
     String? closeModal,
+    String? closePanel,
     String? dismissModalBarrier,
     String? dialog,
     String? closeNotification,
     String? openMenu,
     String? closeMenu,
+    String? mainNavigation,
     String? navigationMenu,
     String? breadcrumb,
     String? search,
@@ -350,10 +439,14 @@ class ItLocalizations {
     String? searching,
     String? suggestions,
     String? noResults,
+    String? chooseDate,
+    String? chooseTime,
+    String? confirmPick,
     String? searchResultsOne,
     String? searchResultsOther,
     String? notificationCountOne,
     String? notificationCountOther,
+    String? radioUnselected,
     String? showPassword,
     String? hidePassword,
     String? followUs,
@@ -364,12 +457,21 @@ class ItLocalizations {
         close: close ?? this.close,
         remove: remove ?? this.remove,
         removeItem: removeItem ?? this.removeItem,
+        carousel: carousel ?? this.carousel,
+        previousSlide: previousSlide ?? this.previousSlide,
+        nextSlide: nextSlide ?? this.nextSlide,
+        goToSlide: goToSlide ?? this.goToSlide,
+        playCarousel: playCarousel ?? this.playCarousel,
+        pauseCarousel: pauseCarousel ?? this.pauseCarousel,
+        slideLabel: slideLabel ?? this.slideLabel,
         closeModal: closeModal ?? this.closeModal,
+        closePanel: closePanel ?? this.closePanel,
         dismissModalBarrier: dismissModalBarrier ?? this.dismissModalBarrier,
         dialog: dialog ?? this.dialog,
         closeNotification: closeNotification ?? this.closeNotification,
         openMenu: openMenu ?? this.openMenu,
         closeMenu: closeMenu ?? this.closeMenu,
+        mainNavigation: mainNavigation ?? this.mainNavigation,
         navigationMenu: navigationMenu ?? this.navigationMenu,
         breadcrumb: breadcrumb ?? this.breadcrumb,
         search: search ?? this.search,
@@ -378,11 +480,15 @@ class ItLocalizations {
         searching: searching ?? this.searching,
         suggestions: suggestions ?? this.suggestions,
         noResults: noResults ?? this.noResults,
+        chooseDate: chooseDate ?? this.chooseDate,
+        chooseTime: chooseTime ?? this.chooseTime,
+        confirmPick: confirmPick ?? this.confirmPick,
         searchResultsOne: searchResultsOne ?? this.searchResultsOne,
         searchResultsOther: searchResultsOther ?? this.searchResultsOther,
         notificationCountOne: notificationCountOne ?? this.notificationCountOne,
         notificationCountOther:
             notificationCountOther ?? this.notificationCountOther,
+        radioUnselected: radioUnselected ?? this.radioUnselected,
         showPassword: showPassword ?? this.showPassword,
         hidePassword: hidePassword ?? this.hidePassword,
         followUs: followUs ?? this.followUs,
@@ -397,12 +503,83 @@ class ItLocalizations {
   // other Flutter dialog, so the kit does not introduce a second vocabulary for
   // the same action.
   //
-  // English is deliberately NOT bundled. It would be the easiest locale to add
-  // and the most dangerous: `MaterialApp.supportedLocales` defaults to
-  // `[Locale('en', 'US')]`, so shipping `en` would make an unconfigured Italian
-  // app resolve to English accessible names. Applications that want English can
-  // supply it through `ItLocalizationsDelegate.resolve` in a few lines, having
-  // decided to.
+  // English is provided but deliberately NOT auto-resolved — [english] exists,
+  // and `'en'` is absent from [_bundled] and [supportedLocales] on purpose.
+  //
+  // Registering it would be the easiest change here and the most dangerous.
+  // `MaterialApp.supportedLocales` defaults to `[Locale('en', 'US')]`, so an
+  // application that installs the delegate and configures nothing else resolves
+  // to `en` — today that falls through to Italian, which is right for the
+  // audience this kit is for. Bundle `en` and the same app starts announcing
+  // English accessible names to Italian users, silently, having asked for
+  // nothing. Observed in this repo: with a device set to `de-DE` the example
+  // catalogue still resolves `localeName: it`, precisely because `en` is not
+  // bundled and de is not in ITS supportedLocales.
+  //
+  // So English is opt-in, in one line, by an application that has decided to:
+  //
+  // ```dart
+  // ItLocalizationsDelegate(
+  //   resolve: (l) => l.languageCode == 'en' ? ItLocalizations.english : null,
+  // )
+  // ```
+
+  /// English — **not** auto-resolved. See the note above [italian]: `'en'` is
+  /// absent from [supportedLocales] because `MaterialApp` defaults to it, and
+  /// bundling it would switch an unconfigured Italian app to English names.
+  ///
+  /// Opt in through [ItLocalizationsDelegate.resolve]. Provided for
+  /// English-language services, for reviewers who do not read Italian, and so
+  /// that a screen-reader session can be run by someone who does not either.
+  ///
+  /// Wording follows `material_en.arb` / `widgets_en.arb` where an equivalent
+  /// exists, for the same reason the other locales do.
+  static const ItLocalizations english = ItLocalizations(
+    localeName: 'en',
+    backToTop: 'Back to top',
+    // `MaterialLocalizations.closeButtonLabel` (material_en.arb).
+    close: 'Close',
+    remove: 'Remove',
+    removeItem: 'Remove {label}',
+    carousel: 'Carousel',
+    previousSlide: 'Previous slide',
+    nextSlide: 'Next slide',
+    goToSlide: 'Go to slide %s',
+    playCarousel: 'Start autoplay',
+    pauseCarousel: 'Pause autoplay',
+    slideLabel: '%s of %s',
+    closeModal: 'Close dialog',
+    closePanel: 'Close panel',
+    // `modalBarrierDismissLabel` (material_en.arb).
+    dismissModalBarrier: 'Dismiss',
+    // `dialogLabel` (material_en.arb).
+    dialog: 'Dialog',
+    closeNotification: 'Close notification',
+    openMenu: 'Open menu',
+    closeMenu: 'Close menu',
+    mainNavigation: 'Main navigation',
+    navigationMenu: 'Navigation menu',
+    breadcrumb: 'Breadcrumb',
+    // `searchFieldLabel` (material_en.arb).
+    search: 'Search',
+    searchPlaceholder: 'Search...',
+    loading: 'Loading',
+    searching: 'Searching',
+    suggestions: 'Suggestions',
+    noResults: 'No results',
+    chooseDate: 'Choose the date',
+    chooseTime: 'Choose the time',
+    confirmPick: 'Done',
+    searchResultsOne: '1 result available',
+    searchResultsOther: '{count} results available',
+    notificationCountOne: '{count} notification',
+    notificationCountOther: '{count} notifications',
+    // `WidgetsLocalizations.radioButtonUnselectedLabel` (widgets_en.arb).
+    radioUnselected: 'Not selected',
+    showPassword: 'Show password',
+    hidePassword: 'Hide password',
+    followUs: 'Follow us on',
+  );
 
   /// Italian — the package default, and the fallback for every locale not
   /// bundled here.
@@ -413,7 +590,15 @@ class ItLocalizations {
     close: 'Chiudi',
     remove: 'Rimuovi',
     removeItem: 'Rimuovi {label}',
+    carousel: 'Carosello',
+    previousSlide: 'Slide precedente',
+    nextSlide: 'Slide successiva',
+    goToSlide: 'Vai alla slide %s',
+    playCarousel: 'Attiva autoplay',
+    pauseCarousel: 'Pausa autoplay',
+    slideLabel: '%s di %s',
     closeModal: 'Chiudi finestra modale',
+    closePanel: 'Chiudi pannello',
     // `modalBarrierDismissLabel` (material_it.arb).
     dismissModalBarrier: 'Ignora',
     // `dialogLabel` (material_it.arb).
@@ -421,6 +606,7 @@ class ItLocalizations {
     closeNotification: 'Chiudi notifica',
     openMenu: 'Apri menu',
     closeMenu: 'Chiudi menu',
+    mainNavigation: 'Navigazione principale',
     navigationMenu: 'Menu di navigazione',
     breadcrumb: 'Breadcrumb',
     // `searchFieldLabel` (material_it.arb).
@@ -430,12 +616,17 @@ class ItLocalizations {
     searching: 'Ricerca in corso',
     suggestions: 'Suggerimenti',
     noResults: 'Nessun risultato',
+    chooseDate: 'Scegli la data',
+    chooseTime: 'Scegli l\'ora',
+    confirmPick: 'Fatto',
     searchResultsOne: '1 risultato disponibile',
     searchResultsOther: '{count} risultati disponibili',
     // The singular is new. The badge said `'$count notifiche'` for every value,
     // so a badge of one announced "1 notifiche".
     notificationCountOne: '{count} notifica',
     notificationCountOther: '{count} notifiche',
+    // `WidgetsLocalizations.radioButtonUnselectedLabel` (widgets_it.arb).
+    radioUnselected: 'Non selezionato',
     showPassword: 'Mostra la password',
     hidePassword: 'Nascondi la password',
     followUs: 'Seguici su',
@@ -452,7 +643,15 @@ class ItLocalizations {
     removeItem: '{label} entfernen',
     // `dialogLabel` is `Dialogfeld`; the verb is the same one Flutter uses for
     // `closeButtonLabel`.
+    carousel: 'Karussell',
+    previousSlide: 'Vorherige Folie',
+    nextSlide: 'Nächste Folie',
+    goToSlide: 'Zu Folie %s wechseln',
+    playCarousel: 'Automatische Wiedergabe starten',
+    pauseCarousel: 'Automatische Wiedergabe pausieren',
+    slideLabel: '%s von %s',
     closeModal: 'Dialogfeld schließen',
+    closePanel: 'Bereich schließen',
     // `modalBarrierDismissLabel` (material_de.arb).
     dismissModalBarrier: 'Schließen',
     // `dialogLabel` (material_de.arb).
@@ -460,6 +659,7 @@ class ItLocalizations {
     closeNotification: 'Benachrichtigung schließen',
     openMenu: 'Menü öffnen',
     closeMenu: 'Menü schließen',
+    mainNavigation: 'Hauptnavigation',
     navigationMenu: 'Navigationsmenü',
     // Untranslated by design — see [breadcrumb].
     breadcrumb: 'Breadcrumb',
@@ -470,12 +670,17 @@ class ItLocalizations {
     searching: 'Suche läuft',
     suggestions: 'Vorschläge',
     noResults: 'Keine Ergebnisse',
+    chooseDate: 'Datum auswählen',
+    chooseTime: 'Uhrzeit auswählen',
+    confirmPick: 'Fertig',
     searchResultsOne: '1 Ergebnis verfügbar',
     searchResultsOther: '{count} Ergebnisse verfügbar',
     notificationCountOne: '{count} Benachrichtigung',
     notificationCountOther: '{count} Benachrichtigungen',
     // The `anzeigen`/`ausblenden` pair Flutter uses for
     // `showAccountsLabel`/`hideAccountsLabel` (material_de.arb).
+    // widgets_de.arb.
+    radioUnselected: 'Nicht ausgewählt',
     showPassword: 'Passwort anzeigen',
     hidePassword: 'Passwort ausblenden',
     // Formal address (Sie), which is the register Südtirol's administration
@@ -493,7 +698,15 @@ class ItLocalizations {
     // Not `Effacer` (clear) — the chip leaves the list.
     remove: 'Supprimer',
     removeItem: 'Supprimer {label}',
+    carousel: 'Carrousel',
+    previousSlide: 'Diapositive précédente',
+    nextSlide: 'Diapositive suivante',
+    goToSlide: 'Aller à la diapositive %s',
+    playCarousel: 'Activer la lecture automatique',
+    pauseCarousel: 'Mettre en pause la lecture automatique',
+    slideLabel: '%s sur %s',
     closeModal: 'Fermer la boîte de dialogue',
+    closePanel: 'Fermer le panneau',
     // `modalBarrierDismissLabel` (material_fr.arb).
     dismissModalBarrier: 'Ignorer',
     // `dialogLabel` (material_fr.arb).
@@ -501,6 +714,7 @@ class ItLocalizations {
     closeNotification: 'Fermer la notification',
     openMenu: 'Ouvrir le menu',
     closeMenu: 'Fermer le menu',
+    mainNavigation: 'Navigation principale',
     navigationMenu: 'Menu de navigation',
     // Untranslated by design — see [breadcrumb].
     breadcrumb: 'Breadcrumb',
@@ -511,12 +725,17 @@ class ItLocalizations {
     searching: 'Recherche en cours',
     suggestions: 'Suggestions',
     noResults: 'Aucun résultat',
+    chooseDate: 'Choisir la date',
+    chooseTime: 'Choisir l\'heure',
+    confirmPick: 'Terminé',
     searchResultsOne: '1 résultat disponible',
     searchResultsOther: '{count} résultats disponibles',
     notificationCountOne: '{count} notification',
     notificationCountOther: '{count} notifications',
     // The `Afficher`/`Masquer` pair Flutter uses for
     // `showAccountsLabel`/`hideAccountsLabel` (material_fr.arb).
+    // widgets_fr.arb.
+    radioUnselected: 'Non sélectionné',
     showPassword: 'Afficher le mot de passe',
     hidePassword: 'Masquer le mot de passe',
     followUs: 'Suivez-nous sur',

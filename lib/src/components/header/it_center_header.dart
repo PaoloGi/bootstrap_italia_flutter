@@ -4,6 +4,7 @@ import '../../l10n/it_localizations.dart';
 import '../../a11y/it_activatable.dart';
 import '../../theme/bootstrap_italia_theme_data.dart';
 import '../../theme/theme_extensions.dart';
+import '../../tokens/breakpoints.dart';
 import '../../tokens/typography.dart';
 import '../../utilities/interaction_states.dart';
 import '../social_link/it_social_link.dart';
@@ -112,14 +113,26 @@ class ItCenterHeader extends StatelessWidget {
   /// `.container-xxl` gutter (12px) plus the content wrapper's `18px`.
   static const double _inset = 30;
 
-  /// `@media (min-width: 992px)` — 120px, or 104px for `.it-small-header`.
-  double get _height => small ? 104 : 120;
+  /// The band's height, which depends on the viewport.
+  ///
+  /// `.it-header-center-wrapper { height: 80px }` is the **base** rule; the
+  /// 120px is inside `@media (min-width: 992px)`, and `.it-small-header`'s
+  /// 104px is a modifier on top of the desktop band.
+  ///
+  /// This used to return the desktop number unconditionally, which meant a
+  /// phone got the desktop header in a phone-width box: an 82px logo and a
+  /// 28px title in 120px, overflowing by 19px at 390 and 360. Below `lg` the
+  /// component now renders the layout the stylesheet actually specifies there.
+  double _height(bool desktop) => desktop ? (small ? 104 : 120) : 80;
 
   /// `.it-header-center-wrapper { padding-top: 6px }` at `lg` and up.
   static const double _paddingTop = 6;
 
-  /// `.it-brand-wrapper a .icon { width: 82px; height: 82px }`
-  static const double _logoSize = 82;
+  /// `.it-brand-wrapper a .icon`: 48px in the base rule, 82px from `lg` up.
+  double _logoSize(bool desktop) => desktop ? 82 : 48;
+
+  /// `.icon { margin-right: 8px }`, 16px from `lg` up.
+  double _logoGap(bool desktop) => desktop ? 16 : 8;
 
   /// `.it-header-center-wrapper { background: #06c }` with
   /// `….it-right-zone { color: #fff }`, and under `.theme-light`
@@ -134,23 +147,24 @@ class ItCenterHeader extends StatelessWidget {
   Color _bg(BootstrapItaliaColorScheme colors) =>
       light ? colors.white : colors.primary;
 
-  TextStyle _titleStyle(Color fg) => TextStyle(
+  TextStyle _titleStyle(Color fg, bool desktop) => TextStyle(
         fontFamily: BootstrapItaliaFontFamily.sansSerif,
         package: BootstrapItaliaFontFamily.package,
-        // `h2 { font-size: 1.75rem; font-weight: 600; line-height: 1.1 }`
-        // (`1.25rem` under `.it-small-header`)
-        fontSize: small ? 20 : 28,
+        // `h2 { font-size: 1.25rem }` in the base rule, `1.75rem` from `lg`
+        // up, and `1.25rem` again under `.it-small-header`.
+        fontSize: (desktop && !small) ? 28 : 20,
         height: 1.1,
         fontWeight: FontWeight.w600,
         color: fg,
         leadingDistribution: TextLeadingDistribution.even,
       );
 
-  TextStyle _taglineStyle(Color fg) => TextStyle(
+  TextStyle _taglineStyle(Color fg, bool desktop) => TextStyle(
         fontFamily: BootstrapItaliaFontFamily.sansSerif,
         package: BootstrapItaliaFontFamily.package,
         // `h3 { font-size: .875rem; font-weight: normal }` (`.75rem` small),
-        // inheriting the base `h3` line-height of 40px.
+        // inheriting the base `h3` line-height of 40px. The tagline does not
+        // change size at the breakpoint — only the title and the logo do.
         fontSize: small ? 12 : 14,
         height: small ? 40 / 12 : 40 / 14,
         fontWeight: FontWeight.w400,
@@ -172,9 +186,46 @@ class ItCenterHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = resolveColorScheme(context);
+    // The viewport, not the container — see breakpoint_semantics_test.dart.
+    // `.it-header-center-wrapper`'s 120px band, 82px logo and 1.75rem title
+    // all live inside `@media (min-width: 992px)`; the base rule is an 80px
+    // band with a 48px logo and a 1.25rem title.
+    final width =
+        MediaQuery.maybeSizeOf(context)?.width ?? ItBreakpoint.lg.minWidth;
+    final desktop = width >= ItBreakpoint.lg.minWidth;
     return Container(
       width: double.infinity,
-      height: _height,
+      // WCAG 1.4.4: the band grows with the text it contains.
+      // `.it-header-center-wrapper` is 120px (104 small), and pinning that
+      // flat meant the band could not grow: at iOS's `accessibility-large`
+      // (194%, inside the range the criterion requires) the tag line was cut
+      // off by the bottom edge and Flutter painted an overflow stripe across
+      // it. Verified on an iPhone 16 simulator, 16 August 2026.
+      //
+      // `minHeight` was tried first and is NOT equivalent: releasing the exact
+      // height let the band size to its child, and `nav_header_center` fell
+      // from 100% to 66.6% against the React kit. Scaling is parity-safe by
+      // construction — at the default text scale this resolves to exactly
+      // 120/104, which is the scale the parity captures are taken at.
+      // Fixed at `lg` and up, a floor below it.
+      //
+      // `minHeight` was tried for the desktop band once and is NOT equivalent
+      // there: releasing the exact height let it size to its child and
+      // `nav_header_center` fell from 100% to 66.6% against the React kit. But
+      // below `lg` nothing is captured — every parity reference is taken at
+      // desktop width — and a pinned band cannot hold a title that wraps: at
+      // 360px "Bootstrap Italia Flutter" takes two lines and overflowed the
+      // 80px band by 32px. CSS overflows a fixed-height flex box silently;
+      // Flutter reports it, which is the better behaviour but still a defect.
+      height: desktop
+          ? MediaQuery.textScalerOf(context).scale(_height(desktop))
+          : null,
+      constraints: desktop
+          ? null
+          : BoxConstraints(
+              minHeight:
+                  MediaQuery.textScalerOf(context).scale(_height(desktop)),
+            ),
       color: backgroundColor ?? _bg(colors),
       padding: const EdgeInsets.only(top: _paddingTop),
       child: Center(
@@ -191,7 +242,7 @@ class ItCenterHeader extends StatelessWidget {
               // "Nome dell'Istituzione" / three socials / search combination
               // did here at container width. Loose fit, so a name that fits
               // is laid out exactly where it was.
-              Flexible(child: _buildBrand(colors)),
+              Flexible(child: _buildBrand(colors, desktop)),
               _buildRightZone(context, colors),
             ],
           ),
@@ -200,7 +251,7 @@ class ItCenterHeader extends StatelessWidget {
     );
   }
 
-  Widget _buildBrand(BootstrapItaliaColorScheme colors) {
+  Widget _buildBrand(BootstrapItaliaColorScheme colors, bool desktop) {
     final fg = _fg(colors);
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -208,13 +259,13 @@ class ItCenterHeader extends StatelessWidget {
       children: [
         if (logo != null)
           Padding(
-            // `.icon { margin-right: 16px }`
-            padding: const EdgeInsets.only(right: 16),
+            // `.icon { margin-right: 8px }`, 16px from `lg` up.
+            padding: EdgeInsets.only(right: _logoGap(desktop)),
             child: SizedBox(
-              width: _logoSize,
-              height: _logoSize,
+              width: _logoSize(desktop),
+              height: _logoSize(desktop),
               child: IconTheme.merge(
-                data: IconThemeData(color: fg, size: _logoSize),
+                data: IconThemeData(color: fg, size: _logoSize(desktop)),
                 child: logo!,
               ),
             ),
@@ -233,7 +284,7 @@ class ItCenterHeader extends StatelessWidget {
                 Semantics(
                   header: true,
                   headingLevel: 2,
-                  child: Text(title, style: _titleStyle(fg)),
+                  child: Text(title, style: _titleStyle(fg, desktop)),
                 ),
                 if (subtitle != null) ...[
                   // `.it-small-header h3 { margin-top: 4px }`
@@ -241,7 +292,7 @@ class ItCenterHeader extends StatelessWidget {
                   Semantics(
                     header: true,
                     headingLevel: 3,
-                    child: Text(subtitle!, style: _taglineStyle(fg)),
+                    child: Text(subtitle!, style: _taglineStyle(fg, desktop)),
                   ),
                 ],
               ],

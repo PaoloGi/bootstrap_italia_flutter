@@ -39,6 +39,11 @@ Set<String> _publicWidgets() {
 
 /// Components exempt from needing their own contract, and why.
 const Map<String, String> _exempt = {
+  // A horizontal rule. `.divider` is a line and nothing else: it carries no
+  // name, state or value, and `ItDivider` excludes itself from the semantics
+  // tree so a screen reader never meets it. Where a rule separates groups
+  // that AT should tell apart, the grouping belongs in the tree instead.
+  'ItDivider': 'decorative — a line with no semantics of its own',
   // ── Paints pixels, carries no semantics ──────────────────────────────────
   // Each is a CustomPaint glyph whose meaning lives on the control that draws
   // it. Giving them names of their own would double every announcement: the

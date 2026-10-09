@@ -1,11 +1,13 @@
 import 'dart:math' as math;
 
 import 'package:flutter/services.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter/widgets.dart';
 
 import '../a11y/it_focus_ring.dart';
 import '../theme/theme_extensions.dart';
 import '../tokens/spacing.dart';
+import 'it_field_group_scope.dart';
 import 'it_field_support.dart';
 import 'it_form_metrics.dart';
 
@@ -129,7 +131,26 @@ class ItCheckbox extends StatefulWidget {
     this.semanticLabel,
     this.visuallyGrouped = false,
     this.focusNode,
+    this.validator,
+    this.onSaved,
+    this.autovalidateMode,
   });
+
+  /// Validates this control as part of an enclosing [Form], as
+  /// `TextFormField.validator` does.
+  ///
+  /// Without it the control is not a [FormField], so a required ItCheckbox inside
+  /// a `Form` compiles, looks correct, and is skipped entirely by
+  /// `validate()`. That failure is silent — no crash, no warning, no visual
+  /// difference — which is why this is a parameter and not a documentation
+  /// note.
+  final FormFieldValidator<bool>? validator;
+
+  /// Called by `Form.save()`.
+  final FormFieldSetter<bool>? onSaved;
+
+  /// When the control re-validates. Defaults to [AutovalidateMode.disabled].
+  final AutovalidateMode? autovalidateMode;
 
   @override
   State<ItCheckbox> createState() => _ItCheckboxState();
@@ -148,11 +169,53 @@ class _ItCheckboxState extends State<ItCheckbox> {
 
   void _toggle() {
     if (!_interactive) return;
+    _formState?.didChange(!widget.value);
     widget.onChanged!.call(!widget.value);
   }
 
+  /// The message the enclosing [Form] produced, when participating in one.
+  String? _formError;
+  FormFieldState<bool>? _formState;
+
+  /// An explicit `errorText` wins: a caller stating the error outright is more
+  /// specific than a validator that may not have run yet.
+  String? get _errorText => widget.errorText ?? _formError;
+
+  bool get _isFormField => widget.validator != null || widget.onSaved != null;
+
   @override
   Widget build(BuildContext context) {
+    if (!_isFormField) return _buildCheckbox(context);
+
+    return FormField<bool>(
+      initialValue: widget.value,
+      autovalidateMode: widget.autovalidateMode,
+      // The widget's own `value` is the truth: this is a controlled component,
+      // and the FormField's copy goes stale as soon as the caller rebuilds.
+      validator: widget.validator == null
+          ? null
+          : (_) => widget.validator!(widget.value),
+      onSaved:
+          widget.onSaved == null ? null : (_) => widget.onSaved!(widget.value),
+      builder: (state) {
+        _formState = state;
+        if (state.errorText != _formError) {
+          final previous = _formError;
+          _formError = state.errorText;
+          // WCAG 4.1.3: a message that appears after the fact takes no focus,
+          // so nothing would otherwise announce it. Deferred: this is build.
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              ItFieldValidation.announce(context, previous, _formError);
+            }
+          });
+        }
+        return _buildCheckbox(context);
+      },
+    );
+  }
+
+  Widget _buildCheckbox(BuildContext context) {
     final colors = resolveColorScheme(context);
     final value = widget.value;
     final label = widget.label;
@@ -160,7 +223,7 @@ class _ItCheckboxState extends State<ItCheckbox> {
     final indeterminate = widget.indeterminate;
     final enabled = widget.enabled;
     final validation =
-        ItFieldValidation.effective(widget.errorText, widget.validationState);
+        ItFieldValidation.effective(_errorText, widget.validationState);
 
     // .form-check [type=checkbox]:checked+label::after
     //   { border-color:#06c; background-color:#06c }
@@ -176,8 +239,10 @@ class _ItCheckboxState extends State<ItCheckbox> {
     // — the validation tint replaces the accent but not the disabled chrome,
     // because `:disabled` is what stops the control being answerable at all.
     final checked = indeterminate || value;
+    // Null for a warning: `.form-check-input` has no warning rule, so the box
+    // keeps its resting colours and the message carries the state.
     final validationColor =
-        validation == null ? null : ItFieldValidation.color(colors, validation);
+        ItFieldValidation.checkChromeColor(colors, validation);
     final Color boxColor;
     final Color fill;
     if (!enabled) {
@@ -352,8 +417,12 @@ class _ItCheckboxState extends State<ItCheckbox> {
         // WCAG 3.3.1 / 3.3.2: the two lines below the box are painted as
         // siblings, so they are carried here instead of being left as loose
         // text a screen reader cannot connect to the control.
-        hint: ItFieldValidation.hint(widget.errorText, widget.helperText),
-        validationResult: ItFieldValidation.result(validation),
+        hint: ItFieldValidation.hint(_errorText, widget.helperText),
+        // Inside a group the invalid flag belongs to the group's node, which
+        // carries the one message — see [ItFieldGroupScope].
+        validationResult: ItFieldGroupScope.spokenFor(context)
+            ? SemanticsValidationResult.none
+            : ItFieldValidation.result(validation),
         onTap: _interactive ? _toggle : null,
         child: ItFocusRing(
           // `.form-check [type=checkbox]:focus + label` — the indicator goes
@@ -412,7 +481,7 @@ class _ItCheckboxState extends State<ItCheckbox> {
 
     return ItFieldSupport(
       helperText: widget.helperText,
-      errorText: widget.errorText,
+      errorText: _errorText,
       grouped: widget.visuallyGrouped,
       child: control,
     );
@@ -519,10 +588,15 @@ class ItCheckboxGroup<T> extends StatelessWidget {
         // .form-text { display:block }` is the rule that makes it a line of its
         // own at all.
         helperText: grouped ? option.helperText : null,
-        // The tint is a property of the set, so it reaches every box; the
-        // message and the instruction belong to the group and are painted once,
-        // below it.
-        validationState: validationState,
+        // The tint is a property of the set, so it reaches every box — and
+        // `errorText` is a validation state, not only a message: with one set
+        // and `validationState` left null the group printed the error and drew
+        // every box as if nothing were wrong, where the kit puts `.is-invalid`
+        // on each input. The message and the instruction are painted once,
+        // below the set, and the invalid state a screen reader hears stays on
+        // the group's node — see [ItFieldGroupScope].
+        validationState:
+            ItFieldValidation.effective(errorText, validationState),
         onChanged: (checked) {
           final newValues = Set<T>.from(values);
           if (checked) {
@@ -550,53 +624,57 @@ class ItCheckboxGroup<T> extends StatelessWidget {
       validationResult: ItFieldValidation.result(
         ItFieldValidation.effective(errorText, validationState),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (label != null) ...[
-            ExcludeSemantics(
-              child: Text(
-                label!,
-                style: ItFormMetrics.textStyle(
-                  fontSize: 14,
-                  lineHeight: 39,
-                  fontWeight: FontWeight.w700,
-                  color: colors.bodyColor,
+      // The boxes take the tint but stay quiet about validity: the group is
+      // what carries it, once.
+      child: ItFieldGroupScope(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (label != null) ...[
+              ExcludeSemantics(
+                child: Text(
+                  label!,
+                  style: ItFormMetrics.textStyle(
+                    fontSize: 14,
+                    lineHeight: 39,
+                    fontWeight: FontWeight.w700,
+                    color: colors.bodyColor,
+                  ),
                 ),
               ),
-            ),
-          ],
-          if (inline)
-            Wrap(
-              spacing: BootstrapItaliaSpacing.space4,
-              runSpacing: BootstrapItaliaSpacing.space2,
-              children: checkboxes,
-            )
-          else if (grouped)
-            // No extra gap: `.form-check-group` already declares
-            // `padding-bottom:1rem; margin-bottom:1rem`, and stacking the
-            // resting `.form-check + .form-check { margin-top:.5rem }` on top
-            // of it would push the rows 8px further apart than the sheet does.
-            ...checkboxes
-          else
-            // .form-check + .form-check { margin-top: .5rem }
-            ...checkboxes.map(
-              (cb) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: cb,
+            ],
+            if (inline)
+              Wrap(
+                spacing: BootstrapItaliaSpacing.space4,
+                runSpacing: BootstrapItaliaSpacing.space2,
+                children: checkboxes,
+              )
+            else if (grouped)
+              // No extra gap: `.form-check-group` already declares
+              // `padding-bottom:1rem; margin-bottom:1rem`, and stacking the
+              // resting `.form-check + .form-check { margin-top:.5rem }` on top
+              // of it would push the rows 8px further apart than the sheet does.
+              ...checkboxes
+            else
+              // .form-check + .form-check { margin-top: .5rem }
+              ...checkboxes.map(
+                (cb) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: cb,
+                ),
               ),
-            ),
-          // Placed inside the Column rather than wrapping it, so the two lines
-          // stay left-aligned with the boxes and the group's own semantics node
-          // (above) keeps carrying them.
-          if (helperText != null || errorText != null)
-            ItFieldSupport(
-              helperText: helperText,
-              errorText: errorText,
-              child: const SizedBox.shrink(),
-            ),
-        ],
+            // Placed inside the Column rather than wrapping it, so the two lines
+            // stay left-aligned with the boxes and the group's own semantics node
+            // (above) keeps carrying them.
+            if (helperText != null || errorText != null)
+              ItFieldSupport(
+                helperText: helperText,
+                errorText: errorText,
+                child: const SizedBox.shrink(),
+              ),
+          ],
+        ),
       ),
     );
   }

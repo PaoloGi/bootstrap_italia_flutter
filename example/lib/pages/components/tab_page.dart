@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:bootstrap_italia_flutter/bootstrap_italia_flutter.dart';
 import 'package:bootstrap_italia_icons/bootstrap_italia_icons.dart';
 import 'package:flutter/material.dart';
@@ -26,8 +28,7 @@ class _TabPageState extends State<TabPage> {
   final Map<String, int> _index = {};
 
   int _at(String key) => _index[key] ?? 0;
-  ValueChanged<int> _set(String key) =>
-      (i) => setState(() => _index[key] = i);
+  ValueChanged<int> _set(String key) => (i) => setState(() => _index[key] = i);
 
   /// The docs' own editable-card example starts with four tabs and lets you
   /// add and remove them, so this one has to be real state rather than a list
@@ -168,8 +169,7 @@ class _TabPageState extends State<TabPage> {
         // ── Tab con testo e icona ──────────────────────────────────────────
         ExampleSection(
           title: 'Tab con testo e icona',
-          description:
-              "iconAndText disegna l'icona, mezzo rem di spazio e poi "
+          description: "iconAndText disegna l'icona, mezzo rem di spazio e poi "
               "l'etichetta. Lo spazio arriva dalla classe .nav-tabs-icon-text: "
               'il layout standard accosta icona ed etichetta senza margine, ed '
               'è ciò che il kit rende in assenza di quella classe.',
@@ -231,8 +231,10 @@ class _TabPageState extends State<TabPage> {
                   label: 'Edilizia', icon: BootstrapItaliaIcons.it_settings),
               ItTabItem(
                   label: 'Ambiente', icon: BootstrapItaliaIcons.it_calendar),
-              ItTabItem(label: 'Cultura', icon: BootstrapItaliaIcons.it_comment),
-              ItTabItem(label: 'Sport', icon: BootstrapItaliaIcons.it_star_full),
+              ItTabItem(
+                  label: 'Cultura', icon: BootstrapItaliaIcons.it_comment),
+              ItTabItem(
+                  label: 'Sport', icon: BootstrapItaliaIcons.it_star_full),
               ItTabItem(label: 'Trasporti', icon: BootstrapItaliaIcons.it_link),
             ],
             selectedIndex: _at('scroll'),
@@ -366,30 +368,51 @@ class _TabPageState extends State<TabPage> {
               '  layout: ItTabLayout.iconOnly,\n'
               '  tabs: [...],\n'
               ')',
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                width: 220,
-                child: ItTabBar(
-                  placement: ItTabPlacement.start,
-                  tabs: _verticalIconTabs,
-                  selectedIndex: _at('verticalIconText'),
-                  onChanged: _set('verticalIconText'),
-                ),
-              ),
-              const SizedBox(width: BootstrapItaliaSpacing.space3),
-              SizedBox(
-                width: 100,
-                child: ItTabBar(
-                  placement: ItTabPlacement.start,
-                  layout: ItTabLayout.iconOnly,
-                  tabs: _verticalIconTabs,
-                  selectedIndex: _at('verticalIconOnly'),
-                  onChanged: _set('verticalIconOnly'),
-                ),
-              ),
-            ],
+          // WCAG 1.4.4. These two columns were a flat `width: 220` and
+          // `width: 100`. A vertical tab puts its label against the inner edge
+          // and its icon against the outer one, so the pair needs more room as
+          // the text grows — and at iOS's `accessibility-large` (194%, which is
+          // INSIDE the 200% the criterion requires) the first column overflowed
+          // by 25px.
+          //
+          // Scaling the widths alone is NOT the fix, and was tried: 220 at 194%
+          // is 427pt on a 393pt screen, so the row then overflowed by 326px —
+          // a worse failure than the one being repaired. The width has to be
+          // both scaled AND bounded by what is actually available, and the two
+          // columns have to be allowed to stack when they no longer fit side
+          // by side. That is the general shape of the fix wherever a caller
+          // pins a width around text it does not control.
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final scaler = MediaQuery.textScalerOf(context);
+              double fit(double base) =>
+                  math.min(scaler.scale(base), constraints.maxWidth);
+              return Wrap(
+                spacing: BootstrapItaliaSpacing.space3,
+                runSpacing: BootstrapItaliaSpacing.space3,
+                children: [
+                  SizedBox(
+                    width: fit(220),
+                    child: ItTabBar(
+                      placement: ItTabPlacement.start,
+                      tabs: _verticalIconTabs,
+                      selectedIndex: _at('verticalIconText'),
+                      onChanged: _set('verticalIconText'),
+                    ),
+                  ),
+                  SizedBox(
+                    width: fit(100),
+                    child: ItTabBar(
+                      placement: ItTabPlacement.start,
+                      layout: ItTabLayout.iconOnly,
+                      tabs: _verticalIconTabs,
+                      selectedIndex: _at('verticalIconOnly'),
+                      onChanged: _set('verticalIconOnly'),
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         ),
 
@@ -511,8 +534,7 @@ class _TabPageState extends State<TabPage> {
         // ── Tab con sfondo scuro, verticali ────────────────────────────────
         ExampleSection(
           title: 'Tab verticali con sfondo scuro',
-          description:
-              'Le due varianti si combinano: la colonna scura porta '
+          description: 'Le due varianti si combinano: la colonna scura porta '
               "l'indicatore ciano sul bordo destro.",
           code: 'ItTabBar(\n'
               '  dark: true,\n'

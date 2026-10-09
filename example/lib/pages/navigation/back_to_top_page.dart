@@ -62,8 +62,7 @@ class _BackToTopPageState extends State<BackToTopPage> {
                 // ── Versione ridotta ───────────────────────────────────────
                 ExampleSection(
                   title: 'Versione ridotta',
-                  description:
-                      'Il parametro small corrisponde alla classe '
+                  description: 'Il parametro small corrisponde alla classe '
                       '.back-to-top-small e fissa il cerchio a 40 pixel a '
                       'ogni breakpoint, invece dei 56 che la versione normale '
                       'assume da md in su. Anche la freccia si riduce di '
@@ -119,8 +118,7 @@ class _BackToTopPageState extends State<BackToTopPage> {
                 // ── Ombra su sfondo scuro ──────────────────────────────────
                 ExampleSection(
                   title: 'Ombra su sfondo scuro',
-                  description:
-                      'Le due varianti si combinano, come nella '
+                  description: 'Le due varianti si combinano, come nella '
                       'documentazione.',
                   code: 'ItBackToTopButton(dark: true, shadow: true, '
                       'onPressed: () {})',
@@ -163,8 +161,8 @@ class _BackToTopPageState extends State<BackToTopPage> {
                     ),
                     child: _Row(children: [
                       ItBackToTopButton(onPressed: () {}),
-                      ItBackToTopButton(shadow: true, small: true,
-                          onPressed: () {}),
+                      ItBackToTopButton(
+                          shadow: true, small: true, onPressed: () {}),
                     ]),
                   ),
                 ),

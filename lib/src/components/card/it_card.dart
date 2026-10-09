@@ -124,6 +124,22 @@ class ItCard extends StatelessWidget {
   /// reach a screen reader, and this one is excluded from the semantics tree.
   final IconData? titleIcon;
 
+  /// A widget at the **start** of the title row — `.it-card-title-icon`, on
+  /// the other side.
+  ///
+  /// The same flex row as [titleIcon]: `.it-card-title.it-card-title-icon` is
+  /// `display:flex; flex-direction:row`, and Bootstrap Italia itself reorders
+  /// its contents where it wants a glyph first (`.it-card-banner-icon-wrapper
+  /// { order: -1 }`). The kit's own card examples put the glyph trailing, so
+  /// [titleIcon] is the documented shape; this is the same row used the other
+  /// way.
+  ///
+  /// A `Widget` rather than an `IconData` because the thing that needed it was
+  /// a per-document-type raster, not a glyph. Sized by the caller, and excluded
+  /// from semantics — a card whose title already names its type gains nothing
+  /// from an image node beside it.
+  final Widget? titleLeading;
+
   /// The heading level [title] announces as, 1–6.
   ///
   /// The docs give this two sections of its own — «Accessibilità titoli» and
@@ -142,6 +158,20 @@ class ItCard extends StatelessWidget {
   /// §1.3.1 Info and Relationships failure and one that no automated checker
   /// reports, because nothing is *wrong* — something is merely absent.
   final int titleHeadingLevel;
+
+  /// How large the title is *drawn*, 1–6 — Bootstrap Italia's `.h1`…`.h6`.
+  ///
+  /// Separate from [titleHeadingLevel] on purpose, and that separation is the
+  /// kit's, not an invention: `.it-card .it-card-title` declares **no**
+  /// font-size at all, only margins and padding. The size comes from whichever
+  /// heading the markup uses, and `.h1`…`.h6` exist precisely so a level-3
+  /// heading can be drawn at h5's size.
+  ///
+  /// Defaults to 3, which is the 2rem/2.5rem this widget already painted, so
+  /// nothing existing moves. Pass 5 or 6 for a card whose title is a long
+  /// description rather than a short name — at h3 a report called "Soluzioni
+  /// Abitative di Emergenza attive" fills three lines of 32px type.
+  final int titleVisualLevel;
 
   /// Optional subtitle below the title.
   final String? subtitle;
@@ -185,6 +215,8 @@ class ItCard extends StatelessWidget {
     this.category,
     this.title,
     this.titleIcon,
+    this.titleLeading,
+    this.titleVisualLevel = 3,
     this.titleHeadingLevel = 3,
     this.subtitle,
     this.body,
@@ -218,6 +250,28 @@ class ItCard extends StatelessWidget {
         signature,
         date,
       ].whereType<String>().where((s) => s.isNotEmpty).join('. ');
+
+  /// The `.h1`…`.h6` step [titleVisualLevel] names.
+  ///
+  /// The card's own h3 is 2rem/2.5rem weight 700, which is a step heavier and
+  /// larger than the shared `h3` token (28/32, w700) — the card overrides it,
+  /// so level 3 keeps the card's number and the rest come from typography.
+  TextStyle get _titleStyle {
+    const cardH3 = TextStyle(
+      fontSize: 32,
+      height: 40 / 32,
+      fontWeight: FontWeight.w700,
+    );
+    const t = BootstrapItaliaTypography.desktop;
+    return switch (titleVisualLevel) {
+      1 => t.h1,
+      2 => t.h2,
+      3 => cardH3,
+      4 => t.h4,
+      5 => t.h5,
+      _ => t.h6,
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -333,17 +387,23 @@ class ItCard extends StatelessWidget {
               // identically to the bare Text it replaced.
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (titleLeading != null) ...[
+                  ExcludeSemantics(child: titleLeading!),
+                  // `.it-card-title-icon-wrapper { margin-left: .5rem }`,
+                  // mirrored: the gap belongs between the two either way.
+                  const SizedBox(width: _CardTokens.spacerY),
+                ],
                 Flexible(
                   child: Text(
                     title!,
                     style: TextStyle(
                       fontFamily: BootstrapItaliaFontFamily.sansSerif,
                       package: BootstrapItaliaFontFamily.package,
-                      // The design kit renders the card title as an <h3>:
-                      // 2rem / 2.5rem, weight 700 at >= 576px.
-                      fontSize: 32,
-                      height: 40 / 32,
-                      fontWeight: FontWeight.w700,
+                      // `.h1`…`.h6`: the size is the visual level's, which
+                      // defaults to the <h3> this always painted.
+                      fontSize: _titleStyle.fontSize,
+                      height: _titleStyle.height,
+                      fontWeight: _titleStyle.fontWeight,
                       // A tappable card renders its title as a link: `a`
                       // inherits Bootstrap's underlined link styling and the
                       // primary link colour. The non-tappable title is body

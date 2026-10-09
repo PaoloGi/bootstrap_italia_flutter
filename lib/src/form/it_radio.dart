@@ -1,10 +1,13 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import '../a11y/it_focus_ring.dart';
+import '../l10n/it_localizations.dart';
 import '../theme/theme_extensions.dart';
 import '../tokens/spacing.dart';
+import 'it_field_group_scope.dart';
 import 'it_field_support.dart';
 import 'it_form_metrics.dart';
 
@@ -52,29 +55,52 @@ class ItRadioOption<T> {
 /// Use [ItRadioGroup] to bind several of these to one value; the group is what
 /// wires up arrow-key navigation and the mutually-exclusive semantics that let
 /// a screen reader announce "1 of 3".
-class ItRadio extends StatefulWidget {
-  /// Whether this radio is selected.
-  final bool value;
+class ItRadio<T> extends StatefulWidget {
+  /// What this radio stands for — `<input type="radio" value="...">`.
+  ///
+  /// It is selected when this equals [groupValue].
+  final T value;
+
+  /// The current selection of the group this radio belongs to.
+  ///
+  /// `null` means nothing is selected yet. The caller holds it, exactly as
+  /// with Flutter's own `Radio`.
+  ///
+  /// Required — and nullable — on purpose: the old shape took a `bool value`,
+  /// so leaving this optional would let `ItRadio(value: true)` keep compiling
+  /// as an `ItRadio<bool>` that is never selected, because nothing equals a
+  /// `groupValue` of null. A compile error is the kinder failure.
+  final T? groupValue;
 
   /// The label text.
   final String? label;
 
-  /// Called when the user selects this radio.
+  /// Called with [value] when the user selects this radio.
   ///
-  /// Always emits `true`. A radio is the one control of the three that cannot
-  /// be switched off by operating it — HTML fires no `change` when a checked
-  /// radio is clicked, and the only thing that clears one is another radio in
-  /// the same group taking the selection. The callback keeps its sibling's
-  /// `ValueChanged<bool>` shape rather than a bare `VoidCallback` so that
-  /// `ItRadio`, `ItCheckbox` and `ItToggle` are driven by the same code:
+  /// It used to be a `ValueChanged<bool>` that always emitted `true`, which
+  /// gave every caller a parameter carrying no information and made the
+  /// selection something they had to reconstruct from which radio they had
+  /// wired the callback to. A radio is the one control of the three that
+  /// cannot be switched off by operating it — HTML fires no `change` when a
+  /// checked radio is clicked — so "what happened" is *which value was
+  /// chosen*, which is what arrives here:
   ///
   /// ```dart
-  /// ItRadio(value: v, onChanged: (next) => setState(() => v = next))
+  /// ItRadio<Fase>(
+  ///   value: Fase.preallarme,
+  ///   groupValue: fase,
+  ///   onChanged: (next) => setState(() => fase = next),
+  /// )
   /// ```
   ///
-  /// Use [ItRadioGroup] to bind several radios to one value; it is what turns
-  /// "always true" into a real exclusive selection.
-  final ValueChanged<bool>? onChanged;
+  /// [ItCheckbox] and [ItToggle] keep `ValueChanged<bool>`, because for them
+  /// the boolean is real. Symmetry between the three is not worth a parameter
+  /// that is the same on every call.
+  ///
+  /// Use [ItRadioGroup] to bind several radios to one value without holding
+  /// each one yourself; it also supplies the arrow-key walk and the
+  /// "1 of 3" announcement.
+  final ValueChanged<T>? onChanged;
 
   /// Whether the radio is enabled.
   ///
@@ -141,6 +167,7 @@ class ItRadio extends StatefulWidget {
   const ItRadio({
     super.key,
     required this.value,
+    required this.groupValue,
     this.label,
     this.onChanged,
     this.enabled = true,
@@ -153,39 +180,107 @@ class ItRadio extends StatefulWidget {
     this.focusNode,
     this.indexInGroup,
     this.groupLength,
+    this.validator,
+    this.onSaved,
+    this.autovalidateMode,
   });
 
+  /// Validates this control as part of an enclosing [Form], as
+  /// `TextFormField.validator` does.
+  ///
+  /// Without it the control is not a [FormField], so a required ItRadio inside
+  /// a `Form` compiles, looks correct, and is skipped entirely by
+  /// `validate()`. That failure is silent — no crash, no warning, no visual
+  /// difference — which is why this is a parameter and not a documentation
+  /// note.
+  ///
+  /// It is handed [groupValue] — the selection — rather than this radio's own
+  /// selected-ness, because that is what a message like "scegli una fase" is
+  /// about.
+  final FormFieldValidator<T?>? validator;
+
+  /// Called by `Form.save()`, with [groupValue].
+  final FormFieldSetter<T?>? onSaved;
+
+  /// When the control re-validates. Defaults to [AutovalidateMode.disabled].
+  final AutovalidateMode? autovalidateMode;
+
   @override
-  State<ItRadio> createState() => _ItRadioState();
+  State<ItRadio<T>> createState() => _ItRadioState<T>();
 }
 
-class _ItRadioState extends State<ItRadio> {
+class _ItRadioState<T> extends State<ItRadio<T>> {
   bool _showFocus = false;
 
   bool get _interactive => widget.enabled && widget.onChanged != null;
 
   @override
-  void didUpdateWidget(covariant ItRadio oldWidget) {
+  void didUpdateWidget(covariant ItRadio<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
     ItFieldValidation.announce(context, oldWidget.errorText, widget.errorText);
   }
 
-  /// See [ItRadio.onChanged] for why this is unconditionally `true`.
   void _select() {
     if (!_interactive) return;
-    widget.onChanged!.call(true);
+    _formState?.didChange(widget.value);
+    widget.onChanged!.call(widget.value);
   }
+
+  /// The message the enclosing [Form] produced, when participating in one.
+  String? _formError;
+  FormFieldState<T?>? _formState;
+
+  /// An explicit `errorText` wins: a caller stating the error outright is more
+  /// specific than a validator that may not have run yet.
+  String? get _errorText => widget.errorText ?? _formError;
+
+  bool get _isFormField => widget.validator != null || widget.onSaved != null;
 
   @override
   Widget build(BuildContext context) {
+    if (!_isFormField) return _buildRadio(context);
+
+    return FormField<T?>(
+      initialValue: widget.groupValue,
+      autovalidateMode: widget.autovalidateMode,
+      // The widget's own `groupValue` is the truth: this is a controlled
+      // component, and the FormField's copy goes stale as soon as the caller
+      // rebuilds.
+      validator: widget.validator == null
+          ? null
+          : (_) => widget.validator!(widget.groupValue),
+      onSaved: widget.onSaved == null
+          ? null
+          : (_) => widget.onSaved!(widget.groupValue),
+      builder: (state) {
+        _formState = state;
+        if (state.errorText != _formError) {
+          final previous = _formError;
+          _formError = state.errorText;
+          // WCAG 4.1.3: a message that appears after the fact takes no focus,
+          // so nothing would otherwise announce it. Deferred: this is build.
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              ItFieldValidation.announce(context, previous, _formError);
+            }
+          });
+        }
+        return _buildRadio(context);
+      },
+    );
+  }
+
+  Widget _buildRadio(BuildContext context) {
     final colors = resolveColorScheme(context);
-    final selected = widget.value;
+    final selected = widget.value == widget.groupValue;
     final label = widget.label;
     final enabled = widget.enabled;
     final validation =
-        ItFieldValidation.effective(widget.errorText, widget.validationState);
+        ItFieldValidation.effective(_errorText, widget.validationState);
+    // Null for a warning: `.form-check-input` has no warning rule, so the box
+    // keeps its resting colours and the message carries the state.
     final validationColor =
-        validation == null ? null : ItFieldValidation.color(colors, validation);
+        ItFieldValidation.checkChromeColor(colors, validation);
 
     // .form-check [type=radio]:not(:checked)+label::before
     //   { border-color: hsl(210,17%,44%) }
@@ -308,6 +403,48 @@ class _ItRadioState extends State<ItRadio> {
             ),
           );
 
+    // WCAG 4.1.2 on iOS and macOS, where `checked` alone reaches nothing.
+    //
+    // Apple has no native radio, so Flutter's iOS embedder deliberately gives a
+    // mutually-exclusive node no value at all — `SemanticsObject.mm` returns nil
+    // for one, commented "iOS does not announce values of native radio buttons"
+    // — and routes it away from the `UISwitch`-backed object that would supply
+    // 0/1. The chosen option therefore rides on `UIAccessibilityTraitSelected`,
+    // and the only thing that sets that trait is `selected:`. Without it
+    // VoiceOver reads the name and the position and never says which one is on.
+    //
+    // Android is excluded on purpose: it already carries `checked`, and its
+    // bridge maps this flag to `setSelected` *and* fires a `TYPE_VIEW_SELECTED`
+    // announcement, so setting it there would state the same fact twice. This
+    // is the same platform split Flutter's own `RawRadio` makes.
+    final bool? accessibilitySelected;
+    final String? unselectedHint;
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+      case TargetPlatform.fuchsia:
+      case TargetPlatform.linux:
+      case TargetPlatform.windows:
+        accessibilitySelected = null;
+        unselectedHint = null;
+      case TargetPlatform.iOS:
+      case TargetPlatform.macOS:
+        accessibilitySelected = selected;
+        // The trait marks only the chosen option; the others are announced
+        // exactly as they would be if the state were missing entirely. So the
+        // unselected ones have to say so themselves.
+        unselectedHint =
+            selected ? null : ItLocalizations.of(context).radioUnselected;
+    }
+
+    // Both can be present: an unselected radio in a group that is also showing
+    // a validation message. Neither may swallow the other.
+    final hint = <String>[
+      if (unselectedHint != null) unselectedHint,
+      if (ItFieldValidation.hint(_errorText, widget.helperText)
+          case final String v)
+        v,
+    ].join('. ');
+
     // WCAG 4.1.2: `inMutuallyExclusiveGroup` is what makes a screen reader
     // treat this as a radio rather than a checkbox, and it is the flag the
     // platform uses to derive the "1 of 3" position announcement.
@@ -315,13 +452,18 @@ class _ItRadioState extends State<ItRadio> {
       child: Semantics(
         inMutuallyExclusiveGroup: true,
         checked: selected,
+        selected: accessibilitySelected,
         enabled: _interactive,
         isRequired: widget.required,
         label: widget.semanticLabel ?? label,
         // WCAG 3.3.1 / 3.3.2: carried on the control rather than left as loose
-        // text below it.
-        hint: ItFieldValidation.hint(widget.errorText, widget.helperText),
-        validationResult: ItFieldValidation.result(validation),
+        // text below it, together with the platform hint composed above.
+        hint: hint.isEmpty ? null : hint,
+        // Inside a group the message, the required state and the invalid flag
+        // all live on the group's node — see [ItFieldGroupScope].
+        validationResult: ItFieldGroupScope.spokenFor(context)
+            ? SemanticsValidationResult.none
+            : ItFieldValidation.result(validation),
         value: widget.indexInGroup != null && widget.groupLength != null
             ? '${widget.indexInGroup} di ${widget.groupLength}'
             : null,
@@ -374,7 +516,7 @@ class _ItRadioState extends State<ItRadio> {
 
     return ItFieldSupport(
       helperText: widget.helperText,
-      errorText: widget.errorText,
+      errorText: _errorText,
       grouped: widget.visuallyGrouped,
       child: control,
     );
@@ -538,26 +680,32 @@ class _ItRadioGroupState<T> extends State<ItRadioGroup<T>> {
 
     final radios = <Widget>[
       for (var i = 0; i < widget.options.length; i++)
-        ItRadio(
-          value: widget.options[i].value == widget.value,
+        ItRadio<T>(
+          value: widget.options[i].value,
+          groupValue: widget.value,
           label: widget.options[i].label,
           enabled: widget.options[i].enabled,
           visuallyGrouped: grouped,
           // Per-row `<small class="form-text">`, which only the grouped layout
           // has room for — see [ItRadioOption.helperText].
           helperText: grouped ? widget.options[i].helperText : null,
-          // The tint is a property of the set, so it reaches every radio; the
-          // message, the instruction and the required state belong to the group
-          // and are carried on its own node.
-          validationState: widget.validationState,
+          // The tint is a property of the set, so it reaches every radio — and
+          // `errorText` is a validation state, not only a message: with one
+          // set and `validationState` left null the group printed the error
+          // and drew every radio as if nothing were wrong, where the kit puts
+          // `.is-invalid` on each input. The message, the instruction and the
+          // required state stay on the group's own node, and so does the
+          // invalid state a screen reader hears — see [ItFieldGroupScope].
+          validationState: ItFieldValidation.effective(
+              widget.errorText, widget.validationState),
           focusNode: i < _nodes.length ? _nodes[i] : null,
           indexInGroup: i + 1,
           groupLength: widget.options.length,
           onChanged: widget.onChanged == null
               ? null
-              : (_) {
+              : (chosen) {
                   if (i < _nodes.length) _nodes[i].requestFocus();
-                  widget.onChanged!.call(widget.options[i].value);
+                  widget.onChanged!.call(chosen);
                 },
         ),
     ];
@@ -625,29 +773,34 @@ class _ItRadioGroupState<T> extends State<ItRadioGroup<T>> {
       ),
       // WCAG 2.1.1: `Shortcuts` sits in the focus chain above the radios, so
       // it sees the key events that bubble up from whichever one has focus.
-      child: Shortcuts(
-        shortcuts: const <ShortcutActivator, Intent>{
-          SingleActivator(LogicalKeyboardKey.arrowDown): _NextRadioIntent(),
-          SingleActivator(LogicalKeyboardKey.arrowRight): _NextRadioIntent(),
-          SingleActivator(LogicalKeyboardKey.arrowUp): _PreviousRadioIntent(),
-          SingleActivator(LogicalKeyboardKey.arrowLeft): _PreviousRadioIntent(),
-        },
-        child: Actions(
-          actions: <Type, Action<Intent>>{
-            _NextRadioIntent: CallbackAction<_NextRadioIntent>(
-              onInvoke: (_) {
-                _move(1);
-                return null;
-              },
-            ),
-            _PreviousRadioIntent: CallbackAction<_PreviousRadioIntent>(
-              onInvoke: (_) {
-                _move(-1);
-                return null;
-              },
-            ),
+      // The group reports validity for the set; its radios take the tint but
+      // stay quiet about it, or one error is announced once per option.
+      child: ItFieldGroupScope(
+        child: Shortcuts(
+          shortcuts: const <ShortcutActivator, Intent>{
+            SingleActivator(LogicalKeyboardKey.arrowDown): _NextRadioIntent(),
+            SingleActivator(LogicalKeyboardKey.arrowRight): _NextRadioIntent(),
+            SingleActivator(LogicalKeyboardKey.arrowUp): _PreviousRadioIntent(),
+            SingleActivator(LogicalKeyboardKey.arrowLeft):
+                _PreviousRadioIntent(),
           },
-          child: column,
+          child: Actions(
+            actions: <Type, Action<Intent>>{
+              _NextRadioIntent: CallbackAction<_NextRadioIntent>(
+                onInvoke: (_) {
+                  _move(1);
+                  return null;
+                },
+              ),
+              _PreviousRadioIntent: CallbackAction<_PreviousRadioIntent>(
+                onInvoke: (_) {
+                  _move(-1);
+                  return null;
+                },
+              ),
+            },
+            child: column,
+          ),
         ),
       ),
     );

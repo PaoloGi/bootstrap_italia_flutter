@@ -235,7 +235,11 @@ class _ItNavHeaderState extends State<ItNavHeader> {
           container: true,
           explicitChildNodes: true,
           role: SemanticsRole.navigation,
-          label: widget.semanticsLabel,
+          // Defaulted, not left null: two navigation landmarks with no
+          // labels are indistinguishable to anyone listing landmarks, and
+          // Flutter asserts on it in debug.
+          label: widget.semanticsLabel ??
+              ItLocalizations.of(context).mainNavigation,
           child: isDesktop
               ? DecoratedBox(
                   decoration: BoxDecoration(

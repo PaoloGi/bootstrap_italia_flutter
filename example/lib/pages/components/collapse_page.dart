@@ -187,8 +187,7 @@ class _CollapsePageState extends State<CollapsePage> {
         // ── Accessibilità ──────────────────────────────────────────────────
         const ExampleSection(
           title: 'Accessibilità',
-          description:
-              'La documentazione chiede tre cose al controllo, e '
+          description: 'La documentazione chiede tre cose al controllo, e '
               'ItCollapseToggle le fornisce tutte e tre.\n\n'
               'aria-expanded, che comunica lo stato corrente: chiuso in '
               'partenza vuol dire expanded: false, non un attributo assente. '

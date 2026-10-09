@@ -1,6 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <!-- Declared explicitly, because Flutter injects its own otherwise:
+       `maximum-scale=1.0, user-scalable=no`, which disables pinch-zoom. That
+       is a WCAG 1.4.4 (Resize Text) failure, and for an Italian PA service it
+       is a legal one — Legge 4/2004 via EN 301 549. The engine only injects
+       when the document declares none, so this line is the whole fix. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!--
     If you are serving your web app in a path other than the root, change the
     href value below to reflect the base path you are serving from.
@@ -31,6 +37,26 @@
 
   <title>bootstrap_italia_example</title>
   <link rel="manifest" href="manifest.json">
+  <script>
+    // Flutter's engine rewrites the viewport meta AFTER boot, appending
+    // `maximum-scale=1.0, user-scalable=no` even when the document declares
+    // its own. That disables pinch-zoom, which is a WCAG 1.4.4 failure — and
+    // for an Italian PA service a legal one. Declaring the meta is not enough;
+    // it has to be put back whenever the engine touches it.
+    (function () {
+      var WANTED = 'width=device-width, initial-scale=1.0';
+      function restore() {
+        var m = document.querySelector('meta[name="viewport"]');
+        if (m && m.getAttribute('content') !== WANTED) {
+          m.setAttribute('content', WANTED);
+        }
+      }
+      new MutationObserver(restore).observe(document.head, {
+        attributes: true, childList: true, subtree: true,
+      });
+      restore();
+    })();
+  </script>
 </head>
 <body>
   <script src="flutter_bootstrap.js" async></script>

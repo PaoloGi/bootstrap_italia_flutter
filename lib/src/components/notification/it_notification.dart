@@ -4,6 +4,7 @@ import 'package:bootstrap_italia_icons/bootstrap_italia_icons.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter/semantics.dart';
 
+import '../bottom_nav/bottom_nav_clearance.dart';
 import '../../l10n/it_localizations.dart';
 import '../../a11y/it_focus_ring.dart';
 import '../../theme/bootstrap_italia_theme_data.dart';
@@ -241,6 +242,90 @@ class ItNotification extends StatefulWidget {
     this.position = ItNotificationPosition.bottomRight,
   });
 
+  /// Where [show] puts the card.
+  ///
+  /// [clearance] is the height of a bottom navigation bar on the current page,
+  /// 0 with none. Bottom placements sit on top of it rather than over it, and
+  /// since the bar already reaches the screen's edge and clears the home
+  /// indicator, the card stops padding for the indicator itself.
+  static Widget _place(
+    Widget child,
+    ItNotificationPosition position,
+    EdgeInsets padding,
+    double clearance,
+  ) {
+    const inset = BootstrapItaliaSpacing.space3;
+    final bottomEdge = clearance > 0 ? 0.0 : padding.bottom;
+
+    // The `…Fix` placements sit flush against their edge, so they take no
+    // gap: `top: 0` means the window's top, and insetting the box would
+    // undo the squared corners the modifier exists for. The box stays
+    // flush; its content is padded clear of the status bar and the home
+    // indicator, which is a different thing from a gap.
+    switch (position) {
+      case ItNotificationPosition.topFix:
+        return Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          // As bottomFix: flush to the edge, content below the status bar.
+          child: Padding(
+            padding: EdgeInsets.only(top: padding.top),
+            child: Center(child: child),
+          ),
+        );
+      case ItNotificationPosition.bottomFix:
+        return Positioned(
+          bottom: clearance,
+          left: 0,
+          right: 0,
+          // Flush to the edge — or to the bar — but the CONTENT clears the
+          // home indicator. Without the padding this cleared it by 3px on an
+          // iPhone — whatever internal padding the card happened to have, not
+          // a decision, and gone on any device with a deeper inset.
+          child: Padding(
+            padding: EdgeInsets.only(bottom: bottomEdge),
+            child: Center(child: child),
+          ),
+        );
+      case ItNotificationPosition.leftFix:
+        return Positioned(
+          left: 0,
+          top: 0,
+          bottom: clearance,
+          child: Center(child: child),
+        );
+      case ItNotificationPosition.rightFix:
+        return Positioned(
+          right: 0,
+          top: 0,
+          bottom: clearance,
+          child: Center(child: child),
+        );
+      default:
+        break;
+    }
+
+    final isTop = position == ItNotificationPosition.topRight ||
+        position == ItNotificationPosition.topLeft ||
+        position == ItNotificationPosition.topCenter;
+    final isBottom = !isTop;
+    final isCenter = position == ItNotificationPosition.topCenter ||
+        position == ItNotificationPosition.bottomCenter;
+    final isLeft = position == ItNotificationPosition.topLeft ||
+        position == ItNotificationPosition.bottomLeft;
+    final isRight = position == ItNotificationPosition.topRight ||
+        position == ItNotificationPosition.bottomRight;
+
+    return Positioned(
+      top: isTop ? inset + padding.top : null,
+      bottom: isBottom ? inset + clearance + bottomEdge : null,
+      left: isCenter ? 0 : (isLeft ? inset : null),
+      right: isCenter ? 0 : (isRight ? inset : null),
+      child: isCenter ? Center(child: child) : child,
+    );
+  }
+
   /// Shows a notification as an overlay positioned on screen.
   ///
   /// Returns the [OverlayEntry] so the caller can remove it programmatically.
@@ -258,6 +343,15 @@ class ItNotification extends StatefulWidget {
   /// who have assistive technology switched on — someone who simply reads
   /// slowly still loses the message. Use a [duration] only when the same
   /// information remains available elsewhere in the interface.
+  /// [onDismissed] fires after the entry has been removed, whether the user
+  /// dismissed it or [duration] elapsed. The widget has always carried this
+  /// callback; `show` simply consumed it to remove the overlay entry and gave
+  /// callers no way to learn the notification had gone — which is what a
+  /// caller replacing `ScaffoldMessenger.showSnackBar(...).closed` needs.
+  ///
+  /// Bottom placements sit on top of an `ItBottomNav` whose page is current,
+  /// the way a SnackBar sits above a bottom navigation bar; with none on
+  /// screen they sit at the screen's edge.
   static OverlayEntry show({
     required BuildContext context,
     ItNotificationVariant variant = ItNotificationVariant.info,
@@ -267,10 +361,10 @@ class ItNotification extends StatefulWidget {
     bool dismissible = true,
     Duration? duration,
     ItNotificationPosition position = ItNotificationPosition.bottomRight,
+    VoidCallback? onDismissed,
   }) {
     late final OverlayEntry entry;
     final padding = MediaQuery.of(context).padding;
-    const inset = BootstrapItaliaSpacing.space3;
 
     entry = OverlayEntry(
       builder: (context) {
@@ -282,67 +376,42 @@ class ItNotification extends StatefulWidget {
           dismissible: dismissible,
           duration: duration,
           position: position,
-          onDismissed: () => entry.remove(),
+          onDismissed: () {
+            entry.remove();
+            onDismissed?.call();
+          },
         );
 
-        // The `…Fix` placements sit flush against their edge, so they take no
-        // inset and no safe-area padding: `top: 0` means the window's top, and
-        // adding a gap would undo the squared corners the modifier exists for.
-        switch (position) {
-          case ItNotificationPosition.topFix:
-            return Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: Center(child: child),
-            );
-          case ItNotificationPosition.bottomFix:
-            return Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: Center(child: child),
-            );
-          case ItNotificationPosition.leftFix:
-            return Positioned(
-              left: 0,
-              top: 0,
-              bottom: 0,
-              child: Center(child: child),
-            );
-          case ItNotificationPosition.rightFix:
-            return Positioned(
-              right: 0,
-              top: 0,
-              bottom: 0,
-              child: Center(child: child),
-            );
-          default:
-            break;
-        }
-
-        final isTop = position == ItNotificationPosition.topRight ||
-            position == ItNotificationPosition.topLeft ||
-            position == ItNotificationPosition.topCenter;
-        final isBottom = !isTop;
-        final isCenter = position == ItNotificationPosition.topCenter ||
-            position == ItNotificationPosition.bottomCenter;
-        final isLeft = position == ItNotificationPosition.topLeft ||
-            position == ItNotificationPosition.bottomLeft;
-        final isRight = position == ItNotificationPosition.topRight ||
-            position == ItNotificationPosition.bottomRight;
-
-        return Positioned(
-          top: isTop ? inset + padding.top : null,
-          bottom: isBottom ? inset + padding.bottom : null,
-          left: isCenter ? 0 : (isLeft ? inset : null),
-          right: isCenter ? 0 : (isRight ? inset : null),
-          child: isCenter ? Center(child: child) : child,
+        // Bottom placements sit on top of the app's bottom navigation while
+        // its page is on screen — see BottomNavClearance. Without it, an
+        // app-wide message covered the tab bar for as long as it showed, where
+        // the SnackBar it replaced floated above it.
+        return ValueListenableBuilder<double>(
+          valueListenable: BottomNavClearance.height,
+          builder: (context, clearance, _) =>
+              _place(child, position, padding, clearance),
         );
       },
     );
 
-    Overlay.of(context).insert(entry);
+    // `Overlay.of` only looks *up* the tree, so it cannot find the Overlay
+    // from the Navigator's own context — which sits above the Overlay the
+    // Navigator builds. That is exactly the context an app-wide messenger has
+    // (`navigatorKey.currentContext`), and a real app's every success and error
+    // message went through it and threw "No Overlay widget found". Navigator
+    // recognises its own element, so its overlay is the fallback.
+    final overlay =
+        Overlay.maybeOf(context) ?? Navigator.maybeOf(context)?.overlay;
+    if (overlay == null) {
+      throw FlutterError.fromParts([
+        ErrorSummary('ItNotification.show() found no Overlay to insert into.'),
+        ErrorDescription(
+          'The context must be inside a Navigator or an Overlay, or be the '
+          "Navigator's own context (for example navigatorKey.currentContext).",
+        ),
+      ]);
+    }
+    overlay.insert(entry);
     return entry;
   }
 

@@ -1,5 +1,7 @@
 import 'package:flutter/widgets.dart';
 
+import 'keyboard_focus_mode.dart';
+
 /// Bootstrap Italia's keyboard focus indicator, painted around a control.
 ///
 /// The stylesheet applies one indicator to every keyboard-focused element:
@@ -16,20 +18,26 @@ import 'package:flutter/widgets.dart';
 ///
 /// So: 2px of white immediately outside the control, then 3px of black. The
 /// `:not([data-focus-mouse=true])` guard means it is shown for keyboard focus
-/// only — Flutter's analogue is [FocusManager.highlightMode], which is what
+/// only, and it takes two things to say so in Flutter. After a touch,
+/// [FocusManager.highlightMode] turns highlights off — that is what
 /// [FocusableActionDetector.onShowFocusHighlight] is driven by and what
-/// [trackDescendants] consults directly.
+/// [trackDescendants] consults. But a mouse leaves the mode alone, so the ring
+/// also classifies each focus as it arrives, by whether the last press was a
+/// mouse button: the kit's port of `track-focus.js`, which sets the attribute
+/// on `focusin` and keeps it until `focusout`. A field clicked into shows no
+/// ring, typing into it does not give it one, and Tab does.
 ///
 /// Black on the white page background is 21:1, and the black band is 3px wide,
 /// so the indicator satisfies WCAG 2.2 **2.4.7 Focus Visible** (AA) and also
 /// clears the stricter contrast and area thresholds of 2.4.13 Focus Appearance.
 ///
-/// The ring is drawn as two *stroked* rounded rectangles rather than as a
-/// [BoxShadow]: a shadow paints a filled shape behind the child, which would
-/// show through controls whose interior is transparent (an unchecked
-/// checkbox row, for example). Stroking also keeps the paint entirely outside
-/// the control's own box, so the widget's size — and therefore the pixel
-/// parity of every unfocused capture — is unchanged.
+/// The ring is drawn as two bands cut out at the control's edge rather than as
+/// a [BoxShadow]: a shadow paints a filled shape behind the child, which shows
+/// through controls whose interior is transparent — an unchecked checkbox
+/// row, or a text field, where it once filled the whole field. Cutting out
+/// keeps the paint entirely outside the control's own box, so the widget's
+/// size — and therefore the pixel parity of every unfocused capture — is
+/// unchanged.
 ///
 /// There are two ways to drive it:
 ///
@@ -54,10 +62,12 @@ class ItFocusRing extends StatefulWidget {
     this.onDark = false,
   });
 
-  /// Whether the indicator is currently painted.
+  /// Whether the control has the focus this indicator is for — typically
+  /// [FocusableActionDetector.onShowFocusHighlight]'s value.
   ///
-  /// Ignored when [trackDescendants] resolves to true on its own; the two are
-  /// OR-ed, so a caller may set both.
+  /// Not quite "painted": focus that arrived from a mouse press still shows no
+  /// ring, as on the web (see the class documentation). OR-ed with
+  /// [trackDescendants], so a caller may set both.
   final bool visible;
 
   /// Whether to watch the subtree's own focus instead of relying on [visible].
@@ -86,10 +96,24 @@ class _ItFocusRingState extends State<ItFocusRing> {
   bool _keyboardMode =
       FocusManager.instance.highlightMode == FocusHighlightMode.traditional;
 
+  /// Whether the focus being shown arrived from a mouse press. Decided when it
+  /// arrives and then kept, as `data-focus-mouse` is.
+  bool _focusFromMouse = false;
+
   @override
   void initState() {
     super.initState();
+    FocusModality.ensureListening();
     FocusManager.instance.addHighlightModeListener(_onHighlightModeChanged);
+    if (widget.visible) _focusFromMouse = FocusModality.lastPressWasMouse;
+  }
+
+  @override
+  void didUpdateWidget(ItFocusRing oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.visible && !oldWidget.visible) {
+      _focusFromMouse = FocusModality.lastPressWasMouse;
+    }
   }
 
   @override
@@ -106,13 +130,17 @@ class _ItFocusRingState extends State<ItFocusRing> {
 
   void _onFocusChange(bool value) {
     if (value == _descendantFocused || !mounted) return;
-    setState(() => _descendantFocused = value);
+    setState(() {
+      _descendantFocused = value;
+      if (value) _focusFromMouse = FocusModality.lastPressWasMouse;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final painted = widget.visible ||
-        (widget.trackDescendants && _descendantFocused && _keyboardMode);
+    final painted = (widget.visible ||
+            (widget.trackDescendants && _descendantFocused && _keyboardMode)) &&
+        !_focusFromMouse;
 
     // The [CustomPaint] is always present, even with no painter: returning
     // `child` directly when unfocused would change the widget type at this
@@ -153,8 +181,6 @@ class ItFocusRingPainter extends CustomPainter {
   /// Corner radius of the control the ring surrounds.
   final double radius;
 
-  /// Extra distance between the control's box and the ring.
-
   /// `box-shadow: 0 0 0 2px #fff` — the inner band, 0…2px outside the control.
   static const double _whiteBand = 2;
 
@@ -174,30 +200,37 @@ class ItFocusRingPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final box = Offset.zero & size;
+    final control = RRect.fromRectAndRadius(box, Radius.circular(radius));
 
-    void ring(double inset, double width, Color color) {
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          box.inflate(inset),
-          Radius.circular(radius + inset),
-        ),
-        Paint()
-          ..color = color
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = width,
-      );
-    }
+    RRect grown(double spread) => RRect.fromRectAndRadius(
+          box.inflate(spread),
+          Radius.circular(_spreadRadius(radius, spread)),
+        );
 
     const black = Color(0xFF000000);
     const white = Color(0xFFFFFFFF);
     final inner = onDark ? black : white;
     final outer = onDark ? white : black;
 
-    // Strokes are centred on the path, so the outer ring's centreline sits at
-    // 2 + 3/2 = 3.5px out and the inner one's at 2/2 = 1px out. Together they
-    // tile 0…5px exactly as the two box-shadows do.
-    ring(_whiteBand + _blackBand / 2, _blackBand, outer);
-    ring(_whiteBand / 2, _whiteBand, inner);
+    // Filled, in the order the two box-shadows stack — the 5px one, then the
+    // 2px one over it — and each cut out at the control's edge, as a
+    // box-shadow is clipped to outside the border box.
+    canvas
+      ..drawDRRect(
+          grown(_whiteBand + _blackBand), control, Paint()..color = outer)
+      ..drawDRRect(grown(_whiteBand), control, Paint()..color = inner);
+  }
+
+  /// A spread shadow's corner radius, per CSS Backgrounds 3: the border radius
+  /// grows by the spread — except that a radius smaller than the spread grows
+  /// by `spread * (1 + (radius / spread - 1)^3)`, so a square control keeps
+  /// square corners at every spread. Stroking the bands along a path of
+  /// `radius + inset` rounded them instead, to 5px at the outer edge of a
+  /// field whose `border-radius` is 0.
+  static double _spreadRadius(double radius, double spread) {
+    if (radius >= spread) return radius + spread;
+    final ratio = radius / spread - 1;
+    return radius + spread * (1 + ratio * ratio * ratio);
   }
 
   @override

@@ -146,11 +146,15 @@ void main() {
     testWidgets('ItSelect option list', (tester) async {
       await tester.pumpWidget(
         _host(
-          const SizedBox(
+          SizedBox(
             width: 320,
             child: ItSelect<String>(
+              groupMargin: false,
               label: 'Etichetta',
-              items: [ItSelectItem<String>(value: 'a', label: 'Opzione A')],
+              items: const [
+                ItSelectItem<String>(value: 'a', label: 'Opzione A')
+              ],
+              onChanged: (_) {},
             ),
           ),
         ),

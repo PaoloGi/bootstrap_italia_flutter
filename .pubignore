@@ -1,0 +1,90 @@
+# What pub leaves out of the published package.
+#
+# A .pubignore replaces the .gitignore in the same directory, so the root
+# .gitignore's rules are repeated below — without them this file would publish
+# what git ignores. It also has to stand on its own: pub never reads a
+# contributor's global git excludes, and that is how 20 MB of
+# tool/a11y/node_modules, ignored only by one machine's ~/.gitignore_global,
+# ended up in the archive.
+
+# --- repeated from .gitignore ---
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+migrate_working_dir/
+*.iml
+*.ipr
+*.iws
+.idea/
+/pubspec.lock
+**/doc/api/
+.dart_tool/
+.flutter-plugins-dependencies
+/build/
+/coverage/
+/bootstrap-italia/
+tool/visual_parity/playwright/node_modules/
+tool/visual_parity/.venv/
+tool/visual_parity/flutter_captures/
+tool/visual_parity/diffs/
+tool/visual_parity/reference/_debug*.png
+tool/visual_parity/states_before/
+tool/visual_parity/states_after/
+# Written by tool/visual_parity/playwright/soak.mjs on every run.
+tool/visual_parity/soak_shots/
+
+# --- never part of a package, whatever a machine's global excludes say ---
+node_modules/
+build/
+dist/
+.claude/
+# Gradle's own caches under example/android: executionHistory.bin alone is
+# ~1MB, and the lot is a build artefact of whoever last opened the example.
+.gradle/
+.cxx/
+# Xcode and CocoaPods leavings under example/ios and example/macos.
+Pods/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+xcuserdata/
+.symlinks/
+Flutter/ephemeral/
+.flutter-plugins
+
+# --- in the repository, not in the package ---
+# How the package is built and defended, rather than what it is: the
+# conformance and accessibility evidence, the ADRs, the test suite, CI and the
+# contributor guide. A consumer reads those on the repository the pubspec
+# names — pub.dev renders only README, CHANGELOG and LICENSE, so shipping them
+# puts ~235 KB in a pub cache where nothing opens them. README links to
+# doc/ are absolute for that reason.
+#
+# NOTICE.md stays: it carries the attribution the bundled fonts require.
+doc/
+test/
+.github/
+CONTRIBUTING.md
+
+# --- development tooling ---
+# The accessibility audit (npm) and the visual parity harness (Playwright,
+# Python, reference and capture screenshots). Nothing in lib/, test/ or
+# example/ depends on them.
+tool/
+
+# Planning and working notes — never public.
+#
+# Implementation plans, phase write-ups and the execution plan live here. They
+# are how the work was organised, not what the package is or what it claims:
+# the evidence a consumer or an auditor needs is doc/conformance.md and
+# doc/accessibility-audit.md, which stay in the repository.
+#
+# This has to be in BOTH files. A .pubignore replaces the .gitignore in the
+# same directory as far as pub is concerned, so a rule written only in
+# .gitignore keeps the folder out of git and still ships it to pub.dev.
+planning/

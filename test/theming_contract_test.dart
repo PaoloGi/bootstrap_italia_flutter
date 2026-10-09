@@ -298,7 +298,8 @@ void main() {
       // floats, and only `label.active` carries `hsl(0,0%,10%)` = bodyColor.
       // Without a hint (or a value) the label never floats and this would be
       // asserting the wrong colour.
-      await expectThemed(t, const ItInput(label: 'Nome', hint: 'Mario'),
+      await expectThemed(
+          t, const ItInput(groupMargin: false, label: 'Nome', hint: 'Mario'),
           colour: _bodyColor, what: 'ItInput floating label');
     });
 
@@ -306,6 +307,7 @@ void main() {
       await expectThemed(
         t,
         const ItSelect<String>(
+          groupMargin: false,
           label: 'Regione',
           value: 'a',
           items: [ItSelectItem(value: 'a', label: 'Lazio')],
@@ -315,16 +317,11 @@ void main() {
       );
     });
 
-    testWidgets('ItInput focus ring follows primary', (t) async {
-      // `.form-control:focus { box-shadow: 0 0 0 .25rem rgba(0,102,204,.25) }`
-      // — the alpha is part of the CSS, so the themed colour must carry it.
-      await t.pumpWidget(_themed(const ItInput(label: 'Nome')));
-      await t.pump();
-      await t.tap(find.byType(ItInput));
-      await t.pumpAndSettle();
-      expect(_paints(t, _primary.withAlpha(0x40)), isTrue,
-          reason: 'a focused field draws its ring in the un-themed brand blue');
-    });
+    // No 'ItInput focus ring follows primary' any more. The ring it asserted
+    // was `.form-control:focus`'s 25% primary shadow, which Italia overrides
+    // with `!important` however focus arrives — this test was keeping a rule
+    // the stylesheet discards. test/a11y/form_focus_rendering_test.dart checks
+    // what a focused field does paint, against design-react-kit.
 
     testWidgets('ItSpinner arc follows secondary', (t) async {
       // `secondary`, not `primary`: `.progress-spinner-active:not(
@@ -378,6 +375,7 @@ void main() {
       await expectFixed(
         t,
         const ItInput(
+          groupMargin: false,
           label: 'Codice fiscale',
           errorText: 'Codice non valido',
           validationState: ItValidationState.danger,
@@ -415,7 +413,7 @@ void main() {
     testWidgets('form chrome greys are NOT secondary', (t) async {
       await expectFixed(
         t,
-        const ItInput(label: 'Nome'),
+        const ItInput(groupMargin: false, label: 'Nome'),
         literal: const Color(0xFF5D7083),
         what: 'the resting field border',
         why: 'hsl(210,17%,44%) is declared as --bs-secondary, --bs-info AND '

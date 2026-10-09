@@ -79,28 +79,20 @@ class ItSelectItem<T> {
 /// )
 /// ```
 ///
-/// Multiple selection is a *different constructor*, not a flag:
+/// Choosing more than one is [ItMultiSelect], a widget of its own.
 ///
-/// ```dart
-/// ItSelect<String>.multiple(
-///   label: 'Province',
-///   items: [...],
-///   values: {'RM', 'MI'},
-///   onChanged: (values) {},
-/// )
-/// ```
-///
-/// This is what removed the defect the two shapes used to share. The control
-/// once took `value`, `values`, `onChanged` and `onMultiChanged` together,
-/// gated by a `multiple` flag, so `ItSelect(multiple: true, onChanged: …)`
-/// compiled, ran, and silently never fired: the multi-select path only ever
-/// called `onMultiChanged`. Splitting the constructors makes that combination
-/// **unrepresentable** — `multiple` is no longer a parameter at all, and the
-/// single-select `onChanged` does not exist on `.multiple`, so the mistake is a
-/// compile error rather than a form that does nothing when the user clicks. The
-/// callback is named `onChanged` on both, matching [ItCheckboxGroup], which
-/// solved the same problem first.
-class ItSelect<T> extends StatefulWidget {
+/// It was `ItSelect.multiple`, a named constructor on this class, and before
+/// that a `multiple: true` flag beside `value`, `values`, `onChanged` and
+/// `onMultiChanged` — which let `ItSelect(multiple: true, onChanged: …)`
+/// compile, run, and silently never fire, because the multi path only ever
+/// called the other callback. The named constructor made that unrepresentable,
+/// but left the two shapes sharing one field list: four fields each documented
+/// as "always null on the other constructor", and a `.multiple(onChanged:)`
+/// argument that landed on a field called `onValuesChanged`, because two
+/// callbacks of different types cannot share a name. The API you read was not
+/// the API you wrote. Two widgets, one selection each, is the version with
+/// nothing to explain.
+class ItSelect<T> extends StatelessWidget {
   /// The floating label text.
   final String? label;
 
@@ -110,21 +102,243 @@ class ItSelect<T> extends StatefulWidget {
   /// The available options.
   final List<ItSelectItem<T>> items;
 
-  /// Currently selected value. Always null on [ItSelect.multiple].
+  /// Currently selected value.
   final T? value;
 
-  /// Currently selected values. Always null on the single-select constructor.
-  final Set<T>? values;
-
-  /// Called with the new selection. Always null on [ItSelect.multiple], whose
-  /// `onChanged:` argument lands on [onValuesChanged] instead.
+  /// Called with the new selection.
   final ValueChanged<T?>? onChanged;
 
-  /// Called with the new selection set. Always null on the single-select
-  /// constructor. This is where [ItSelect.multiple]'s `onChanged:` argument
-  /// goes: the two callbacks cannot share a field because they cannot share a
-  /// type, which is precisely why the flag-gated version could drop one.
+  /// Whether the dropdown carries a filter field.
+  final bool searchable;
+
+  /// Whether the control is enabled.
+  final bool enabled;
+
+  /// Whether to reserve the `.form-group` bottom margin.
+  final bool groupMargin;
+
+  /// `.form-text` — instruction shown below the control.
+  final String? helperText;
+
+  /// `.form-feedback` — validation message shown below the control.
+  final String? errorText;
+
+  /// Validation appearance, independent of [errorText].
+  final ItValidationState? validationState;
+
+  /// Whether a selection must be made before the form can be submitted.
+  final bool required;
+
+  /// Overrides what assistive technology announces for the control.
+  final String? semanticLabel;
+
+  /// An externally owned focus node.
+  final FocusNode? focusNode;
+
+  /// Validates the selection as part of an enclosing [Form], as
+  /// `TextFormField.validator` does.
+  final FormFieldValidator<T>? validator;
+
+  /// Called by `Form.save()`.
+  final FormFieldSetter<T>? onSaved;
+
+  /// When the control re-validates. Defaults to [AutovalidateMode.disabled].
+  final AutovalidateMode? autovalidateMode;
+
+  /// Creates a single-selection Bootstrap Italia select.
+  const ItSelect({
+    super.key,
+    this.label,
+    this.hint,
+    required this.items,
+    this.value,
+    this.onChanged,
+    this.searchable = false,
+    this.enabled = true,
+    this.groupMargin = true,
+    this.helperText,
+    this.errorText,
+    this.validationState,
+    this.required = false,
+    this.semanticLabel,
+    this.focusNode,
+    this.validator,
+    this.onSaved,
+    this.autovalidateMode,
+  });
+
+  @override
+  Widget build(BuildContext context) => _SelectCore<T>(
+        label: label,
+        hint: hint,
+        items: items,
+        value: value,
+        onChanged: onChanged,
+        searchable: searchable,
+        enabled: enabled,
+        groupMargin: groupMargin,
+        helperText: helperText,
+        errorText: errorText,
+        validationState: validationState,
+        required: required,
+        semanticLabel: semanticLabel,
+        focusNode: focusNode,
+        validator: validator,
+        onSaved: onSaved,
+        autovalidateMode: autovalidateMode,
+      );
+}
+
+/// A Bootstrap Italia select that takes more than one option.
+///
+/// `<select multiple>`: the closed control reads back every choice, and the
+/// list keeps a checkbox against each row.
+///
+/// ```dart
+/// ItMultiSelect<String>(
+///   label: 'Province',
+///   items: [
+///     ItSelectItem(value: 'RM', label: 'Roma'),
+///     ItSelectItem(value: 'MI', label: 'Milano'),
+///   ],
+///   values: {'RM'},
+///   onChanged: (values) {},
+/// )
+/// ```
+///
+/// `values` and `onChanged` are the shape [ItCheckboxGroup] uses for the same
+/// job — one selection, one callback, both named for what they hold.
+///
+/// The form hooks ([ItSelect.validator] and friends) are single-selection only:
+/// a `FormFieldValidator<T>` cannot say anything about a `Set<T>`, and
+/// inventing a second validator type to paper over that would be worse than
+/// leaving this variant out of the `Form`.
+class ItMultiSelect<T> extends StatelessWidget {
+  /// The floating label text.
+  final String? label;
+
+  /// Hint text when nothing is selected.
+  final String? hint;
+
+  /// The available options.
+  final List<ItSelectItem<T>> items;
+
+  /// Currently selected values.
+  final Set<T> values;
+
+  /// Called with the new selection.
+  final ValueChanged<Set<T>>? onChanged;
+
+  /// Whether the dropdown carries a filter field.
+  final bool searchable;
+
+  /// Whether the control is enabled.
+  final bool enabled;
+
+  /// Whether to reserve the `.form-group` bottom margin.
+  final bool groupMargin;
+
+  /// `.form-text` — instruction shown below the control.
+  final String? helperText;
+
+  /// `.form-feedback` — validation message shown below the control.
+  final String? errorText;
+
+  /// Validation appearance, independent of [errorText].
+  final ItValidationState? validationState;
+
+  /// Whether a selection must be made before the form can be submitted.
+  final bool required;
+
+  /// Overrides what assistive technology announces for the control.
+  final String? semanticLabel;
+
+  /// An externally owned focus node.
+  final FocusNode? focusNode;
+
+  /// Creates a multiple-selection Bootstrap Italia select.
+  const ItMultiSelect({
+    super.key,
+    this.label,
+    this.hint,
+    required this.items,
+    this.values = const {},
+    this.onChanged,
+    this.searchable = false,
+    this.enabled = true,
+    this.groupMargin = true,
+    this.helperText,
+    this.errorText,
+    this.validationState,
+    this.required = false,
+    this.semanticLabel,
+    this.focusNode,
+  });
+
+  @override
+  Widget build(BuildContext context) => _SelectCore<T>.multiple(
+        label: label,
+        hint: hint,
+        items: items,
+        values: values,
+        onChanged: onChanged,
+        searchable: searchable,
+        enabled: enabled,
+        groupMargin: groupMargin,
+        helperText: helperText,
+        errorText: errorText,
+        validationState: validationState,
+        required: required,
+        semanticLabel: semanticLabel,
+        focusNode: focusNode,
+      );
+}
+
+/// The one implementation behind [ItSelect] and [ItMultiSelect].
+///
+/// Private: the two shapes differ only in what they hold and what they emit,
+/// and everything below this line is the same dropdown.
+class _SelectCore<T> extends StatefulWidget {
+  /// The floating label text.
+  final String? label;
+
+  /// Hint text when no value is selected.
+  final String? hint;
+
+  /// The available options.
+  final List<ItSelectItem<T>> items;
+
+  /// Currently selected value. Null when built for [ItMultiSelect].
+  final T? value;
+
+  /// Currently selected values. Null when built for [ItSelect].
+  final Set<T>? values;
+
+  /// Called with the new selection. Null when built for [ItMultiSelect].
+  final ValueChanged<T?>? onChanged;
+
+  /// Called with the new selection set. Null when built for [ItSelect].
+  ///
+  /// The two callbacks cannot share a field because they cannot share a type.
+  /// In here that is a private detail; it used to be the public API, which is
+  /// why [ItMultiSelect] exists.
   final ValueChanged<Set<T>>? onValuesChanged;
+
+  /// Validates the selection as part of an enclosing [Form], as
+  /// `TextFormField.validator` does. Single-selection only.
+  ///
+  /// Without this the select is not a [FormField] at all, so a required
+  /// dropdown inside a `Form` compiles, looks correct, and is skipped entirely
+  /// by `validate()` — the form submits with nothing chosen and says nothing.
+  /// That failure is silent by construction, which is why the parameter exists
+  /// rather than a note in the docs.
+  final FormFieldValidator<T>? validator;
+
+  /// Called by `Form.save()`. Single-selection only.
+  final FormFieldSetter<T>? onSaved;
+
+  /// When the field re-validates. Defaults to [AutovalidateMode.disabled].
+  final AutovalidateMode? autovalidateMode;
 
   /// Whether this select takes several values. Derived from the constructor —
   /// there is no way for a caller to set it independently of the callback it
@@ -165,8 +379,21 @@ class ItSelect<T> extends StatefulWidget {
   /// is the ordinary way a form reports errors (WCAG 3.3.1).
   final FocusNode? focusNode;
 
+  /// Whether to reserve `.form-group { margin-bottom: 3rem }` below the field.
+  ///
+  /// On by default, and it is not decoration: the NEXT field's floating label
+  /// is drawn 33.15px above its own box, unclipped, and this 48px is the space
+  /// it rises into. Turn it off and stacked fields overlap — reported twice
+  /// from a real form.
+  ///
+  /// Worth turning off for a field that is the last thing in its container, or
+  /// when the surrounding layout supplies its own spacing. Note that the
+  /// margin is part of this widget's box, so its centre is below the control
+  /// while it is on.
+  final bool groupMargin;
+
   /// Creates a single-selection Bootstrap Italia select.
-  const ItSelect({
+  const _SelectCore({
     super.key,
     this.label,
     this.hint,
@@ -175,21 +402,24 @@ class ItSelect<T> extends StatefulWidget {
     this.onChanged,
     this.searchable = false,
     this.enabled = true,
+    this.groupMargin = true,
     this.helperText,
     this.errorText,
     this.validationState,
     this.required = false,
     this.semanticLabel,
     this.focusNode,
+    this.validator,
+    this.onSaved,
+    this.autovalidateMode,
   })  : values = null,
         onValuesChanged = null,
         multiple = false;
 
   /// Creates a multiple-selection Bootstrap Italia select.
   ///
-  /// Takes one selection ([values]) and one callback (`onChanged`), the shape
-  /// [ItCheckboxGroup] already uses for the same job.
-  const ItSelect.multiple({
+  /// Behind [ItMultiSelect].
+  const _SelectCore.multiple({
     super.key,
     this.label,
     this.hint,
@@ -198,6 +428,7 @@ class ItSelect<T> extends StatefulWidget {
     ValueChanged<Set<T>>? onChanged,
     this.searchable = false,
     this.enabled = true,
+    this.groupMargin = true,
     this.helperText,
     this.errorText,
     this.validationState,
@@ -205,6 +436,13 @@ class ItSelect<T> extends StatefulWidget {
     this.semanticLabel,
     this.focusNode,
   })  : value = null,
+        // The form hooks are single-selection only: a
+        // `FormFieldValidator<T>` cannot say anything about a Set<T>, and
+        // inventing a second validator type to paper over that would be worse
+        // than leaving the multiple variant out of the Form.
+        validator = null,
+        onSaved = null,
+        autovalidateMode = null,
         // Both right-hand sides below name the *parameter* — an initializer
         // list cannot read a field — so `onChanged` is routed to the set-valued
         // field and the single-valued one is left null.
@@ -213,10 +451,10 @@ class ItSelect<T> extends StatefulWidget {
         multiple = true;
 
   @override
-  State<ItSelect<T>> createState() => _ItSelectState<T>();
+  State<_SelectCore<T>> createState() => _SelectCoreState<T>();
 }
 
-class _ItSelectState<T> extends State<ItSelect<T>> {
+class _SelectCoreState<T> extends State<_SelectCore<T>> {
   bool _isOpen = false;
   String _searchQuery = '';
   final LayerLink _layerLink = LayerLink();
@@ -249,7 +487,7 @@ class _ItSelectState<T> extends State<ItSelect<T>> {
   }
 
   @override
-  void didUpdateWidget(covariant ItSelect<T> oldWidget) {
+  void didUpdateWidget(covariant _SelectCore<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.focusNode != oldWidget.focusNode) {
       if (_ownsFocusNode) _focusNode.dispose();
@@ -318,7 +556,7 @@ class _ItSelectState<T> extends State<ItSelect<T>> {
   }
 
   void _toggleDropdown() {
-    if (!widget.enabled) return;
+    if (!_interactive) return;
     if (_isOpen) {
       _close();
     } else {
@@ -366,7 +604,7 @@ class _ItSelectState<T> extends State<ItSelect<T>> {
   }
 
   void _activate() {
-    if (!widget.enabled) return;
+    if (!_interactive) return;
     if (!_isOpen) {
       _open();
       return;
@@ -392,6 +630,7 @@ class _ItSelectState<T> extends State<ItSelect<T>> {
       widget.onValuesChanged?.call(current);
       _overlayEntry?.markNeedsBuild();
     } else {
+      _formState?.didChange(item.value);
       widget.onChanged?.call(item.value);
       _close(restoreFocus: true);
     }
@@ -697,8 +936,69 @@ class _ItSelectState<T> extends State<ItSelect<T>> {
     super.dispose();
   }
 
+  /// The message the enclosing [Form] produced, when participating in one.
+  String? _formError;
+  FormFieldState<T>? _formState;
+
+  /// An explicit [ItSelect.errorText] wins: a caller stating the error is more
+  /// specific than a validator that may not have run.
+  String? get _errorText => widget.errorText ?? _formError;
+
+  /// Interactive only when enabled AND given a callback.
+  ///
+  /// `onChanged: null` is Flutter's convention for a disabled control — it is
+  /// how `DropdownButton`, `TextField` and `Checkbox` all express read-only,
+  /// and how [ItCheckbox], [ItRadio] and [ItToggle] express it here. ItSelect
+  /// checked only `enabled`, so a read-only screen that disabled its dropdown
+  /// the ordinary way still got a select that opened and let the user pick.
+  /// Found in a real application: a document in view-only mode whose
+  /// "Evento o manifestazione" dropdown was fully operable.
+  bool get _interactive =>
+      widget.enabled &&
+      // `ItSelect.multiple` routes its callback to [onValuesChanged] and
+      // leaves [onChanged] null by construction, so checking only `onChanged`
+      // would disable every multi-select outright.
+      (widget.multiple
+          ? widget.onValuesChanged != null
+          : widget.onChanged != null);
+
+  bool get _isFormField => widget.validator != null || widget.onSaved != null;
+
   @override
   Widget build(BuildContext context) {
+    if (!_isFormField) return _buildSelect(context);
+
+    return FormField<T>(
+      initialValue: widget.value,
+      autovalidateMode: widget.autovalidateMode,
+      validator: widget.validator == null
+          ? null
+          // The widget's own `value` is the truth: this is a controlled
+          // component, and the FormField's copy goes stale the moment the
+          // caller rebuilds with a new selection.
+          : (_) => widget.validator!(widget.value),
+      onSaved:
+          widget.onSaved == null ? null : (_) => widget.onSaved!(widget.value),
+      builder: (state) {
+        _formState = state;
+        if (state.errorText != _formError) {
+          final previous = _formError;
+          _formError = state.errorText;
+          // WCAG 4.1.3: a message that appears after the fact takes no focus,
+          // so nothing would otherwise announce it. Deferred because this is
+          // inside build.
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              ItFieldValidation.announce(context, previous, _formError);
+            }
+          });
+        }
+        return _buildSelect(context);
+      },
+    );
+  }
+
+  Widget _buildSelect(BuildContext context) {
     ItFieldValidation.debugCheckConfig(
       label: widget.label,
       required: widget.required,
@@ -708,7 +1008,7 @@ class _ItSelectState<T> extends State<ItSelect<T>> {
     );
     final colors = resolveColorScheme(context);
     final validation =
-        ItFieldValidation.effective(widget.errorText, widget.validationState);
+        ItFieldValidation.effective(_errorText, widget.validationState);
 
     final control = SizedBox(
       height: ItFormMetrics.controlHeight,
@@ -817,12 +1117,12 @@ class _ItSelectState<T> extends State<ItSelect<T>> {
         value: _displayText,
         // WCAG 3.3.1 / 3.3.2: the instruction and the validation message are
         // painted below the control, so they are carried here as well.
-        hint: ItFieldValidation.hint(widget.errorText, widget.helperText),
+        hint: ItFieldValidation.hint(_errorText, widget.helperText),
         expanded: _isOpen,
         enabled: widget.enabled,
         isRequired: widget.required,
         validationResult: ItFieldValidation.result(validation),
-        onTap: widget.enabled ? _toggleDropdown : null,
+        onTap: _interactive ? _toggleDropdown : null,
         child: ItFocusRing(
           visible: _showFocus,
           child: FocusableActionDetector(
@@ -883,8 +1183,12 @@ class _ItSelectState<T> extends State<ItSelect<T>> {
     // The link target stays *inside* the supporting text: the option list is
     // anchored to the control, not to the control plus a feedback line.
     return ItFieldSupport(
+      // `.form-group { margin-bottom: 3rem }` — the space the NEXT
+      // field's floating label rises into. Without it that label is
+      // painted straight through this control.
+      groupMargin: widget.groupMargin,
       helperText: widget.helperText,
-      errorText: widget.errorText,
+      errorText: _errorText,
       child: CompositedTransformTarget(
         key: _controlKey,
         link: _layerLink,

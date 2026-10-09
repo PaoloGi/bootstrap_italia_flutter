@@ -140,18 +140,18 @@ class _SelectPageState extends State<SelectPage> {
         ExampleSection(
           title: 'Selezione multipla',
           description:
-              'ItSelect.multiple è un costruttore distinto, non un flag. Prende '
+              'ItMultiSelect è un widget distinto, non un flag. Prende '
               'un insieme di valori e una sola callback: la versione con un '
               'interruttore multiple accettava quattro parametri combinabili '
               'fra loro, e la combinazione sbagliata compilava e non emetteva '
               'nulla. Ora è un errore di compilazione.',
-          code: 'ItSelect<String>.multiple(\n'
+          code: 'ItMultiSelect<String>(\n'
               "  label: 'Etichetta',\n"
               '  items: opzioni,\n'
               '  values: valori,\n'
               '  onChanged: (v) => setState(() => valori = v),\n'
               ')',
-          child: ItSelect<String>.multiple(
+          child: ItMultiSelect<String>(
             label: 'Etichetta',
             hint: "Scegli una o più opzioni",
             items: _opzioni,

@@ -119,9 +119,9 @@ class ItBackToTopButton extends StatelessWidget {
     // an arrow, so the accessible name has to be supplied here — an unlabelled
     // icon button is a hard failure. §2.1.1: ItActivatable makes it reachable
     // and activatable from the keyboard, which a bare GestureDetector is not.
-    // The name is hardcoded Italian; there is no localisation layer. See
-    // doc/quality-plan.md — Alto Adige and Valle d'Aosta carry statutory German
-    // and French obligations, so this is a known gap, not a decision.
+    // The name is hardcoded Italian; there is no localisation layer. Alto
+    // Adige and Valle d'Aosta carry statutory German and French obligations,
+    // so this is a known gap, not a decision.
     return Semantics(
       button: true,
       enabled: onPressed != null,
@@ -333,9 +333,17 @@ class _ItBackToTopState extends State<ItBackToTop> {
         MediaQuery.maybeSizeOf(context)?.width ?? ItBreakpoint.md.minWidth;
     final inset = width >= ItBreakpoint.xl.minWidth ? 32.0 : 16.0;
 
+    // The CSS inset is measured from the viewport edge, which on the web is
+    // where the page ends. On a phone it is not: an iPhone reserves 34px at the
+    // bottom for the home indicator, so a button 16px from the edge sits
+    // underneath it — reachable neither by tapping nor by looking. The safe
+    // area is added to the design system's inset rather than replacing it, so
+    // the gap the CSS asks for is still there above the indicator.
+    final padding = MediaQuery.maybePaddingOf(context) ?? EdgeInsets.zero;
+
     return Positioned(
-      right: inset,
-      bottom: inset,
+      right: inset + padding.right,
+      bottom: inset + padding.bottom,
       child: IgnorePointer(
         ignoring: !_visible,
         child: AnimatedOpacity(

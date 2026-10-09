@@ -125,8 +125,7 @@ class _ListPageState extends State<ListPage> {
         // ── Con freccia ──────────────────────────────────────────────────
         ExampleSection(
           title: 'Con freccia',
-          description:
-              "Un'icona segue il testo per indicare che la riga porta "
+          description: "Un'icona segue il testo per indicare che la riga porta "
               'altrove. È decorativa: la riga è già un link e annunciare anche '
               'la freccia darebbe due nomi a un solo controllo. Per una icona '
               'che sia essa stessa un comando si usa invece actions.',
@@ -211,7 +210,8 @@ class _ListPageState extends State<ListPage> {
                 metadata: 'metadata testo',
               ),
               ItContentListItem(
-                leading: const ItRoundedIcon(icon: BootstrapItaliaIcons.it_user),
+                leading:
+                    const ItRoundedIcon(icon: BootstrapItaliaIcons.it_user),
                 text: 'Link',
                 metadata: 'metadata testo',
                 onTap: () {},
@@ -562,15 +562,13 @@ class _ListPageState extends State<ListPage> {
                 items: [
                   ItListItem(
                     title: 'Link lista 1 attivo',
-                    leading:
-                        const Icon(BootstrapItaliaIcons.it_link, size: 32),
+                    leading: const Icon(BootstrapItaliaIcons.it_link, size: 32),
                     active: true,
                     onTap: () {},
                   ),
                   ItListItem(
                     title: 'Link lista 2',
-                    leading:
-                        const Icon(BootstrapItaliaIcons.it_link, size: 32),
+                    leading: const Icon(BootstrapItaliaIcons.it_link, size: 32),
                     onTap: () {},
                   ),
                   ItListItem(

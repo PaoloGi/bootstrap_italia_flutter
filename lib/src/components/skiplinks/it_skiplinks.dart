@@ -153,7 +153,7 @@ class _ItSkiplinksState extends State<ItSkiplinks> {
     // reading; revealing all shows a keyboard user every available bypass at
     // once, which is arguably better for the criterion the component exists to
     // satisfy (§2.4.1 Bypass Blocks). That wants a decision and real AT
-    // testing, not a silent change — tracked in doc/quality-plan.md.
+    // testing, not a silent change.
     //
     // `#06c` on the text is byte-identical to `--bs-primary` and is the
     // component's own accent, so it follows the theme. The band is not a token

@@ -8,7 +8,7 @@
 // has none.
 //
 // This was not hypothetical. Removing Material ancestors during the widgets-layer
-// migration (doc/adr/0001) revealed that Material had been silently supplying the
+// migration off Material revealed that it had been silently supplying the
 // FONT FAMILY, not just the line height: a 16px label measured 111.3x25.0 with an
 // ancestor and 256.0x16.0 without, because `DefaultTextStyle.fallback()` carries
 // no `fontFamily` at all. Parity stayed at 71/72 throughout.

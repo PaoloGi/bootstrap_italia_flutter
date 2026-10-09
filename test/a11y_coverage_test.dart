@@ -2,7 +2,8 @@
 //
 // The gap this closes is not hypothetical. A coverage audit found that
 // `ItActivatable` — the widget that supplies focus, keyboard activation and the
-// focus ring to most of the package, and the thing ADR 0001 is built around —
+// focus ring to most of the package, and the thing the migration off Material
+// is built around —
 // had **zero** tests. Nothing was red. It simply had never been written, and
 // nothing existed to notice.
 //

@@ -302,9 +302,9 @@ void main() {
 
     // The indeterminate box is the one state a screen reader cannot infer from
     // anything else on screen. Flutter has a distinct flag for it, and Android
-    // renders it as a third state; iOS does NOT — see the iOS section of
-    // doc/accessibility-audit.md, where this same control reports AXValue 0,
-    // indistinguishable from unchecked. That is an engine limitation rather
+    // renders it as a third state; iOS does NOT — see the iOS device sweep in
+    // doc/conformance.md, where a mixed checkbox collapses through a UISwitch
+    // and reads as unchecked. That is an engine limitation rather
     // than a defect here, and this test is what makes the distinction provable:
     // if the Dart contract ever silently degrades to `checked: false`, the iOS
     // observation stops being a platform note and becomes our bug.
@@ -379,8 +379,8 @@ void main() {
     // ("iOS does not announce values of native radio buttons"). The chosen
     // option rides on `UIAccessibilityTraitSelected`, which only `selected:`
     // sets — so on a simulator the tree looked complete while conveying nothing
-    // about which option was on. See the iOS section of
-    // doc/accessibility-audit.md.
+    // about which option was on. See the iOS device sweep in
+    // doc/conformance.md.
     //
     // These two tests pin the platform split. Android must NOT get the flag:
     // its bridge maps it to `setSelected` and fires a `TYPE_VIEW_SELECTED`

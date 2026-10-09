@@ -36,7 +36,7 @@ Nothing here claims official status: this is an unofficial community port. See
 | Target size (2.5.8, new in 2.2) | Hit-region probes, not layout boxes | Covered |
 | Static analysis / formatting | `flutter analyze --fatal-infos`, `dart format` | Clean, enforced in CI |
 | Licence compliance | Font licences bundled, provenance recorded | See [NOTICE.md](../NOTICE.md) |
-| Framework coupling | Migration off `flutter/material` per [ADR 0001](adr/0001-build-on-widgets-not-material.md) | In progress — buttons done |
+| Framework coupling | Migration off `flutter/material`, enforced by `test/import_hygiene_test.dart` | In progress — buttons done |
 
 ### Why contrast is audited on tokens, not screenshots
 

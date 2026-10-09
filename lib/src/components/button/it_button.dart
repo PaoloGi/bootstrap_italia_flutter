@@ -499,7 +499,7 @@ class _ItButtonState extends State<ItButton> {
     // keeps `--bs-btn-hover-bg: transparent` and darkens only its border.
     // Material would instead paint a translucent overlay — lighter on a filled
     // button, darker on a white one — in both cases inventing a state change the
-    // design system does not specify. See doc/adr/0001.
+    // design system does not specify.
     // The shade factors below are read off the CSS: `.btn-primary` sets
     // `--bs-btn-hover-bg: rgb(0, 86.7, 173.4)` and
     // `--bs-btn-active-bg: rgb(0, 81.6, 163.2)` against a `#0066CC` base — i.e.
@@ -619,7 +619,8 @@ class _ItButtonState extends State<ItButton> {
       button: true,
       enabled: !isDisabled,
       // Delegates to ItActivatable rather than wiring its own
-      // FocusableActionDetector, per ADR 0001. It used to do the latter, and
+      // FocusableActionDetector, as every control off Material does. It used
+      // to do the latter, and
       // bound only `ActivateIntent` where ItActivatable binds that AND
       // `ButtonActivateIntent` — so the flagship button answered a different
       // set of keys from every other control in the package. Which intent

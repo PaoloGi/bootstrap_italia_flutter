@@ -50,7 +50,6 @@ export 'src/utilities/interaction_states.dart';
 // The strings this package speaks on an application's behalf — nearly all of
 // them accessible names, and so a conformance surface rather than a cosmetic
 // one. Optional: with no delegate installed every component renders in Italian.
-// See doc/adr/0002-localisation-delegate-with-overrides.md.
 
 export 'src/l10n/it_localizations.dart';
 

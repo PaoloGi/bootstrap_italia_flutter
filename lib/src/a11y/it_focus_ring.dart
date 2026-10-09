@@ -48,8 +48,8 @@ import 'keyboard_focus_mode.dart';
 ///    owns its own [FocusNode], so there is no callback to hang off. The ring
 ///    inserts a non-focusable, non-traversable [Focus] above the child and
 ///    paints while that node reports focus *and* the focus highlight mode is
-///    the keyboard one. This existed for Material's [InkWell]; per ADR 0001
-///    there are none left, and the remaining users are controls that delegate
+///    the keyboard one. This existed for Material's [InkWell]; there are none
+///    left, and the remaining users are controls that delegate
 ///    focus to a child rather than owning it.
 class ItFocusRing extends StatefulWidget {
   /// Wraps [child] with the Bootstrap Italia keyboard focus indicator.

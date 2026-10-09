@@ -13,7 +13,7 @@
 // overlay or a route and so cannot be driven from a static capture.
 //
 // The contract used to be "every ink surface declines the overlay"
-// (`overlayColor: kItNoOverlay`). Per doc/adr/0001 there is no longer an ink
+// (`overlayColor: kItNoOverlay`). There is no longer an ink
 // surface anywhere in the package: `Material`, `InkWell` and `IconButton` are
 // gone, so the suppression has nothing left to suppress. Asserting their
 // *absence* is the stronger form of the same contract — an overlay that cannot
@@ -39,7 +39,7 @@ void expectNoInkOverlay(WidgetTester tester, {Finder? under}) {
     find.byType(InkWell),
     findsNothing,
     reason: 'InkWell hosts a Material overlay this design system never wants; '
-        'ADR 0001 removed the last one',
+        'the migration off Material removed the last one',
   );
   expect(
     find.byType(ItActivatable),
@@ -69,7 +69,8 @@ void expectNoButtonOverlay(WidgetTester tester) {
   expect(actions, isNotEmpty, reason: 'expected at least one ItIconAction');
   for (final action in actions) {
     // WCAG 4.1.2: the name used to come from `IconButton.tooltip`. Losing it
-    // silently is exactly the regression ADR 0001 warns about.
+    // silently is exactly the regression the migration off Material warns
+    // about.
     expect(action.label, isNotEmpty,
         reason: 'an icon-only control with no accessible name is a 4.1.2 '
             'failure');

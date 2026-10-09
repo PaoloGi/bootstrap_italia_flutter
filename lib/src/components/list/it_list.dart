@@ -308,7 +308,7 @@ class ItList extends StatelessWidget {
     // did supply the ambient text style. Every Text below states its own font
     // and metrics, so nothing here depends on it — but stating it once at the
     // root keeps the list correct in a host that has no Material at all, which
-    // is the point of doc/adr/0001.
+    // is the point of building on widgets rather than on Material.
     return ItDefaultTextStyle(
       child: Column(
         mainAxisSize: MainAxisSize.min,

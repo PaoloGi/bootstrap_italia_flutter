@@ -16,7 +16,7 @@ from collections import Counter
 # `AXGenericElement` — indistinguishable by role from a plain container. Adding
 # it would make every unnamed container a finding, which is the exact mistake
 # that produced three retracted Android findings. Tabs are checked by hand
-# instead; see the iOS section of doc/accessibility-audit.md.
+# instead; see the iOS device sweep in doc/conformance.md.
 INTERACTIVE = {"AXButton", "AXCheckBox", "AXTextField", "AXSecureTextField",
                "AXLink", "AXSlider", "AXSwitch", "AXSearchField", "AXPopUpButton"}
 

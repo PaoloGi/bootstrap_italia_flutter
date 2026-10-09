@@ -298,7 +298,7 @@ class ItModal extends StatelessWidget {
       // label from it made ItModal.show unusable outside a MaterialApp —
       // contradicting the package's claim that its components need no Scaffold.
       // `ItLocalizations.of` cannot assert and cannot return null; with no
-      // delegate installed it answers in Italian (ADR 0002).
+      // delegate installed it answers in Italian.
       //
       // A name of its own rather than `closeModal`: the barrier and the header
       // close button are two nodes in the same dialog, and one name across both

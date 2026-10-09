@@ -705,8 +705,8 @@ class _SelectCoreState<T> extends State<_SelectCore<T>> {
                             // parity capture used a searchable select; only the
                             // example app did, where it crashed on open.
                             //
-                            // The Material is the price of ADR 0001's one
-                            // deliberate exception — the ADR keeps `TextField`
+                            // The Material is the price of the package's one
+                            // deliberate exception — it keeps `TextField`
                             // rather than reimplementing IME, selection and
                             // autofill. `transparency` paints nothing, so the
                             // surface is exactly the ancestor the assert wants

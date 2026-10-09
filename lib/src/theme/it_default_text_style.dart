@@ -10,7 +10,7 @@ import 'theme_extensions.dart';
 /// `toThemeData()` builds from [BootstrapItaliaTypography.desktop] — TitilliumWeb
 /// 18/28 at `letterSpacing: 0` in `--bs-body-color`.
 ///
-/// Removing Material (doc/adr/0001) removes that, and what is left underneath is
+/// Removing Material removes that, and what is left underneath is
 /// [DefaultTextStyle.fallback]: **no font family at all**, so every glyph falls
 /// back to the platform font, and no `height`, so every line box changes size.
 /// Measured on the megamenu's mobile overlay, a 16px label went from

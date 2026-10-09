@@ -1,4 +1,4 @@
-// Standing guard: ADR 0002 — one delegate, per-widget overrides on top.
+// Standing guard: one delegate, per-widget overrides on top.
 //
 // Nearly every string in `ItLocalizations` is an accessible name: what a screen
 // reader says instead of "button". So the failure modes here are silent by
@@ -125,7 +125,7 @@ void main() {
         // configured localisation at all reports an ENGLISH ambient locale.
         // Resolving from `Localizations.localeOf` would therefore hand it
         // English accessible names for the commonest misconfiguration there is.
-        // ADR 0002 rejects that fallback on exactly this evidence.
+        // The package rejects that fallback on exactly this evidence.
         home: Builder(builder: (context) {
           ctx = context;
           return const SizedBox.shrink();
@@ -173,7 +173,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull,
-          reason: 'MaterialLocalizations.of asserted here before ADR 0002 '
+          reason: 'MaterialLocalizations.of asserted here before the kit got '
+              'its own delegate '
               'moved these two strings onto ItLocalizations');
       // Italian, from the fallback — not the delegate, because there is none.
       expect(find.bySemanticsLabel('Chiudi finestra modale'), findsOneWidget);
@@ -189,7 +190,7 @@ void main() {
     test('forLocale(en) still falls back to Italian', () {
       expect(ItLocalizations.forLocale(const Locale('en')).localeName, 'it',
           reason: 'registering en would hand English names to the commonest '
-              'misconfiguration there is — see ADR 0002');
+              'misconfiguration there is');
       expect(ItLocalizations.supportedLocales.map((l) => l.languageCode),
           isNot(contains('en')));
     });
@@ -575,7 +576,7 @@ void main() {
   });
 
   group('per-widget overrides win over the delegate', () {
-    // ADR 0002 layers the two rather than choosing: the delegate carries the
+    // The two are layered rather than chosen between: the delegate carries the
     // wording, the parameter carries what only the call site knows.
     testWidgets('an explicit label beats the locale', (tester) async {
       final handle = tester.ensureSemantics();

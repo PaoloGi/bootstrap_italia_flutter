@@ -9,7 +9,7 @@ import 'it_activatable.dart';
 /// `.close-div .close-menu { background: rgba(0,0,0,0) }` have no hover or
 /// press fill, so every call site passed `kItNoOverlay`). What is left of
 /// `IconButton` after that is a sized box, a focus node and an accessible
-/// name — all of which this states explicitly. See doc/adr/0001.
+/// name — all of which this states explicitly.
 ///
 /// [label] is **required**, and that is the point: an icon-only control with no
 /// accessible name is a WCAG 4.1.2 (Name, Role, Value) failure, and it is

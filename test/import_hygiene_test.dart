@@ -1,4 +1,4 @@
-// Standing guard: ADR 0001 — build on `flutter/widgets`, not Material.
+// Standing guard: build on `flutter/widgets`, not Material.
 //
 // The analyzer cannot enforce this. `material.dart` re-exports the whole of
 // `widgets.dart`, so a file that imports Material and uses nothing but `Widget`
@@ -21,12 +21,12 @@ import 'package:flutter_test/flutter_test.dart';
 
 /// Files permitted to import Material, and the symbol that justifies it.
 ///
-/// ADR 0001 keeps exactly one Material widget on purpose — `TextField`, because
+/// The package keeps exactly one Material widget on purpose — `TextField`, because
 /// reimplementing a text editor means reimplementing IME composition, selection
 /// handles, autofill and the platform text-input channel, and getting any of
 /// those wrong is a worse accessibility outcome than the visual cost.
 const Map<String, String> _allowed = {
-  'it_input.dart': 'TextField + InputDecoration — ADR 0001 keeps the text '
+  'it_input.dart': 'TextField + InputDecoration — the package keeps the text '
       'editor rather than reimplementing IME, selection and autofill.',
   'it_autocomplete.dart': 'TextField + InputDecoration, as it_input.',
   'it_select.dart': 'TextField + InputDecoration, as it_input.',
@@ -41,7 +41,8 @@ const Map<String, String> _allowed = {
   // `it_modal.dart` is no longer here. It held the only genuine *behavioural*
   // Material dependency in the package — `MaterialLocalizations`, for the
   // barrier and dialog names — and that was a hidden ancestor requirement
-  // rather than a feature: `MaterialLocalizations.of` asserts. ADR 0002
+  // rather than a feature: `MaterialLocalizations.of` asserts. The kit's own
+  // delegate
   // replaced it with `ItLocalizations`, which cannot assert and answers in
   // Italian with no delegate installed. `showGeneralDialog` was never the
   // problem; it lives in `flutter/widgets.dart`.
@@ -79,7 +80,7 @@ void main() {
     expect(
       offenders,
       isEmpty,
-      reason: 'ADR 0001 says this package builds on `flutter/widgets`. These '
+      reason: 'This package builds on `flutter/widgets`. These '
           'files import Material:\n\n${offenders.join('\n')}\n\n'
           'If the file uses no Material-only symbol, change the import to '
           '`package:flutter/widgets.dart` — the analyzer will not tell you, '

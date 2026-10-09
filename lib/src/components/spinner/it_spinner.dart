@@ -38,7 +38,7 @@ enum ItSpinnerSize {
 ///
 /// The figure is painted from the stylesheet by [ItProgressSpinner] rather than
 /// delegating to Material's `CircularProgressIndicator`, which draws a
-/// different shape on a different clock. See doc/adr/0001.
+/// different shape on a different clock.
 ///
 /// ```dart
 /// ItSpinner()                              // spinning, single arc

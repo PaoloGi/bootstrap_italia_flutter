@@ -84,7 +84,7 @@ void main() {
       ),
     ));
 
-    // ItButton no longer wraps a Material ElevatedButton (doc/adr/0001), so
+    // ItButton no longer wraps a Material ElevatedButton, so
     // assert the painted fill rather than a ButtonStyle. Checking the rendered
     // result is what we actually care about and does not couple the test to
     // whichever widget happens to be underneath.

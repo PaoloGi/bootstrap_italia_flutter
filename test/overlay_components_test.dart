@@ -225,7 +225,7 @@ void main() {
 
       // `.link-list-wrapper ul .divider { height: 1px;
       //   background: hsl(210,4%,78%); margin: 8px 0 }`, painted as a plain box
-      // now that Material's Divider is gone (doc/adr/0001). Decorative, so it
+      // now that Material's Divider is gone. Decorative, so it
       // is also kept out of the semantics tree.
       final rule = find.descendant(
         of: find.byType(ExcludeSemantics),

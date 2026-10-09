@@ -7,7 +7,7 @@ yellow-and-black stripe in a debug build.
 WHAT THIS DOES NOT DETECT: clipping. Text truncated by a ClipRect, a fixed
 height, or maxLines is NOT an overflow and paints no stripe. A page can lose
 text at large type sizes and score zero here. Screenshots are kept so the
-result can be checked by eye; see doc/accessibility-audit.md.
+result can be checked by eye; see the iOS device sweep in doc/conformance.md.
 """
 import sys
 from PIL import Image

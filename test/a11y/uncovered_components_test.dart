@@ -4,7 +4,8 @@
 // somewhere in this directory. Adding it flagged sixteen, and the flags were
 // not noise: among them was **`ItActivatable`** — the widget that supplies
 // focus, keyboard activation and the focus ring to most of the package, and the
-// thing ADR 0001 is built around. It had been driven indirectly by dozens of
+// thing the migration off Material is built around. It had been driven
+// indirectly by dozens of
 // tests and asserted directly by none, which is exactly the state a coverage
 // check exists to surface.
 //
@@ -711,7 +712,8 @@ void _offcanvasContract() {
           reason: 'the debug fallback underlines everything it touches');
       expect(style.fontFamily, isNotNull,
           reason: 'without a family every glyph falls back to the platform '
-              'font, which is the missing-glyph trap from ADR 0001');
+              'font, which is the missing-glyph trap the migration off '
+              'Material exposed');
       expect(style.fontFamily, contains('Titillium'));
     });
 

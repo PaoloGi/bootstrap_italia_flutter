@@ -206,7 +206,7 @@ class _MegamenuMobileOverlayState extends State<MegamenuMobileOverlay> {
                         // once said `'Chiudi il menu'` and `'Chiudi menu'` —
                         // the same action announced two ways depending on which
                         // component drew it, which is the sort of thing a
-                        // single string table makes impossible (ADR 0002).
+                        // single string table makes impossible.
                         child: ItIconAction(
                           icon: BootstrapItaliaIcons.it_close,
                           color: panelFg,

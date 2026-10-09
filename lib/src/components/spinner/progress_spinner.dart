@@ -31,7 +31,7 @@ const double _halfTurn = math.pi;
 ///
 /// Replaces Material's `CircularProgressIndicator`, which draws a different
 /// shape (a growing/shrinking arc with no track, on Material's own 1333ms
-/// rotation) on a design system that specifies its own. See doc/adr/0001.
+/// rotation) on a design system that specifies its own.
 ///
 /// The stylesheet, from `bootstrap-italia.min.css`:
 ///

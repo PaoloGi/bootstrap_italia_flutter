@@ -54,7 +54,8 @@ platform disagrees with all of them:
 | `tool/a11y/ios_text_scale.sh`, `text_scale_probe.sh` | §1.4.4 at OS-driven text scale. This found a real overflow that no unit test could: a pinned width that stops fitting at 194% |
 
 **None of the device layers run in CI**, so their results describe one build on
-one day — see `doc/accessibility-audit.md`, which dates them.
+one day — the device sweeps in [`doc/conformance.md`](https://github.com/PaoloGi/bootstrap_italia_flutter/blob/main/doc/conformance.md)
+name the build and the date they were taken on.
 
 Contrast is audited from tokens rather than screenshots because axe-core
 **cannot** evaluate contrast on Flutter Web at all — the semantics tree is a
@@ -130,7 +131,7 @@ ItLocalizationsDelegate(
 Per-widget parameters such as `ItNotificationBadge.semanticLabel` still win over
 the delegate. They are for what only the call site knows — *"3 messaggi non
 letti"* rather than *"3 notifiche"* — which is the part that actually satisfies
-WCAG 4.1.2. See [ADR 0002](https://github.com/PaoloGi/bootstrap_italia_flutter/blob/main/doc/adr/0002-localisation-delegate-with-overrides.md).
+WCAG 4.1.2.
 
 ## Shipping to Flutter Web
 

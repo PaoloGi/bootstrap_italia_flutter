@@ -63,13 +63,13 @@ void main() {
       await tester.tap(find.text('Loading'));
       expect(pressed, isFalse);
       // The loading affordance is Bootstrap Italia's own painted spinner, not
-      // Material's CircularProgressIndicator (doc/adr/0001).
+      // Material's CircularProgressIndicator.
       expect(find.byType(ItProgressSpinner), findsOneWidget);
     });
 
     testWidgets('outline variant draws a ring and no fill', (tester) async {
       // Asserts the rendered result, not the widget type: ItButton no longer
-      // wraps a Material OutlinedButton (see doc/adr/0001). The outline ring is
+      // wraps a Material OutlinedButton. The outline ring is
       // a foregroundDecoration because `.btn-outline-*` uses an INSET box-shadow
       // that consumes no layout space — a laid-out border would make an outline
       // button larger than the solid button it has to match.

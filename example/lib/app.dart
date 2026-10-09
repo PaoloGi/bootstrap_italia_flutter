@@ -20,7 +20,7 @@ class BootstrapItaliaCatalog extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: theme.toThemeData(),
         // The delegate is optional — every component renders in Italian without
-        // it (ADR 0002). It is wired here because the catalogue is also the
+        // it. It is wired here because the catalogue is also the
         // worked example of how an application installs the package, and a PA
         // in Bolzano or Aosta has to be able to see the shape.
         //

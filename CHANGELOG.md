@@ -92,7 +92,7 @@ after adoption.
   `test/a11y/date_field_semantics_test.dart` tabs to it and fails if it cannot.
   Values read `10/09/2026`, `18:57`, the format upstream shows in its own
   placeholder. The Material import is declared in the import-hygiene allow-list
-  with its reason, as ADR 0001 requires.
+  with its reason, as the one-Material-widget rule requires.
 
 - **`ItDivider`.** `.divider { height:1px; background:hsl(210,4%,78%); margin:8px 0 }`
   — the stylesheet's rule, not Material's `Divider`, which is 16px tall and
@@ -679,9 +679,8 @@ captures are byte-identical across the rename.
   `pumpAndSettle` hang in any test containing one. It also painted the coloured
   arc when inactive, which read as "mid-spin but frozen".
 
-- Building on `flutter/widgets` rather than `flutter/material` — see
-  [ADR 0001](doc/adr/0001-build-on-widgets-not-material.md). `ItButton` no longer
-  wraps `ElevatedButton`/`OutlinedButton`.
+- Building on `flutter/widgets` rather than `flutter/material`. `ItButton` no
+  longer wraps `ElevatedButton`/`OutlinedButton`.
 - Removed `alertColorsForVariant` and `calloutColorsForVariant` from
   `BootstrapItaliaColorScheme`: both were unused and encoded the wrong design
 - `publish_to: none`, and the `homepage`/`repository` entries removed — they

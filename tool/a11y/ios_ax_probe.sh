@@ -21,7 +21,7 @@
 # VERIFIED BEFORE USE
 #   `--self-test` plants an unnamed button in the example app, rebuilds, and
 #   asserts this probe reports it. A probe that has never been seen red is a
-#   guess. See doc/accessibility-audit.md.
+#   guess. See the iOS device sweep in doc/conformance.md.
 set -uo pipefail
 
 # The booted simulator, or $IOS_UDID to pick one explicitly. Do not hard-code a

@@ -1,6 +1,6 @@
 // Every activatable control must answer the same keys.
 //
-// ADR 0001 says "every control moved off Material keeps `ItActivatable`", which
+// Every control moved off Material keeps `ItActivatable`, which
 // binds both `ActivateIntent` and `ButtonActivateIntent`. `ItButton` — the
 // flagship — rolled its own `FocusableActionDetector` and bound only the first.
 // Whether that is observable depends on which intent `WidgetsApp` dispatches on
